@@ -122,7 +122,7 @@ impl PavenetBuilder {
     fn build_base_stations(&self) -> HashMap<i32, BaseStation> {
         let base_station_activations = Self::read_device_activation(
             &self,
-            "base_station_id",
+            BASE_STATIONS,
             &self.config.input_files.base_station_activations,
         );
 
@@ -133,7 +133,7 @@ impl PavenetBuilder {
     fn build_controllers(&self) -> HashMap<i32, Controller> {
         let controller_activations = Self::read_device_activation(
             &self,
-            "controller_id",
+            CONTROLLERS,
             &self.config.input_files.controller_activations,
         );
 
@@ -159,7 +159,7 @@ impl PavenetBuilder {
             }
         };
 
-        let mut activation_handler = ActivationHandler::new(activation_df, device_name);
+        let mut activation_handler = ActivationHandler::new(activation_df);
         let activation_dfs = match activation_handler.prepare_device_activations() {
             Ok(activation_dfs) => activation_dfs,
             Err(e) => {
