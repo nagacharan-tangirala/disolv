@@ -6,8 +6,10 @@ pub struct ConfigReader {
 }
 
 impl ConfigReader {
-    pub fn new(file_name: String) -> Self {
-        Self { file_name }
+    pub fn new(file_name: &str) -> Self {
+        Self {
+            file_name: file_name.to_string(),
+        }
     }
 
     pub fn parse(&self) -> Result<Config, Box<dyn std::error::Error>> {
