@@ -1,9 +1,36 @@
 // Global imports (needed for the simulation to run)
-use crate::model::sea::Sea;
-mod model;
+mod device;
+mod models;
+mod sim;
+mod utils;
+use crate::sim::builder::PavenetBuilder;
+use crate::sim::network::Network;
+use std::env;
 
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 use krabmaga::*;
+
+pub static DISCRETIZATION: f32 = 0.5;
+
+// Main used when only the simulation should run, without any visualization.
+// #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
+#[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    if let Some(config_file) = args.get(1) {
+        let mut model_builder = PavenetBuilder::new(config_file.to_string());
+        let sim_model: Network = model_builder.build();
+        let duration = sim_model.get_duration();
+        simulate!(sim_model, duration, 1);
+    } else {
+        println!("Invalid number of arguments. Usage: pavenet config_file");
+        std::process::exit(1);
+    }
+}
+
+#[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
+mod visualization;
 
 // Visualization specific imports
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
@@ -11,25 +38,6 @@ use {
     crate::visualization::sea_vis::SeaVis, krabmaga::bevy::prelude::Color,
     krabmaga::visualization::visualization::Visualization,
 };
-
-#[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
-mod visualization;
-
-pub static DISCRETIZATION: f32 = 10.0 / 1.5;
-pub static TOROIDAL: bool = true;
-
-// Main used when only the simulation should run, without any visualization.
-#[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
-fn main() {
-    let step = 100;
-
-    let num_agents = 20;
-    let dim: (f32, f32) = (400., 400.);
-
-    let state = Sea::new(dim, num_agents);
-
-    simulate!(state, step, 10);
-}
 
 // Main used when a visualization feature is applied.
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
