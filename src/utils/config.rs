@@ -94,10 +94,14 @@ pub struct CollectorSettings {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct AggregatorSettings {
+    pub name: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct SimplifierSettings {
     pub name: String,
     pub compression_factor: f32,
-    pub retention_factor: f32,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -124,27 +128,25 @@ pub struct RSUSettings {
 pub struct BaseStationSettings {
     pub storage: f32,
     pub mobility: MobilitySettings,
-    pub composer: ComposerSettings,
     pub collector: CollectorSettings,
+    pub aggregator: AggregatorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct ControllerSettings {
     pub storage: f32,
     pub mobility: MobilitySettings,
-    pub composer: ComposerSettings,
     pub collector: CollectorSettings,
+    pub aggregator: AggregatorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct AllocatorStrategy {
-    pub name: String,
-    pub parameters: Map<String, String>,
+    pub strategy: Map<String, String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct EdgeOrchestratorSettings {
-    pub name: String,
     pub v2v_allocator: AllocatorStrategy,
     pub v2b_allocator: AllocatorStrategy,
     pub v2r_allocator: AllocatorStrategy,
@@ -154,6 +156,5 @@ pub struct EdgeOrchestratorSettings {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct CloudOrchestratorSettings {
-    pub name: String,
     pub b2c_allocator: AllocatorStrategy,
 }
