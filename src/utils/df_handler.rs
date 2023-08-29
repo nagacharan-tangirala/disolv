@@ -1,3 +1,4 @@
+use crate::utils::constants::{DEVICE_ID, END_TIME, START_TIME};
 use krabmaga::hashbrown::HashMap;
 use polars::prelude::{col, lit, IntoLazy};
 use polars_core::frame::DataFrame;
@@ -61,15 +62,11 @@ impl VehicleTraceHandler {
 
 pub struct ActivationHandler {
     activation_df: DataFrame,
-    device_id: String,
 }
 
 impl ActivationHandler {
-    pub fn new(activation_df: DataFrame, device_id: &str) -> Self {
-        Self {
-            activation_df,
-            device_id: device_id.to_string(),
-        }
+    pub fn new(activation_df: DataFrame) -> Self {
+        Self { activation_df }
     }
 
     pub fn prepare_device_activations(
@@ -79,16 +76,16 @@ impl ActivationHandler {
             .activation_df
             .clone()
             .lazy()
-            .groupby([col(&self.device_id)])
+            .groupby([col(DEVICE_ID)])
             .agg(
-                vec![col("activation"), col("deactivation")]
+                vec![col(START_TIME), col(END_TIME)]
                     .into_iter()
                     .collect::<Vec<_>>(),
             )
             .collect()
             .unwrap();
 
-        let device_id_series: &Series = match filtered_df.columns([&self.device_id])?.get(0) {
+        let device_id_series: &Series = match filtered_df.columns([DEVICE_ID])?.get(0) {
             Some(series) => *series,
             None => return Err("Wrong column name given".into()),
         };
@@ -108,14 +105,14 @@ impl ActivationHandler {
             let device_df = filtered_df
                 .clone()
                 .lazy()
-                .filter(col(&self.device_id).eq(lit(*device_id)))
+                .filter(col(DEVICE_ID).eq(lit(*device_id)))
                 .collect()
                 .unwrap();
-            let activation_series: &Series = match device_df.columns(["activation"])?.get(0) {
+            let activation_series: &Series = match device_df.columns([START_TIME])?.get(0) {
                 Some(series) => *series,
                 None => return Err("No activation column found".into()),
             };
-            let deactivation_series: &Series = match device_df.columns(["deactivation"])?.get(0) {
+            let deactivation_series: &Series = match device_df.columns([END_TIME])?.get(0) {
                 Some(series) => *series,
                 None => return Err("No deactivation column found".into()),
             };
