@@ -17,12 +17,21 @@ pub static DISCRETIZATION: f32 = 0.5;
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
     let args: Vec<String> = env::args().collect();
+    match args.len() {
+        2 => {
+            let config_file = &args[1];
+            let mut model_builder = PavenetBuilder::new(config_file);
+            let sim_model: Network = model_builder.build();
+            let duration = sim_model.get_duration();
+            simulate!(sim_model, duration, 1);
+        }
+        _ => {
+            println!("Invalid number of arguments. Usage: pavenet config_file");
+            std::process::exit(1);
+        }
+    }
 
     if let Some(config_file) = args.get(1) {
-        let mut model_builder = PavenetBuilder::new(config_file.to_string());
-        let sim_model: Network = model_builder.build();
-        let duration = sim_model.get_duration();
-        simulate!(sim_model, duration, 1);
     } else {
         println!("Invalid number of arguments. Usage: pavenet config_file");
         std::process::exit(1);
