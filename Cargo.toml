@@ -11,7 +11,16 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-krabmaga = "0.4.1"
+krabmaga = ">0.4.0"
+toml = ">0.7.0"
+serde = ">1.0.136"
+serde_derive = ">1.0.136"
+polars-core = "0.32.1"
+polars-io = "0.32.1"
+
+[dependencies.polars]
+version = "0.32.1"
+features = ["parquet", "lazy"]
 
 [features]
 visualization = ["krabmaga/visualization"]
