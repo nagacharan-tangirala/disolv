@@ -69,10 +69,13 @@ impl PavenetBuilder {
         // Read the trace data until the first streaming interval.
         // Create the vehicles and add them to the hashmap.
         // Return the hashmap.
+        let activation_file_path =
+            Path::new(&self.config_path).join(&self.config.input_files.vehicle_activations);
+
         let vehicle_activations = Self::read_device_activation(
             &self,
-            "vehicle_id",
-            &self.config.input_files.vehicle_activations,
+            VEHICLES,
+            activation_file_path.to_str().unwrap_or(""),
         );
         let vehicle_traces = Self::read_vehicle_traces(&self);
 
@@ -82,9 +85,12 @@ impl PavenetBuilder {
 
     fn read_vehicle_traces(&self) -> HashMap<i64, DataFrame> {
         let trace_file: &str = &self.config.input_files.vehicle_traces;
-        let mut trace_reader: ParquetDataReader = ParquetDataReader::new(trace_file);
+        let trace_file_path = Path::new(&self.config_path).join(trace_file);
+
+        let mut trace_reader: ParquetDataReader =
+            ParquetDataReader::new(trace_file_path.to_str().unwrap_or(""));
         let data_start = 0;
-        let data_end = STREAM_TIME as i64;
+        let data_end = STREAM_TIME as i64 - 1;
 
         let trace_df = match trace_reader.read_data(data_start, data_end) {
             Ok(trace_df) => trace_df,
