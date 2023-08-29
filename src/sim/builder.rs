@@ -1,29 +1,45 @@
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
-use crate::device::vehicle;
 use crate::device::vehicle::Vehicle;
 use crate::sim::network::Network;
 use crate::utils::config;
-use crate::utils::constants::STREAM_TIME;
+use crate::utils::constants::{BASE_STATIONS, CONTROLLERS, STREAM_TIME, VEHICLES};
 use crate::utils::data_io::{CsvDataReader, ParquetDataReader};
 use crate::utils::df_handler::{ActivationHandler, VehicleTraceHandler};
 use krabmaga::hashbrown::HashMap;
 use polars_core::frame::DataFrame;
-use std::error::Error;
-use std::fs::File;
+use std::path::Path;
 
 pub struct PavenetBuilder {
     config: config::Config,
+    config_path: String,
     data_readers: HashMap<String, ParquetDataReader>,
 }
 
 impl PavenetBuilder {
-    pub fn new(config_file: String) -> Self {
-        let config_reader = config::ConfigReader::new(config_file.to_string());
+    pub fn new(config_file: &str) -> Self {
+        if !Path::new(config_file).exists() {
+            println!("Configuration file is not found.");
+        }
+        let config_path = Path::new(config_file)
+            .parent()
+            .unwrap_or_else(|| {
+                println!("Invalid directory for the configuration file");
+                std::process::exit(1);
+            })
+            .to_str()
+            .unwrap_or_else(|| {
+                println!("Failed to convert the configuration file path to string");
+                std::process::exit(1);
+            })
+            .to_string();
+
+        let config_reader = config::ConfigReader::new(config_file);
         match config_reader.parse() {
             Ok(config_data) => Self {
                 config: config_data,
+                config_path,
                 data_readers: HashMap::new(),
             },
             Err(e) => {
