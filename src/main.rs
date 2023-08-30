@@ -12,8 +12,9 @@ use krabmaga::*;
 
 pub static DISCRETIZATION: f32 = 0.5;
 
-// Main used when only the simulation should run, without any visualization.
-// #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
+/*
+Main used when only the simulation should run, without any visualization.
+*/
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
     let args: Vec<String> = env::args().collect();
