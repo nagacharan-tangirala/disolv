@@ -16,21 +16,21 @@ use krabmaga::{
 
 /// Expand the state definition according to your sim, for example by having a grid struct field
 /// to store the agents' locations.
-pub struct Network {
-    pub config: config::Config,
-    pub step: u64,
-    pub vehicles: HashMap<i32, Vehicle>,
-    pub roadside_units: HashMap<i32, RoadsideUnit>,
-    pub base_stations: HashMap<i32, BaseStation>,
-    pub controllers: HashMap<i32, Controller>,
-    pub vehicle_field: Field2D<Vehicle>,
-    pub rsu_field: Field2D<RoadsideUnit>,
-    pub bs_field: Field2D<BaseStation>,
-    pub controller_field: Field2D<Controller>,
+pub(crate) struct Network {
+    pub(crate) config: config::Config,
+    pub(crate) step: u64,
+    pub(crate) vehicles: HashMap<i32, Vehicle>,
+    pub(crate) roadside_units: HashMap<i32, RoadsideUnit>,
+    pub(crate) base_stations: HashMap<i32, BaseStation>,
+    pub(crate) controllers: HashMap<i32, Controller>,
+    pub(crate) vehicle_field: Field2D<Vehicle>,
+    pub(crate) rsu_field: Field2D<RoadsideUnit>,
+    pub(crate) bs_field: Field2D<BaseStation>,
+    pub(crate) controller_field: Field2D<Controller>,
 }
 
 impl Network {
-    pub fn new(
+    pub(crate) fn new(
         config: config::Config,
         vehicles: HashMap<i32, Vehicle>,
         roadside_units: HashMap<i32, RoadsideUnit>,
@@ -59,7 +59,7 @@ impl Network {
         }
     }
 
-    pub fn get_duration(&self) -> u64 {
+    pub(crate) fn get_duration(&self) -> u64 {
         return self.config.simulation_settings.sim_duration;
     }
 }

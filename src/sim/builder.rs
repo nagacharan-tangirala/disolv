@@ -49,7 +49,7 @@ impl PavenetBuilder {
         }
     }
 
-    pub fn build(&mut self) -> Network {
+    pub(crate) fn build(&mut self) -> Network {
         let vehicles = self.build_vehicles();
         let roadside_units = self.build_roadside_units();
         let base_stations = self.build_base_stations();

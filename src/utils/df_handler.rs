@@ -1,20 +1,20 @@
-use crate::utils::constants::{DEVICE_ID, END_TIME, START_TIME};
+use crate::utils::constants::{DEVICE_ID, END_TIME, START_TIME, TIME_STEP, VEHICLE_ID};
 use krabmaga::hashbrown::HashMap;
 use polars::prelude::{col, lit, IntoLazy};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::Series;
 
-pub struct VehicleTraceHandler {
+pub(crate) struct VehicleTraceDFHandler {
     trace_df: DataFrame,
 }
 
-impl VehicleTraceHandler {
-    pub fn new(trace_df: DataFrame) -> Self {
+impl VehicleTraceDFHandler {
+    pub(crate) fn new(trace_df: DataFrame) -> Self {
         Self { trace_df }
     }
 
     #[rustfmt::skip]
-    pub fn prepare_trace_dfs(
+    pub(crate) fn prepare_trace_dfs(
         &mut self,
     ) -> Result<HashMap<i64, DataFrame>, Box<dyn std::error::Error>> {
 

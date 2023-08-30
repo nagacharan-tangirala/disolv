@@ -1,18 +1,18 @@
 use serde_derive::Deserialize;
 use std::collections::HashMap as Map;
 
-pub struct ConfigReader {
+pub(crate) struct ConfigReader {
     file_name: String,
 }
 
 impl ConfigReader {
-    pub fn new(file_name: &str) -> Self {
+    pub(crate) fn new(file_name: &str) -> Self {
         Self {
             file_name: file_name.to_string(),
         }
     }
 
-    pub fn parse(&self) -> Result<Config, Box<dyn std::error::Error>> {
+    pub(crate) fn parse(&self) -> Result<Config, Box<dyn std::error::Error>> {
         println!("Parsing file: {}", self.file_name);
         let parsing_result = std::fs::read_to_string(&self.file_name)?;
         let config: Config = toml::from_str(&parsing_result)?;
@@ -21,140 +21,140 @@ impl ConfigReader {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct Config {
-    pub input_files: InputFiles,
-    pub simulation_settings: SimSettings,
-    pub log_settings: LogSettings,
-    pub output_settings: OutputSettings,
-    pub vehicles: Map<String, VehicleSettings>,
-    pub roadside_units: Map<String, RSUSettings>,
-    pub base_stations: Map<String, BaseStationSettings>,
-    pub controllers: Map<String, ControllerSettings>,
-    pub edge_orchestrator: EdgeOrchestratorSettings,
-    pub cloud_orchestrator: CloudOrchestratorSettings,
+pub(crate) struct Config {
+    pub(crate) input_files: InputFiles,
+    pub(crate) simulation_settings: SimSettings,
+    pub(crate) log_settings: LogSettings,
+    pub(crate) output_settings: OutputSettings,
+    pub(crate) vehicles: Map<String, VehicleSettings>,
+    pub(crate) roadside_units: Map<String, RSUSettings>,
+    pub(crate) base_stations: Map<String, BaseStationSettings>,
+    pub(crate) controllers: Map<String, ControllerSettings>,
+    pub(crate) edge_orchestrator: EdgeOrchestratorSettings,
+    pub(crate) cloud_orchestrator: CloudOrchestratorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct InputFiles {
-    pub vehicle_traces: String,
-    pub vehicle_activations: String,
-    pub v2v_links: String,
-    pub base_stations: String,
-    pub base_station_activations: String,
-    pub v2b_links: String,
-    pub controllers: String,
-    pub controller_activations: String,
-    pub b2c_links: String,
-    pub roadside_units: String,
-    pub rsu_activations: String,
-    pub v2r_links: String,
-    pub r2b_links: String,
-    pub r2r_links: String,
-    pub data_source_config: String,
+pub(crate) struct InputFiles {
+    pub(crate) vehicle_traces: String,
+    pub(crate) vehicle_activations: String,
+    pub(crate) v2v_links: String,
+    pub(crate) base_stations: String,
+    pub(crate) base_station_activations: String,
+    pub(crate) v2b_links: String,
+    pub(crate) controllers: String,
+    pub(crate) controller_activations: String,
+    pub(crate) b2c_links: String,
+    pub(crate) roadside_units: String,
+    pub(crate) rsu_activations: String,
+    pub(crate) v2r_links: String,
+    pub(crate) r2b_links: String,
+    pub(crate) r2r_links: String,
+    pub(crate) data_source_config: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct SimSettings {
-    pub sim_name: String,
-    pub sim_duration: u64,
-    pub sim_step: u64,
-    pub sim_streaming_step: u64,
-    pub dimension_x_max: f32,
-    pub dimension_y_max: f32,
+pub(crate) struct SimSettings {
+    pub(crate) sim_name: String,
+    pub(crate) sim_duration: u64,
+    pub(crate) sim_step: u64,
+    pub(crate) sim_streaming_step: u64,
+    pub(crate) dimension_x_max: f32,
+    pub(crate) dimension_y_max: f32,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct LogSettings {
-    pub log_path: String,
-    pub log_level: String,
-    pub log_file_name: String,
-    pub log_overwrite: bool,
+pub(crate) struct LogSettings {
+    pub(crate) log_path: String,
+    pub(crate) log_level: String,
+    pub(crate) log_file_name: String,
+    pub(crate) log_overwrite: bool,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct OutputSettings {
-    pub output_path: String,
-    pub output_type: String,
+pub(crate) struct OutputSettings {
+    pub(crate) output_path: String,
+    pub(crate) output_type: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct MobilitySettings {
-    pub name: String,
+pub(crate) struct MobilitySettings {
+    pub(crate) name: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct ComposerSettings {
-    pub name: String,
-    pub data_source_list: Vec<String>,
+pub(crate) struct ComposerSettings {
+    pub(crate) name: String,
+    pub(crate) data_source_list: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct CollectorSettings {
-    pub name: String,
+pub(crate) struct CollectorSettings {
+    pub(crate) name: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct AggregatorSettings {
-    pub name: String,
+pub(crate) struct AggregatorSettings {
+    pub(crate) name: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct SimplifierSettings {
-    pub name: String,
-    pub compression_factor: f32,
+pub(crate) struct SimplifierSettings {
+    pub(crate) name: String,
+    pub(crate) compression_factor: f32,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct VehicleSettings {
-    pub ratio: f32,
-    pub storage: f32,
-    pub mobility: MobilitySettings,
-    pub composer: ComposerSettings,
-    pub simplifier: SimplifierSettings,
-    pub collector: CollectorSettings,
+pub(crate) struct VehicleSettings {
+    pub(crate) ratio: f32,
+    pub(crate) storage: f32,
+    pub(crate) mobility: MobilitySettings,
+    pub(crate) composer: ComposerSettings,
+    pub(crate) simplifier: SimplifierSettings,
+    pub(crate) collector: CollectorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct RSUSettings {
-    pub ratio: f32,
-    pub storage: f32,
-    pub mobility: MobilitySettings,
-    pub composer: ComposerSettings,
-    pub simplifier: SimplifierSettings,
-    pub collector: CollectorSettings,
+pub(crate) struct RSUSettings {
+    pub(crate) ratio: f32,
+    pub(crate) storage: f32,
+    pub(crate) mobility: MobilitySettings,
+    pub(crate) composer: ComposerSettings,
+    pub(crate) simplifier: SimplifierSettings,
+    pub(crate) collector: CollectorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct BaseStationSettings {
-    pub storage: f32,
-    pub mobility: MobilitySettings,
-    pub collector: CollectorSettings,
-    pub aggregator: AggregatorSettings,
+pub(crate) struct BaseStationSettings {
+    pub(crate) storage: f32,
+    pub(crate) mobility: MobilitySettings,
+    pub(crate) collector: CollectorSettings,
+    pub(crate) aggregator: AggregatorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct ControllerSettings {
-    pub storage: f32,
-    pub mobility: MobilitySettings,
-    pub collector: CollectorSettings,
-    pub aggregator: AggregatorSettings,
+pub(crate) struct ControllerSettings {
+    pub(crate) storage: f32,
+    pub(crate) mobility: MobilitySettings,
+    pub(crate) collector: CollectorSettings,
+    pub(crate) aggregator: AggregatorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct AllocatorStrategy {
-    pub strategy: Map<String, String>,
+pub(crate) struct AllocatorStrategy {
+    pub(crate) strategy: Map<String, String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct EdgeOrchestratorSettings {
-    pub v2v_allocator: AllocatorStrategy,
-    pub v2b_allocator: AllocatorStrategy,
-    pub v2r_allocator: AllocatorStrategy,
-    pub r2b_allocator: AllocatorStrategy,
-    pub r2r_allocator: AllocatorStrategy,
+pub(crate) struct EdgeOrchestratorSettings {
+    pub(crate) v2v_allocator: AllocatorStrategy,
+    pub(crate) v2b_allocator: AllocatorStrategy,
+    pub(crate) v2r_allocator: AllocatorStrategy,
+    pub(crate) r2b_allocator: AllocatorStrategy,
+    pub(crate) r2r_allocator: AllocatorStrategy,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct CloudOrchestratorSettings {
-    pub b2c_allocator: AllocatorStrategy,
+pub(crate) struct CloudOrchestratorSettings {
+    pub(crate) b2c_allocator: AllocatorStrategy,
 }
