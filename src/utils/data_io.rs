@@ -1,8 +1,15 @@
-use crate::utils::constants::TIME_STEP;
+use crate::utils::config;
+use crate::utils::constants::{CONTROLLER_ID, COORD_X, COORD_Y, STREAM_TIME, TIME_STEP};
+use crate::utils::df_handler::*;
+use krabmaga::hashbrown::HashMap;
 use polars::prelude::{col, lit, LazyFrame, PolarsResult, ScanArgsParquet};
 use polars_core::prelude::DataFrame;
 use polars_io::{prelude, SerReader};
-use std::path::PathBuf;
+use std::any::Any;
+use std::path::{Path, PathBuf};
+
+type Trace = (Vec<i64>, Vec<f32>, Vec<f32>, Vec<f32>);
+type Activation = (Vec<i64>, Vec<i64>);
 
 // Reads entire data from a file.
 // These are small files, so streaming is NOT implemented.
@@ -23,7 +30,7 @@ impl CsvDataReader {
     }
 }
 
-// Time stamped data is read from a file in chunks.
+// Time stamped data is read from a parquet file in chunks.
 // Certain assumptions are made about the data format. These are
 // required to be able to separate the data reading aspect into
 // a separate module.
