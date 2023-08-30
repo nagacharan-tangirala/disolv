@@ -126,52 +126,31 @@ impl ActivationDFHandler {
             .collect()
             .unwrap();
 
-        let device_id_series: &Series = match filtered_df.columns([DEVICE_ID])?.get(0) {
-            Some(series) => *series,
-            None => return Err("Wrong column name given".into()),
-        };
+        let device_ids_vec = convert_series_to_integer_vector(&filtered_df, DEVICE_ID)?;
 
-        let device_ids = device_id_series
-            .i64()?
-            .to_vec()
-            .iter()
-            .map(|x| x.unwrap_or(0))
-            .collect::<Vec<i64>>();
-        if device_ids.contains(&0) {
-            return Err("Device ids should not be 0".into());
-        }
-
-        let mut activation_dfs: HashMap<i64, (Vec<i64>, Vec<i64>)> = HashMap::new();
-        for device_id in device_ids.iter() {
+        let mut activation_dfs: HashMap<i64, Activation> = HashMap::new();
+        for device_id in device_ids_vec.iter() {
             let device_df = filtered_df
                 .clone()
                 .lazy()
                 .filter(col(DEVICE_ID).eq(lit(*device_id)))
                 .collect()
                 .unwrap();
-            let activation_series: &Series = match device_df.columns([START_TIME])?.get(0) {
-                Some(series) => *series,
-                None => return Err("No activation column found".into()),
-            };
-            let deactivation_series: &Series = match device_df.columns([END_TIME])?.get(0) {
-                Some(series) => *series,
-                None => return Err("No deactivation column found".into()),
-            };
-            let activations = activation_series
-                .i64()?
-                .to_vec()
-                .iter()
-                .map(|x| x.unwrap_or(0))
-                .collect::<Vec<i64>>();
-            let deactivations = deactivation_series
-                .i64()?
-                .to_vec()
-                .iter()
-                .map(|x| x.unwrap_or(0))
-                .collect::<Vec<i64>>();
-            activation_dfs.insert(*device_id, (activations, deactivations));
-        }
 
+            let activation_timings = match convert_series_to_integer_vector(&device_df, START_TIME)
+            {
+                Ok(timings) => timings,
+                Err(e) => return Err(e.into()),
+            };
+            let deactivation_timings = match convert_series_to_integer_vector(&device_df, END_TIME)
+            {
+                Ok(timings) => timings,
+                Err(e) => return Err(e.into()),
+            };
+            let activation_data: Activation = (activation_timings, deactivation_timings);
+
+            activation_dfs.insert(*device_id, activation_data);
+        }
         return Ok(activation_dfs);
     }
 }
