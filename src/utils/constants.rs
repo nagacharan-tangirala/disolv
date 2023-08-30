@@ -21,3 +21,6 @@ pub(crate) const VEHICLES_STR: &str = "vehicles_str";
 pub(crate) const BASE_STATIONS_STR: &str = "base_stations_str";
 pub(crate) const ROADSIDE_UNITS_STR: &str = "roadside_units_str";
 pub(crate) const DISTANCES_STR: &str = "distances_str";
+
+pub(crate) const COORD_X: &str = "x";
+pub(crate) const COORD_Y: &str = "y";
