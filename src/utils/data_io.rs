@@ -90,19 +90,25 @@ impl ActivationDataReader {
             }
         };
     }
+}
+
+pub(crate) struct PositionsReader;
+
+impl PositionsReader {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
 
     pub(crate) fn read_position_data(
         &self,
         trace_file: PathBuf,
         device_id_column: &str,
+        start_interval: i64,
+        end_interval: i64,
     ) -> HashMap<i64, Trace> {
-        let trace_file_path = Path::new(&self.config_path).join(trace_file);
+        let mut trace_reader: ParquetDataReader = ParquetDataReader::new(trace_file);
 
-        let mut trace_reader: ParquetDataReader = ParquetDataReader::new(trace_file_path);
-        let data_start = 0;
-        let data_end = STREAM_TIME as i64 - 1;
-
-        let trace_df = match trace_reader.read_data(data_start, data_end) {
+        let trace_df = match trace_reader.read_data(start_interval, end_interval) {
             Ok(trace_df) => trace_df,
             Err(e) => {
                 panic!("Error while reading the trace data from file: {}", e);
@@ -124,9 +130,7 @@ impl ActivationDataReader {
         &self,
         controller_file: PathBuf,
     ) -> Result<HashMap<i64, (f32, f32)>, Box<dyn std::error::Error>> {
-        let controller_file_path = Path::new(&self.config_path).join(controller_file);
-
-        let mut controller_reader: CsvDataReader = CsvDataReader::new(controller_file_path);
+        let mut controller_reader: CsvDataReader = CsvDataReader::new(controller_file);
         let controller_df = match controller_reader.read_data() {
             Ok(controller_df) => controller_df,
             Err(e) => {
