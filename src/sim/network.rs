@@ -4,6 +4,8 @@ use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
+use crate::sim::field::DeviceField;
+use crate::sim::vanet::Vanet;
 use crate::utils::config;
 use crate::DISCRETIZATION;
 use krabmaga::engine::agent::Agent;
@@ -23,10 +25,8 @@ pub(crate) struct Network {
     pub(crate) roadside_units: HashMap<i32, RoadsideUnit>,
     pub(crate) base_stations: HashMap<i32, BaseStation>,
     pub(crate) controllers: HashMap<i32, Controller>,
-    pub(crate) vehicle_field: Field2D<Vehicle>,
-    pub(crate) rsu_field: Field2D<RoadsideUnit>,
-    pub(crate) bs_field: Field2D<BaseStation>,
-    pub(crate) controller_field: Field2D<Controller>,
+    pub(crate) device_field: DeviceField,
+    pub(crate) vanet: Vanet,
 }
 
 impl Network {
@@ -36,15 +36,9 @@ impl Network {
         roadside_units: HashMap<i32, RoadsideUnit>,
         base_stations: HashMap<i32, BaseStation>,
         controllers: HashMap<i32, Controller>,
+        device_field: DeviceField,
+        vanet: Vanet,
     ) -> Self {
-        let x_max = config.simulation_settings.dimension_x_max;
-        let y_max = config.simulation_settings.dimension_y_max;
-
-        let vehicle_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
-        let rsu_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
-        let bs_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
-        let controller_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
-
         Network {
             config,
             step: 0,
@@ -52,10 +46,8 @@ impl Network {
             roadside_units,
             base_stations,
             controllers,
-            vehicle_field,
-            rsu_field,
-            bs_field,
-            controller_field,
+            device_field,
+            vanet,
         }
     }
 
@@ -67,7 +59,10 @@ impl Network {
 impl State for Network {
     /// Put the code that should be executed to initialize simulation:
     /// Agent creation and schedule set-up
-    fn init(&mut self, schedule: &mut Schedule) {}
+    fn init(&mut self, schedule: &mut Schedule) {
+        self.device_field.init();
+        //self.vanet.init();
+    }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
@@ -91,10 +86,7 @@ impl State for Network {
     /// Put the code that should be executed for each state update here. The state is updated once for each
     /// schedule step.
     fn update(&mut self, _step: u64) {
-        self.vehicle_field.lazy_update();
-        self.rsu_field.lazy_update();
-        self.bs_field.lazy_update();
-        self.controller_field.lazy_update();
+        self.device_field.update();
     }
 
     fn after_step(&mut self, _schedule: &mut Schedule) {
