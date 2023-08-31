@@ -1,20 +1,21 @@
 use serde_derive::Deserialize;
 use std::collections::HashMap as Map;
+use std::path::PathBuf;
 
 pub(crate) struct ConfigReader {
-    file_name: String,
+    file_path: PathBuf,
 }
 
 impl ConfigReader {
     pub(crate) fn new(file_name: &str) -> Self {
+        let file_path = PathBuf::from(file_name);
         Self {
-            file_name: file_name.to_string(),
+            file_path: file_path,
         }
     }
 
     pub(crate) fn parse(&self) -> Result<Config, Box<dyn std::error::Error>> {
-        println!("Parsing file: {}", self.file_name);
-        let parsing_result = std::fs::read_to_string(&self.file_name)?;
+        let parsing_result = std::fs::read_to_string(&self.file_path)?;
         let config: Config = toml::from_str(&parsing_result)?;
         Ok(config)
     }
