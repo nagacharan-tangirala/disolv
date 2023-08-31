@@ -3377,6 +3377,7 @@ dependencies = [
  "polars",
  "polars-core",
  "polars-io",
+ "rand",
  "serde",
  "serde_derive",
  "toml 0.7.6",

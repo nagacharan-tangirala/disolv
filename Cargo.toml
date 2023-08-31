@@ -17,6 +17,7 @@ serde = ">1.0.136"
 serde_derive = ">1.0.136"
 polars-core = "0.32.1"
 polars-io = "0.32.1"
+rand = "0.8.4"
 
 [dependencies.polars]
 version = "0.32.1"
@@ -25,3 +26,6 @@ features = ["parquet", "lazy"]
 [features]
 visualization = ["krabmaga/visualization"]
 visualization_wasm = ["krabmaga/visualization_wasm"]
+
+[profile.dev]
+opt-level = 1
