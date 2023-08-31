@@ -22,7 +22,10 @@ impl ConfigReader {
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct Config {
-    pub(crate) input_files: InputFiles,
+    pub(crate) position_files: PositionFiles,
+    pub(crate) activation_files: ActivationFiles,
+    pub(crate) link_files: LinkFiles,
+    pub(crate) data_source_config_file: DataSourceConfigFile,
     pub(crate) simulation_settings: SimSettings,
     pub(crate) log_settings: LogSettings,
     pub(crate) output_settings: OutputSettings,
@@ -35,22 +38,34 @@ pub(crate) struct Config {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct InputFiles {
-    pub(crate) vehicle_traces: String,
+pub(crate) struct PositionFiles {
+    pub(crate) vehicle_positions: String,
+    pub(crate) rsu_positions: String,
+    pub(crate) bs_positions: String,
+    pub(crate) controller_positions: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct ActivationFiles {
     pub(crate) vehicle_activations: String,
-    pub(crate) v2v_links: String,
-    pub(crate) base_stations: String,
-    pub(crate) base_station_activations: String,
-    pub(crate) v2b_links: String,
-    pub(crate) controllers: String,
-    pub(crate) controller_activations: String,
-    pub(crate) b2c_links: String,
-    pub(crate) roadside_units: String,
     pub(crate) rsu_activations: String,
+    pub(crate) base_station_activations: String,
+    pub(crate) controller_activations: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct LinkFiles {
+    pub(crate) v2v_links: String,
+    pub(crate) v2b_links: String,
     pub(crate) v2r_links: String,
-    pub(crate) r2b_links: String,
     pub(crate) r2r_links: String,
-    pub(crate) data_source_config: String,
+    pub(crate) r2b_links: String,
+    pub(crate) b2c_links: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct DataSourceConfigFile {
+    pub(crate) config_file: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
