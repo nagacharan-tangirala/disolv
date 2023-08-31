@@ -1,5 +1,5 @@
 use crate::utils::constants::{
-    COORD_X, COORD_Y, DEVICE_ID, END_TIME, START_TIME, TIME_STEP, VEHICLE_ID, VELOCITY,
+    COORD_X, COORD_Y, DEVICE_ID, END_TIME, START_TIME, STREAM_TIME, TIME_STEP, VEHICLE_ID, VELOCITY,
 };
 use krabmaga::hashbrown::HashMap;
 use polars::prelude::{col, lit, IntoLazy, PolarsResult};
@@ -21,10 +21,10 @@ pub(crate) fn convert_series_to_integer_vector(
     let list_to_option_vec: Vec<Option<i64>> = series_to_list.unwrap().i64()?.to_vec();
     let option_vec_to_vec: Vec<i64> = list_to_option_vec
         .iter()
-        .map(|x| x.unwrap_or(-1))
+        .map(|x| x.unwrap_or(-3))
         .collect::<Vec<i64>>();
 
-    if option_vec_to_vec.contains(&-1) {
+    if option_vec_to_vec.contains(&-3) {
         return Err("Error in converting series to vector".into());
     }
     return Ok(option_vec_to_vec);
@@ -77,27 +77,30 @@ impl TraceDFHandler {
             .collect()
             .unwrap();
 
-        let device_ids: Vec<i64> =
-            convert_series_to_integer_vector(&filtered_df, device_id_column)?;
+        let time_stamps: Vec<i64> = convert_series_to_integer_vector(&filtered_df, TIME_STEP)?;
 
-        let mut device_traces: HashMap<i64, Trace> = HashMap::new();
-        for device_id in device_ids.iter() {
-            let vehicle_df = filtered_df
+        let mut time_stamp_traces: HashMap<i64, Trace> = HashMap::new();
+        for time_stamp in time_stamps.iter() {
+            let ts_df = filtered_df
                 .clone()
                 .lazy()
-                .filter(col(device_id_column).eq(lit(*device_id)))
+                .filter(col(TIME_STEP).eq(lit(*time_stamp)))
                 .collect()
                 .unwrap();
 
-            let time_steps: Vec<i64> = convert_series_to_integer_vector(&vehicle_df, TIME_STEP)?;
-            let x_positions: Vec<f32> = convert_series_to_floating_vector(&vehicle_df, COORD_X)?;
-            let y_positions: Vec<f32> = convert_series_to_floating_vector(&vehicle_df, COORD_Y)?;
-            let velocities: Vec<f32> = convert_series_to_floating_vector(&vehicle_df, VELOCITY)?;
+            if ts_df.height() == 0 {
+                time_stamp_traces.insert(*time_stamp, (vec![], vec![], vec![], vec![]));
+                continue;
+            }
+            let time_steps: Vec<i64> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
+            let x_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COORD_X)?;
+            let y_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COORD_Y)?;
+            let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, VELOCITY)?;
 
             let trace: Trace = (time_steps, x_positions, y_positions, velocities);
-            device_traces.insert(*device_id, trace);
+            time_stamp_traces.insert(*time_stamp, trace);
         }
-        return Ok(device_traces);
+        return Ok(time_stamp_traces);
     }
 }
 
