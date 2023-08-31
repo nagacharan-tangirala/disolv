@@ -63,16 +63,11 @@ impl ParquetDataReader {
     }
 }
 
-pub(crate) struct DeviceDataReader {
-    config_path: PathBuf,
-}
+pub(crate) struct ActivationDataReader;
 
-impl DeviceDataReader {
-    pub(crate) fn new(config_path: &str) -> Self {
-        let config_path = PathBuf::from(config_path);
-        Self {
-            config_path: config_path,
-        }
+impl ActivationDataReader {
+    pub(crate) fn new() -> Self {
+        Self {}
     }
 
     pub(crate) fn read_activation_data(
