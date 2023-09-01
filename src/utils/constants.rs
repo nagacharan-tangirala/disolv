@@ -1,4 +1,4 @@
-pub(crate) const STREAM_TIME: usize = 1800;
+pub(crate) const STREAM_TIME: u64 = 1800;
 
 pub(crate) const VEHICLES: &str = "vehicles";
 pub(crate) const BASE_STATIONS: &str = "base_stations";
