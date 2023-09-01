@@ -1,12 +1,10 @@
-use crate::utils::config;
-use crate::utils::constants::{CONTROLLER_ID, COORD_X, COORD_Y, STREAM_TIME, TIME_STEP};
-use crate::utils::df_handler::*;
+use crate::data::df_handler::*;
+use crate::utils::constants::{CONTROLLER_ID, COORD_X, COORD_Y, TIME_STEP};
 use krabmaga::hashbrown::HashMap;
 use polars::prelude::{col, lit, LazyFrame, PolarsResult, ScanArgsParquet};
 use polars_core::prelude::DataFrame;
 use polars_io::{prelude, SerReader};
-use std::any::Any;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 type Trace = (Vec<i64>, Vec<f32>, Vec<f32>, Vec<f32>);
 type Activation = (Vec<i64>, Vec<i64>);
@@ -149,4 +147,33 @@ impl PositionsReader {
         }
         return Ok(controller_map);
     }
+}
+
+pub(crate) struct LinksReader {
+    config_path: PathBuf,
+}
+
+impl LinksReader {
+    pub(crate) fn new(config_path: &str) -> Self {
+        let config_path = PathBuf::from(config_path);
+        Self {
+            config_path: config_path,
+        }
+    }
+
+    // pub(crate) fn read_dynamic_links(
+    //     &self,
+    //     links_file: PathBuf,
+    //     links_column: &str,
+    // ) -> Result<HashMap<i64, i64>, Box<dyn std::error::Error>> {
+    //     let mut links_reader: ParquetDataReader = ParquetDataReader::new(links_file);
+    //     let links_df = match links_reader.read_data() {
+    //         Ok(controller_df) => controller_df,
+    //         Err(e) => {
+    //             panic!("Error while reading the controller data from file: {}", e);
+    //         }
+    //     };
+    // }
+
+    pub(crate) fn read_static_links() {}
 }
