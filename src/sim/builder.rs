@@ -207,36 +207,83 @@ impl PavenetBuilder {
         if activation_file.exists() == false {
             panic!("Base station activation file is not found.");
         }
-        let bs_activations: HashMap<u64, Activation> = self
-            .activation_data_reader
-            .read_activation_data(activation_file);
+        let bs_activations: HashMap<u64, data_io::Activation> =
+            data_io::read_activation_data(activation_file);
 
         let mut base_stations: HashMap<u64, BaseStation> = HashMap::new();
-        let bs_settings: Vec<&BaseStationSettings = self.config.base_stations.values().collect();
+        let all_bs_settings: Vec<&BaseStationSettings> =
+            self.config.base_stations.values().collect();
 
-        for (rsu_id, activation_data) in bs_activations.iter() {
+        let ratios: Vec<f32> = all_bs_settings
+            .iter()
+            .map(|bs_settings| bs_settings.ratio)
+            .collect();
+
+        info!("Base station ratios: {:?}", ratios);
+        let dist = WeightedIndex::new(&ratios).unwrap();
+        let mut rng = thread_rng();
+
+        for (bs_id, activation_data) in bs_activations.iter() {
             let bs_timing = Self::convert_activation_to_timing(&activation_data);
-            let base_station = BaseStation::new(*rsu_id, bs_timing, bs_settings);
-            base_stations.insert(*rsu_id, base_station);
+            let bs_settings = match all_bs_settings.get(dist.sample(&mut rng)) {
+                Some(bs_setting) => *bs_setting,
+                None => {
+                    panic!("Error while selecting Base station settings.");
+                }
+            };
+            let new_base_station = BaseStation::new(*bs_id, bs_timing, bs_settings);
+            if let Some(value) = base_stations.insert(*bs_id, new_base_station) {
+                panic!("Duplicate base station id: {}", value.id);
+            }
         }
         info!("Number of Base stations: {}", base_stations.len());
         return base_stations;
     }
 
-    fn build_controllers(&self) -> HashMap<i32, Controller> {
+    fn build_controllers(&self) -> HashMap<u64, Controller> {
         info!("Building controllers...");
-        let activation_file_path =
+        let activation_file =
             Path::new(&self.config_path).join(&self.config.activation_files.controller_activations);
 
-        if activation_file_path.exists() == false {
+        if activation_file.exists() == false {
             panic!("Controller activation file is not found.");
         }
 
-        let mut controllers: HashMap<i32, Controller> = HashMap::new();
+        let controller_activations: HashMap<u64, data_io::Activation> =
+            data_io::read_activation_data(activation_file);
+
+        let mut controllers: HashMap<u64, Controller> = HashMap::new();
+        let all_controller_settings: Vec<&ControllerSettings> =
+            self.config.controllers.values().collect();
+
+        let ratios: Vec<f32> = all_controller_settings
+            .iter()
+            .map(|controller_settings| controller_settings.ratio)
+            .collect();
+
+        info!("Controller ratios: {:?}", ratios);
+        let dist = WeightedIndex::new(&ratios).unwrap();
+        let mut rng = thread_rng();
+
+        for (controller_id, activation_data) in controller_activations.iter() {
+            let controller_timing = Self::convert_activation_to_timing(&activation_data);
+            let controller_settings = match all_controller_settings.get(dist.sample(&mut rng)) {
+                Some(controller_setting) => *controller_setting,
+                None => {
+                    panic!("Error while selecting controller settings.");
+                }
+            };
+            let base_controller =
+                Controller::new(*controller_id, controller_timing, controller_settings);
+            if let Some(value) = controllers.insert(*controller_id, base_controller) {
+                panic!("Duplicate controller id: {}", value.id);
+            }
+        }
+        info!("Number of Controllers: {}", controllers.len());
         return controllers;
     }
 
-    pub(crate) fn convert_activation_to_timing(activation: &Activation) -> Timing {
+    pub(crate) fn convert_activation_to_timing(activation: &data_io::Activation) -> Timing {
         let mut activation_times: [Option<u64>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         let mut deactivation_times: [Option<u64>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         for (i, start_time) in activation.0.iter().enumerate() {
