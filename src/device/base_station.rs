@@ -1,23 +1,63 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::device::roadside_unit::RSUPayload;
+use crate::device::vehicle::VehiclePayload;
+use crate::models::aggregator::{AggregatorType, BasicAggregator};
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::{toroidal_transform, Location2D};
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
+use krabmaga::hashbrown::HashMap;
 use krabmaga::rand;
 use krabmaga::rand::Rng;
 
-use crate::sim::network::Network;
+use crate::sim::network::{Network, Timing};
+use crate::utils::config::BaseStationSettings;
+use crate::utils::constants::ARRAY_SIZE;
+use crate::utils::ds_config::DataSourceSettings;
 
 /// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
 #[derive(Clone, Copy)]
-pub struct BaseStation {
-    pub id: u32,
-    pub loc: Real2D,
-    pub last_d: Real2D,
-    pub dir_x: f32,
-    pub dir_y: f32,
+pub(crate) struct BaseStation {
+    pub(crate) id: u64,
+    storage: f32,
+    pub(crate) location: Real2D,
+    pub(crate) bs_info: BSInfo,
+    pub(crate) timing: Timing,
+    pub(crate) aggregator: AggregatorType,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct BSPayload {
+    pub(crate) id: u32,
+    pub(crate) bs_info: BSInfo,
+    pub(crate) v2bs_data: HashMap<u64, VehiclePayload>,
+    pub(crate) rsu2bs_data: HashMap<u64, RSUPayload>,
+}
+
+#[derive(Clone, Debug, Copy, Default)]
+pub(crate) struct BSInfo {
+    pub(crate) location: Real2D,
+    pub(crate) temperature: f32,
+    pub(crate) storage: f32,
+}
+
+impl BaseStation {
+    pub(crate) fn new(id: u64, timing_info: Timing, bs_settings: &BaseStationSettings) -> Self {
+        let data_sources: [Option<DataSourceSettings>; ARRAY_SIZE] = [None; ARRAY_SIZE];
+        let aggregator: AggregatorType = match bs_settings.aggregator.name.as_str() {
+            _ => AggregatorType::Basic(BasicAggregator {}),
+        };
+        Self {
+            id,
+            storage: bs_settings.storage,
+            location: Real2D::default(),
+            timing: timing_info,
+            bs_info: BSInfo::default(),
+            aggregator,
+        }
+    }
 }
 
 impl Agent for BaseStation {
@@ -25,13 +65,6 @@ impl Agent for BaseStation {
     fn step(&mut self, state: &mut dyn State) {
         let state = state.as_any().downcast_ref::<Network>().unwrap();
         let mut rng = rand::thread_rng();
-
-        if rng.gen_bool(0.5) {
-            self.dir_x -= 1.0;
-        }
-        if rng.gen_bool(0.5) {
-            self.dir_y -= 1.0;
-        }
 
         // self.loc = Real2D { x: loc_x, y: loc_y };
         //
@@ -59,11 +92,11 @@ impl Hash for BaseStation {
 
 impl Location2D<Real2D> for BaseStation {
     fn get_location(self) -> Real2D {
-        self.loc
+        self.location
     }
 
     fn set_location(&mut self, loc: Real2D) {
-        self.loc = loc;
+        self.location = loc;
     }
 }
 
