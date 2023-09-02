@@ -94,18 +94,7 @@ pub(crate) struct OutputSettings {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct MobilitySettings {
-    pub(crate) name: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ComposerSettings {
-    pub(crate) name: String,
-    pub(crate) data_source_list: Vec<String>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct CollectorSettings {
     pub(crate) name: String,
 }
 
@@ -124,35 +113,27 @@ pub(crate) struct SimplifierSettings {
 pub(crate) struct VehicleSettings {
     pub(crate) ratio: f32,
     pub(crate) storage: f32,
-    pub(crate) mobility: MobilitySettings,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
-    pub(crate) collector: CollectorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct RSUSettings {
     pub(crate) ratio: f32,
     pub(crate) storage: f32,
-    pub(crate) mobility: MobilitySettings,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
-    pub(crate) collector: CollectorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct BaseStationSettings {
     pub(crate) storage: f32,
-    pub(crate) mobility: MobilitySettings,
-    pub(crate) collector: CollectorSettings,
     pub(crate) aggregator: AggregatorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ControllerSettings {
     pub(crate) storage: f32,
-    pub(crate) mobility: MobilitySettings,
-    pub(crate) collector: CollectorSettings,
     pub(crate) aggregator: AggregatorSettings,
 }
 
