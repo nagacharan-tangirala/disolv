@@ -39,11 +39,13 @@ impl DeviceField {
         let bs_positions = HashMap::new();
         let controller_positions = HashMap::new();
 
+        info!("Initializing individual device fields.");
         let vehicle_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
         let rsu_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
         let bs_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
         let controller_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
 
+        info!("Initializing the combined device field.");
         DeviceField {
             vehicle_field,
             rsu_field,

@@ -24,6 +24,7 @@ fn main() {
             let mut model_builder = PavenetBuilder::new(config_file);
             let sim_model: Network = model_builder.build();
             let duration = sim_model.get_duration();
+            println!("Running the simulation for {} steps", duration);
             simulate!(sim_model, duration, 1);
         }
         _ => {
