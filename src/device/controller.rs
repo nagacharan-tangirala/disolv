@@ -1,23 +1,43 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::models::aggregator::{AggregatorType, BasicAggregator};
 use krabmaga::engine::agent::Agent;
-use krabmaga::engine::fields::field_2d::{toroidal_transform, Location2D};
+use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
 use krabmaga::rand;
 use krabmaga::rand::Rng;
 
-use crate::sim::network::Network;
+use crate::sim::network::{Network, Timing};
+use crate::utils::config::ControllerSettings;
 
 /// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
 #[derive(Clone, Copy)]
-pub struct Controller {
-    pub id: u32,
-    pub loc: Real2D,
-    pub last_d: Real2D,
-    pub dir_x: f32,
-    pub dir_y: f32,
+pub(crate) struct Controller {
+    pub(crate) id: u64,
+    pub(crate) location: Real2D,
+    pub(crate) timing: Timing,
+    pub(crate) aggregator: AggregatorType,
+}
+
+impl Controller {
+    pub(crate) fn new(
+        id: u64,
+        timing_info: Timing,
+        controller_settings: &ControllerSettings,
+    ) -> Self {
+        let aggregator: AggregatorType = match controller_settings.aggregator.name.as_str() {
+            _ => AggregatorType::Basic(BasicAggregator {}),
+        };
+
+        Self {
+            id,
+            location: Real2D::default(),
+            timing: timing_info,
+            aggregator,
+        }
+    }
 }
 
 impl Agent for Controller {
@@ -25,13 +45,6 @@ impl Agent for Controller {
     fn step(&mut self, state: &mut dyn State) {
         let state = state.as_any().downcast_ref::<Network>().unwrap();
         let mut rng = rand::thread_rng();
-
-        if rng.gen_bool(0.5) {
-            self.dir_x -= 1.0;
-        }
-        if rng.gen_bool(0.5) {
-            self.dir_y -= 1.0;
-        }
 
         // let loc_x = toroidal_transform(self.loc.x + self.dir_x, state.vehicle_field.width);
         // let loc_y = toroidal_transform(self.loc.y + self.dir_y, state.vehicle_field.height);
@@ -60,11 +73,11 @@ impl Hash for Controller {
 
 impl Location2D<Real2D> for Controller {
     fn get_location(self) -> Real2D {
-        self.loc
+        self.location
     }
 
     fn set_location(&mut self, loc: Real2D) {
-        self.loc = loc;
+        self.location = loc;
     }
 }
 
