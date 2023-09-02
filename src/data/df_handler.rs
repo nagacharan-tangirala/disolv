@@ -1,32 +1,28 @@
+use crate::data::data_io::{Activation, Trace};
 use crate::utils::constants::{
     COORD_X, COORD_Y, DEVICE_ID, END_TIME, START_TIME, STREAM_TIME, TIME_STEP, VEHICLE_ID, VELOCITY,
 };
 use krabmaga::hashbrown::HashMap;
-use polars::prelude::{col, lit, IntoLazy, PolarsResult};
+use polars::prelude::{col, dtype_cols, lit, IntoLazy, PolarsResult};
+use polars_core::datatypes::DataType::UInt64;
 use polars_core::frame::DataFrame;
 use polars_core::prelude::Series;
-
-type Trace = (Vec<i64>, Vec<f32>, Vec<f32>, Vec<f32>);
-type Activation = (Vec<i64>, Vec<i64>);
 
 pub(crate) fn convert_series_to_integer_vector(
     df: &DataFrame,
     column_name: &str,
-) -> Result<Vec<i64>, Box<dyn std::error::Error>> {
+) -> Result<Vec<u64>, Box<dyn std::error::Error>> {
     let column_as_series: &Series = match df.columns([column_name])?.get(0) {
         Some(series) => *series,
         None => return Err("Error in the column name".into()),
     };
-    let series_to_list: PolarsResult<Series> = column_as_series.explode();
-    let list_to_option_vec: Vec<Option<i64>> = series_to_list.unwrap().i64()?.to_vec();
-    let option_vec_to_vec: Vec<i64> = list_to_option_vec
+    let series_to_list: Series = column_as_series.explode()?;
+    let list_to_option_vec: Vec<Option<i64>> = series_to_list.i64()?.to_vec();
+    let option_vec_to_vec: Vec<u64> = list_to_option_vec
         .iter()
-        .map(|x| x.unwrap_or(-3))
-        .collect::<Vec<i64>>();
+        .map(|x| x.unwrap() as u64) // unsafe casting but fine for the value range we have.
+        .collect::<Vec<u64>>();
 
-    if option_vec_to_vec.contains(&-3) {
-        return Err("Error in converting series to vector".into());
-    }
     return Ok(option_vec_to_vec);
 }
 
