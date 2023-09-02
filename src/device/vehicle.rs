@@ -1,29 +1,78 @@
+use crate::models::composer::{BasicComposer, ComposerType, RandomComposer};
+use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
 use core::fmt;
-use std::hash::{Hash, Hasher};
-
-use crate::models::mobility::{Mobility, TraceMobility};
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
+use krabmaga::hashbrown::HashMap;
 use krabmaga::rand;
-use krabmaga::rand::Rng;
+use std::hash::{Hash, Hasher};
 
-use crate::sim::network::Network;
+use crate::sim::network::{Network, Timing};
+use crate::utils::config::VehicleSettings;
+use crate::utils::constants::ARRAY_SIZE;
+use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
 
 /// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
-#[derive(Clone, Copy)]
-pub struct Vehicle {
-    pub id: u32,
-    pub loc: Real2D,
-    timing: Timing,
-    mobility: TraceMobility,
+#[derive(Clone, Debug, Copy)]
+pub(crate) struct Vehicle {
+    pub(crate) id: u64,
+    storage: f32,
+    pub(crate) location: Real2D,
+    pub(crate) timing: Timing,
+    pub(crate) vehicle_info: VehicleInfo,
+    pub(crate) composer: ComposerType,
+    pub(crate) simplifier: SimplifierType,
 }
 
-#[derive(Clone, Copy)]
-struct Timing {
-    activation: u64,
-    deactivation: u64,
+#[derive(Clone, Debug, Default)]
+pub(crate) struct VehiclePayload {
+    pub(crate) id: u32,
+    pub(crate) vehicle_info: VehicleInfo,
+    pub(crate) generated_data_size: HashMap<SensorType, f32>,
+    pub(crate) types_with_counts: HashMap<SensorType, u16>,
+    pub(crate) preferred_targets: HashMap<SensorType, DataTargetType>,
+}
+
+#[derive(Clone, Debug, Copy, Default)]
+pub(crate) struct VehicleInfo {
+    pub(crate) location: Real2D,
+    pub(crate) speed: f32,
+    pub(crate) temperature: f32,
+    pub(crate) env_temperature: f32,
+}
+
+impl Vehicle {
+    pub(crate) fn new(id: u64, timing_info: Timing, vehicle_settings: &VehicleSettings) -> Self {
+        let data_sources: [Option<DataSourceSettings>; ARRAY_SIZE] = [None; ARRAY_SIZE];
+        let composer: ComposerType = match vehicle_settings.composer.name.as_str() {
+            "random" => ComposerType::Random(RandomComposer {
+                data_sources: data_sources.clone(),
+            }),
+            _ => ComposerType::Basic(BasicComposer {
+                data_sources: data_sources.clone(),
+            }),
+        };
+        let simplifier: SimplifierType = match vehicle_settings.composer.name.as_str() {
+            "random" => SimplifierType::Random(RandomSimplifier {}),
+            _ => SimplifierType::Basic(BasicSimplifier {}),
+        };
+
+        Self {
+            id,
+            storage: vehicle_settings.storage,
+            location: Real2D::default(),
+            timing: timing_info,
+            vehicle_info: VehicleInfo::default(),
+            composer,
+            simplifier,
+        }
+    }
+
+    pub(crate) fn get_vehicle_info(&self) -> VehicleInfo {
+        self.vehicle_info
+    }
 }
 
 impl Agent for Vehicle {
