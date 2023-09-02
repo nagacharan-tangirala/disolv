@@ -34,8 +34,8 @@ pub(crate) struct Config {
     pub(crate) roadside_units: Map<String, RSUSettings>,
     pub(crate) base_stations: Map<String, BaseStationSettings>,
     pub(crate) controllers: Map<String, ControllerSettings>,
-    pub(crate) edge_orchestrator: EdgeOrchestratorSettings,
-    pub(crate) cloud_orchestrator: CloudOrchestratorSettings,
+    pub(crate) mesh_links: MeshLinkSettings,
+    pub(crate) infra_links: InfraLinkSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
