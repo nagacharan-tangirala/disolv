@@ -1,2 +1,3 @@
 pub(crate) mod data_io;
-pub(crate) mod df_handler;
+mod df_handler;
+mod file_io;
