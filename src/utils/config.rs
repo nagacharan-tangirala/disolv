@@ -162,15 +162,15 @@ pub(crate) struct AllocatorStrategy {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct EdgeOrchestratorSettings {
+pub(crate) struct MeshLinkSettings {
     pub(crate) v2v_allocator: AllocatorStrategy,
-    pub(crate) v2b_allocator: AllocatorStrategy,
     pub(crate) v2r_allocator: AllocatorStrategy,
-    pub(crate) r2b_allocator: AllocatorStrategy,
     pub(crate) r2r_allocator: AllocatorStrategy,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct CloudOrchestratorSettings {
+pub(crate) struct InfraLinkSettings {
+    pub(crate) v2b_allocator: AllocatorStrategy,
+    pub(crate) r2b_allocator: AllocatorStrategy,
     pub(crate) b2c_allocator: AllocatorStrategy,
 }
