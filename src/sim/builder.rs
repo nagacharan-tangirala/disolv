@@ -153,23 +153,24 @@ impl PavenetBuilder {
                 }
             };
             let vehicle_timing = Self::convert_activation_to_timing(&activation_data);
-            let vehicle = Vehicle::new(*vehicle_id, vehicle_timing, vehicle_setting);
-            vehicles.insert(*vehicle_id, vehicle);
+            let new_vehicle = Vehicle::new(*vehicle_id, vehicle_timing, vehicle_setting);
+            if let Some(value) = vehicles.insert(*vehicle_id, new_vehicle) {
+                panic!("Duplicate Vehicle id: {}", value.id);
+            }
         }
         info!("Number of vehicles: {}", vehicles.len());
         return vehicles;
     }
 
-    fn build_roadside_units(&self) -> HashMap<i32, RoadsideUnit> {
+    fn build_roadside_units(&self) -> HashMap<u64, RoadsideUnit> {
         info!("Building roadside units...");
         let activation_file =
             Path::new(&self.config_path).join(&self.config.activation_files.rsu_activations);
         if activation_file.exists() == false {
             panic!("RSU activation file is not found.");
         }
-        let rsu_activations: HashMap<u64, Activation> = self
-            .activation_data_reader
-            .read_activation_data(activation_file);
+        let rsu_activations: HashMap<u64, data_io::Activation> =
+            data_io::read_activation_data(activation_file);
 
         let mut roadside_units: HashMap<u64, RoadsideUnit> = HashMap::new();
         let all_rsu_settings: Vec<&RSUSettings> = self.config.roadside_units.values().collect();
@@ -190,12 +191,12 @@ impl PavenetBuilder {
                 }
             };
             let rsu_timing = Self::convert_activation_to_timing(&activation_data);
-            let roadside_unit = RoadsideUnit::new(*rsu_id, rsu_timing, rsu_settings);
-            roadside_units.insert(*rsu_id, roadside_unit);
+            let new_rsu = RoadsideUnit::new(*rsu_id, rsu_timing, rsu_settings);
+            if let Some(value) = roadside_units.insert(*rsu_id, new_rsu) {
+                panic!("Duplicate RSU id: {}", value.id);
+            }
         }
         info!("Number of Roadside Units: {}", roadside_units.len());
-
-        let mut roadside_units: HashMap<i32, RoadsideUnit> = HashMap::new();
         return roadside_units;
     }
 
