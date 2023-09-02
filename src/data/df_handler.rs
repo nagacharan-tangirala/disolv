@@ -59,7 +59,7 @@ impl TraceDFHandler {
     pub(crate) fn prepare_trace_data(
         &mut self,
         device_id_column: &str,
-    ) -> Result<HashMap<i64, Trace>, Box<dyn std::error::Error>> {
+    ) -> Result<HashMap<u64, Trace>, Box<dyn std::error::Error>> {
         let filtered_df: DataFrame = self
             .trace_df
             .clone()
@@ -73,9 +73,9 @@ impl TraceDFHandler {
             .collect()
             .unwrap();
 
-        let time_stamps: Vec<i64> = convert_series_to_integer_vector(&filtered_df, TIME_STEP)?;
+        let time_stamps: Vec<u64> = convert_series_to_integer_vector(&filtered_df, TIME_STEP)?;
 
-        let mut time_stamp_traces: HashMap<i64, Trace> = HashMap::new();
+        let mut time_stamp_traces: HashMap<u64, Trace> = HashMap::new();
         for time_stamp in time_stamps.iter() {
             let ts_df = filtered_df
                 .clone()
@@ -88,7 +88,7 @@ impl TraceDFHandler {
                 time_stamp_traces.insert(*time_stamp, (vec![], vec![], vec![], vec![]));
                 continue;
             }
-            let time_steps: Vec<i64> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
+            let time_steps: Vec<u64> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
             let x_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COORD_X)?;
             let y_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COORD_Y)?;
             let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, VELOCITY)?;
@@ -111,7 +111,7 @@ impl ActivationDFHandler {
 
     pub(crate) fn prepare_device_activations(
         &mut self,
-    ) -> Result<HashMap<i64, Activation>, Box<dyn std::error::Error>> {
+    ) -> Result<HashMap<u64, Activation>, Box<dyn std::error::Error>> {
         let filtered_df = self
             .activation_df
             .clone()
@@ -125,9 +125,9 @@ impl ActivationDFHandler {
             .collect()
             .unwrap();
 
-        let device_ids_vec = convert_series_to_integer_vector(&filtered_df, DEVICE_ID)?;
+        let device_ids_vec: Vec<u64> = convert_series_to_integer_vector(&filtered_df, DEVICE_ID)?;
 
-        let mut activation_dfs: HashMap<i64, Activation> = HashMap::new();
+        let mut activation_dfs: HashMap<u64, Activation> = HashMap::new();
         for device_id in device_ids_vec.iter() {
             let device_df = filtered_df
                 .clone()

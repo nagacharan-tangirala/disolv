@@ -1,27 +1,26 @@
+use crate::data::data_io::{PositionsReader, Trace};
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
 use crate::utils::config::PositionFiles;
 use crate::utils::constants::{BASE_STATION_ID, RSU_ID, STREAM_TIME, VEHICLE_ID};
-use crate::utils::data_io::PositionsReader;
 use crate::DISCRETIZATION;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::fields::field_2d::Field2D;
 use krabmaga::hashbrown::HashMap;
+use log::info;
 use std::path::{Path, PathBuf};
-
-type Trace = (Vec<i64>, Vec<f32>, Vec<f32>, Vec<f32>);
 
 pub(crate) struct DeviceField {
     pub(crate) vehicle_field: Field2D<Vehicle>,
     pub(crate) rsu_field: Field2D<RoadsideUnit>,
     pub(crate) bs_field: Field2D<BaseStation>,
     pub(crate) controller_field: Field2D<Controller>,
-    pub(crate) vehicle_positions: HashMap<i64, Trace>,
-    pub(crate) rsu_positions: HashMap<i64, Trace>,
-    pub(crate) bs_positions: HashMap<i64, Trace>,
-    pub(crate) controller_positions: HashMap<i64, (f32, f32)>,
+    pub(crate) vehicle_positions: HashMap<u64, Trace>,
+    pub(crate) rsu_positions: HashMap<u64, Trace>,
+    pub(crate) bs_positions: HashMap<u64, Trace>,
+    pub(crate) controller_positions: HashMap<u64, (f32, f32)>,
     pub(crate) position_files: PositionFiles,
     pub(crate) config_path: PathBuf,
     pub(crate) position_reader: PositionsReader,
@@ -92,7 +91,7 @@ impl DeviceField {
         }
     }
 
-    fn read_vehicle_positions(&self) -> HashMap<i64, Trace> {
+    fn read_vehicle_positions(&self) -> HashMap<u64, Trace> {
         let trace_file = self
             .config_path
             .join(&self.position_files.vehicle_positions);
@@ -100,9 +99,9 @@ impl DeviceField {
             panic!("Vehicle trace file is not found.");
         }
 
-        let starting_time: i64 = self.step as i64;
-        let ending_time: i64 = (self.step + STREAM_TIME) as i64;
-        let vehicle_positions: HashMap<i64, Trace> = self.position_reader.read_position_data(
+        let starting_time: u64 = self.step;
+        let ending_time: u64 = (self.step + STREAM_TIME);
+        let vehicle_positions: HashMap<u64, Trace> = self.position_reader.read_position_data(
             trace_file,
             VEHICLE_ID,
             starting_time,
@@ -111,29 +110,29 @@ impl DeviceField {
         vehicle_positions
     }
 
-    fn read_rsu_positions(&self) -> HashMap<i64, Trace> {
+    fn read_rsu_positions(&self) -> HashMap<u64, Trace> {
         let trace_file = self.config_path.join(&self.position_files.rsu_positions);
         if trace_file.exists() == false {
             panic!("RSU trace file is not found.");
         }
 
-        let starting_time: i64 = self.step as i64;
-        let ending_time: i64 = (self.step + STREAM_TIME) as i64;
-        let rsu_positions: HashMap<i64, Trace> =
+        let starting_time: u64 = self.step;
+        let ending_time: u64 = self.step + STREAM_TIME;
+        let rsu_positions: HashMap<u64, Trace> =
             self.position_reader
                 .read_position_data(trace_file, RSU_ID, starting_time, ending_time);
         rsu_positions
     }
 
-    fn read_base_station_positions(&self) -> HashMap<i64, Trace> {
+    fn read_base_station_positions(&self) -> HashMap<u64, Trace> {
         let trace_file = self.config_path.join(&self.position_files.bs_positions);
         if trace_file.exists() == false {
             panic!("Base station trace file is not found.");
         }
 
-        let starting_time: i64 = self.step as i64;
-        let ending_time: i64 = (self.step + STREAM_TIME) as i64;
-        let bs_positions: HashMap<i64, Trace> = self.position_reader.read_position_data(
+        let starting_time: u64 = self.step;
+        let ending_time: u64 = self.step + STREAM_TIME;
+        let bs_positions: HashMap<u64, Trace> = self.position_reader.read_position_data(
             trace_file,
             BASE_STATION_ID,
             starting_time,
@@ -142,7 +141,7 @@ impl DeviceField {
         bs_positions
     }
 
-    fn read_controller_positions(&self) -> HashMap<i64, (f32, f32)> {
+    fn read_controller_positions(&self) -> HashMap<u64, (f32, f32)> {
         let trace_file = self
             .config_path
             .join(&self.position_files.controller_positions);
@@ -150,7 +149,7 @@ impl DeviceField {
             panic!("Controller trace file is not found.");
         }
 
-        let controller_positions: HashMap<i64, (f32, f32)> =
+        let controller_positions: HashMap<u64, (f32, f32)> =
             match self.position_reader.read_controller_positions(trace_file) {
                 Ok(controller_positions) => controller_positions,
                 Err(e) => {
