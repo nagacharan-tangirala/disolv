@@ -1,4 +1,4 @@
-use crate::data::data_io::{Activation, ActivationDataReader};
+use crate::data::data_io;
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
@@ -6,7 +6,7 @@ use crate::device::vehicle::Vehicle;
 use crate::sim::field::DeviceField;
 use crate::sim::network::{Network, Timing};
 use crate::sim::vanet::{InfraLinks, MeshLinks, Vanet};
-use crate::utils::config::{BaseStationSettings, RSUSettings, VehicleSettings};
+use crate::utils::config::{BaseStationSettings, ControllerSettings, RSUSettings, VehicleSettings};
 use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::AllDataSources;
 use crate::utils::{config, ds_config, logger};
@@ -21,7 +21,6 @@ pub(crate) struct PavenetBuilder {
     config: config::Config,
     ds_config: AllDataSources,
     config_path: PathBuf,
-    activation_data_reader: ActivationDataReader,
 }
 
 impl PavenetBuilder {
@@ -37,7 +36,6 @@ impl PavenetBuilder {
             .to_path_buf();
 
         let config_reader = config::ConfigReader::new(&config_file);
-        let activation_data_reader = ActivationDataReader::new();
         let config_data = match config_reader.parse() {
             Ok(config_data) => config_data,
             Err(e) => {
@@ -53,7 +51,6 @@ impl PavenetBuilder {
                 config: config_data,
                 ds_config,
                 config_path,
-                activation_data_reader,
             },
             Err(e) => {
                 panic!("Error while parsing the data source config file: {}", e);
@@ -130,9 +127,8 @@ impl PavenetBuilder {
         if activation_file.exists() == false {
             panic!("Vehicle activation file is not found.");
         }
-        let vehicle_activations: HashMap<u64, Activation> = self
-            .activation_data_reader
-            .read_activation_data(activation_file);
+        let vehicle_activations: HashMap<u64, data_io::Activation> =
+            data_io::read_activation_data(activation_file);
 
         let mut vehicles: HashMap<u64, Vehicle> = HashMap::new();
         let all_vehicle_settings: Vec<&VehicleSettings> = self.config.vehicles.values().collect();
