@@ -1,4 +1,5 @@
-use crate::data::data_io::{PositionsReader, Trace};
+use crate::data::data_io;
+use crate::data::data_io::Trace;
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
@@ -10,7 +11,7 @@ use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::fields::field_2d::Field2D;
 use krabmaga::hashbrown::HashMap;
 use log::info;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub(crate) struct DeviceField {
     pub(crate) vehicle_field: Field2D<Vehicle>,
@@ -23,7 +24,6 @@ pub(crate) struct DeviceField {
     pub(crate) controller_positions: HashMap<u64, (f32, f32)>,
     pub(crate) position_files: PositionFiles,
     pub(crate) config_path: PathBuf,
-    pub(crate) position_reader: PositionsReader,
     pub(crate) step: u64,
 }
 
@@ -39,13 +39,13 @@ impl DeviceField {
         let bs_positions = HashMap::new();
         let controller_positions = HashMap::new();
 
-        info!("Initializing individual device fields.");
+        info!("Creating individual device fields");
         let vehicle_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
         let rsu_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
         let bs_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
         let controller_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
 
-        info!("Initializing the combined device field.");
+        info!("Creating the combined device field");
         DeviceField {
             vehicle_field,
             rsu_field,
@@ -57,12 +57,12 @@ impl DeviceField {
             controller_positions,
             position_files: position_files.clone(),
             config_path: config_path.clone(),
-            position_reader: PositionsReader::new(),
             step: 0,
         }
     }
 
     pub(crate) fn init(&mut self) {
+        info! {"Initializing the device field"};
         self.vehicle_positions = self.read_vehicle_positions();
         self.rsu_positions = self.read_rsu_positions();
         self.bs_positions = self.read_base_station_positions();
@@ -103,7 +103,7 @@ impl DeviceField {
 
         let starting_time: u64 = self.step;
         let ending_time: u64 = (self.step + STREAM_TIME);
-        let vehicle_positions: HashMap<u64, Trace> = self.position_reader.read_position_data(
+        let vehicle_positions: HashMap<u64, Trace> = data_io::stream_positions_in_interval(
             trace_file,
             VEHICLE_ID,
             starting_time,
@@ -118,11 +118,7 @@ impl DeviceField {
             panic!("RSU trace file is not found.");
         }
 
-        let starting_time: u64 = self.step;
-        let ending_time: u64 = self.step + STREAM_TIME;
-        let rsu_positions: HashMap<u64, Trace> =
-            self.position_reader
-                .read_position_data(trace_file, RSU_ID, starting_time, ending_time);
+        let rsu_positions: HashMap<u64, Trace> = data_io::read_all_positions(trace_file, RSU_ID);
         rsu_positions
     }
 
@@ -131,15 +127,8 @@ impl DeviceField {
         if trace_file.exists() == false {
             panic!("Base station trace file is not found.");
         }
-
-        let starting_time: u64 = self.step;
-        let ending_time: u64 = self.step + STREAM_TIME;
-        let bs_positions: HashMap<u64, Trace> = self.position_reader.read_position_data(
-            trace_file,
-            BASE_STATION_ID,
-            starting_time,
-            ending_time,
-        );
+        let bs_positions: HashMap<u64, Trace> =
+            data_io::read_all_positions(trace_file, BASE_STATION_ID);
         bs_positions
     }
 
@@ -152,7 +141,7 @@ impl DeviceField {
         }
 
         let controller_positions: HashMap<u64, (f32, f32)> =
-            match self.position_reader.read_controller_positions(trace_file) {
+            match data_io::read_controller_positions(trace_file) {
                 Ok(controller_positions) => controller_positions,
                 Err(e) => {
                     panic!("Error while reading controller positions: {}", e);
