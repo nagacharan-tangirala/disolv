@@ -99,14 +99,14 @@ impl PavenetBuilder {
         let logger_config = match logger::setup_logging(log_level, log_file_path) {
             Ok(logger_config) => logger_config,
             Err(e) => {
-                panic!("Error while setting up the logger: {}", e);
+                panic!("Error while configuring the loggerr: {}", e);
             }
         };
 
         match log4rs::init_config(logger_config) {
             Ok(_) => {}
             Err(e) => {
-                panic!("Error while setting up the logger: {}", e);
+                panic!("Error while initializing logger with config: {}", e);
             }
         };
     }
