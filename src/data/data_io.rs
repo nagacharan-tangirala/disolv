@@ -49,8 +49,8 @@ impl ParquetDataReader {
 
     pub(crate) fn read_data(
         &mut self,
-        interval_begin: i64,
-        interval_end: i64,
+        interval_begin: u64,
+        interval_end: u64,
     ) -> PolarsResult<DataFrame> {
         let args = ScanArgsParquet::default();
         let data_df = LazyFrame::scan_parquet(&self.file_name, args)
@@ -72,7 +72,7 @@ impl ActivationDataReader {
     pub(crate) fn read_activation_data(
         &self,
         activations_file: PathBuf,
-    ) -> HashMap<i64, Activation> {
+    ) -> HashMap<u64, Activation> {
         let mut activation_data_reader: CsvDataReader = CsvDataReader::new(activations_file);
         let activation_df = match activation_data_reader.read_data() {
             Ok(activation_df) => activation_df,
@@ -102,9 +102,9 @@ impl PositionsReader {
         &self,
         trace_file: PathBuf,
         device_id_column: &str,
-        start_interval: i64,
-        end_interval: i64,
-    ) -> HashMap<i64, Trace> {
+        start_interval: u64,
+        end_interval: u64,
+    ) -> HashMap<u64, Trace> {
         let mut trace_reader: ParquetDataReader = ParquetDataReader::new(trace_file);
 
         let trace_df = match trace_reader.read_data(start_interval, end_interval) {
@@ -115,7 +115,7 @@ impl PositionsReader {
         };
 
         let mut trace_handler: TraceDFHandler = TraceDFHandler::new(trace_df);
-        let trace_map: HashMap<i64, Trace> =
+        let trace_map: HashMap<u64, Trace> =
             match trace_handler.prepare_trace_data(device_id_column) {
                 Ok(trace_map) => trace_map,
                 Err(e) => {
@@ -128,7 +128,7 @@ impl PositionsReader {
     pub(crate) fn read_controller_positions(
         &self,
         controller_file: PathBuf,
-    ) -> Result<HashMap<i64, (f32, f32)>, Box<dyn std::error::Error>> {
+    ) -> Result<HashMap<u64, (f32, f32)>, Box<dyn std::error::Error>> {
         let mut controller_reader: CsvDataReader = CsvDataReader::new(controller_file);
         let controller_df = match controller_reader.read_data() {
             Ok(controller_df) => controller_df,
@@ -137,12 +137,12 @@ impl PositionsReader {
             }
         };
 
-        let controller_ids: Vec<i64> =
+        let controller_ids: Vec<u64> =
             convert_series_to_integer_vector(&controller_df, CONTROLLER_ID)?;
         let x_positions: Vec<f32> = convert_series_to_floating_vector(&controller_df, COORD_X)?;
         let y_positions: Vec<f32> = convert_series_to_floating_vector(&controller_df, COORD_Y)?;
 
-        let mut controller_map: HashMap<i64, (f32, f32)> = HashMap::new();
+        let mut controller_map: HashMap<u64, (f32, f32)> = HashMap::new();
         for i in 0..controller_ids.len() {
             controller_map.insert(controller_ids[i], (x_positions[i], y_positions[i]));
         }
