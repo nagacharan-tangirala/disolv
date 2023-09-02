@@ -1,13 +1,14 @@
 use crate::data::df_handler::*;
 use crate::utils::constants::{CONTROLLER_ID, COORD_X, COORD_Y, TIME_STEP};
 use krabmaga::hashbrown::HashMap;
+use polars::export::arrow::datatypes::{DataType, Field};
 use polars::prelude::{col, lit, LazyFrame, PolarsResult, ScanArgsParquet};
-use polars_core::prelude::DataFrame;
+use polars_core::prelude::{DataFrame, Schema, SchemaRef};
 use polars_io::{prelude, SerReader};
 use std::path::PathBuf;
 
-type Trace = (Vec<i64>, Vec<f32>, Vec<f32>, Vec<f32>);
-type Activation = (Vec<i64>, Vec<i64>);
+pub type Activation = (Vec<u64>, Vec<u64>);
+pub type Trace = (Vec<u64>, Vec<f32>, Vec<f32>, Vec<f32>);
 
 // Reads entire data from a file.
 // These are small files, so streaming is NOT implemented.
