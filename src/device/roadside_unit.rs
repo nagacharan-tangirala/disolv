@@ -60,11 +60,11 @@ impl Hash for RoadsideUnit {
 
 impl Location2D<Real2D> for RoadsideUnit {
     fn get_location(self) -> Real2D {
-        self.loc
+        self.location
     }
 
-    fn set_location(&mut self, loc: Real2D) {
-        self.loc = loc;
+    fn set_location(&mut self, new_location: Real2D) {
+        self.location = new_location;
     }
 }
 

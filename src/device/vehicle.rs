@@ -81,11 +81,11 @@ impl Agent for Vehicle {
         let state = state.as_any().downcast_ref::<Network>().unwrap();
         let mut rng = rand::thread_rng();
 
-        self.loc = Real2D { x: 0.0, y: 0.0 };
+        self.location = Real2D { x: 0.0, y: 0.0 };
 
-        state
-            .vehicle_field
-            .set_object_location(*self, Real2D { x: 0.0, y: 0.0 });
+        // state
+        //     .vehicle_field
+        //     .set_object_location(*self, Real2D { x: 0.0, y: 0.0 });
     }
 
     /// Put the code that decides if an agent should be removed or not
@@ -106,11 +106,11 @@ impl Hash for Vehicle {
 
 impl Location2D<Real2D> for Vehicle {
     fn get_location(self) -> Real2D {
-        self.loc
+        self.location
     }
 
     fn set_location(&mut self, loc: Real2D) {
-        self.loc = loc;
+        self.location = loc;
     }
 }
 
