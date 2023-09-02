@@ -11,7 +11,7 @@ use std::env;
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 use krabmaga::*;
 
-pub static DISCRETIZATION: f32 = 0.5;
+pub static DISCRETIZATION: f32 = 100.0;
 
 /*
 Main used when only the simulation should run, without any visualization.
