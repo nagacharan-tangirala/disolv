@@ -6,7 +6,8 @@ use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
-use crate::utils::config;
+use crate::utils::constants::ARRAY_SIZE;
+use crate::utils::{config, ds_config};
 use crate::DISCRETIZATION;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field::Field;
@@ -15,32 +16,42 @@ use krabmaga::{
     engine::{fields::field_2d::Field2D, location::Real2D, schedule::Schedule, state::State},
     rand::{self, Rng},
 };
+use log::info;
 
 /// Expand the state definition according to your sim, for example by having a grid struct field
 /// to store the agents' locations.
 pub(crate) struct Network {
     pub(crate) config: config::Config,
+    pub(crate) ds_config: ds_config::AllDataSources,
     pub(crate) step: u64,
-    pub(crate) vehicles: HashMap<i32, Vehicle>,
-    pub(crate) roadside_units: HashMap<i32, RoadsideUnit>,
-    pub(crate) base_stations: HashMap<i32, BaseStation>,
-    pub(crate) controllers: HashMap<i32, Controller>,
+    pub(crate) vehicles: HashMap<u64, Vehicle>,
+    pub(crate) roadside_units: HashMap<u64, RoadsideUnit>,
+    pub(crate) base_stations: HashMap<u64, BaseStation>,
+    pub(crate) controllers: HashMap<u64, Controller>,
     pub(crate) device_field: DeviceField,
     pub(crate) vanet: Vanet,
+}
+
+#[derive(Clone, Debug, Copy, Default)]
+pub(crate) struct Timing {
+    pub(crate) activation: [Option<u64>; ARRAY_SIZE],
+    pub(crate) deactivation: [Option<u64>; ARRAY_SIZE],
 }
 
 impl Network {
     pub(crate) fn new(
         config: config::Config,
-        vehicles: HashMap<i32, Vehicle>,
-        roadside_units: HashMap<i32, RoadsideUnit>,
-        base_stations: HashMap<i32, BaseStation>,
-        controllers: HashMap<i32, Controller>,
+        ds_config: ds_config::AllDataSources,
+        vehicles: HashMap<u64, Vehicle>,
+        roadside_units: HashMap<u64, RoadsideUnit>,
+        base_stations: HashMap<u64, BaseStation>,
+        controllers: HashMap<u64, Controller>,
         device_field: DeviceField,
         vanet: Vanet,
     ) -> Self {
         Network {
             config,
+            ds_config,
             step: 0,
             vehicles,
             roadside_units,
