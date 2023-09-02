@@ -125,12 +125,14 @@ pub(crate) struct RSUSettings {
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct BaseStationSettings {
+    pub(crate) ratio: f32,
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ControllerSettings {
+    pub(crate) ratio: f32,
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
 }
