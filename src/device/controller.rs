@@ -33,13 +33,13 @@ impl Agent for Controller {
             self.dir_y -= 1.0;
         }
 
-        let loc_x = toroidal_transform(self.loc.x + self.dir_x, state.vehicle_field.width);
-        let loc_y = toroidal_transform(self.loc.y + self.dir_y, state.vehicle_field.height);
-        self.loc = Real2D { x: loc_x, y: loc_y };
-
-        state
-            .controller_field
-            .set_object_location(*self, Real2D { x: loc_x, y: loc_y });
+        // let loc_x = toroidal_transform(self.loc.x + self.dir_x, state.vehicle_field.width);
+        // let loc_y = toroidal_transform(self.loc.y + self.dir_y, state.vehicle_field.height);
+        // self.loc = Real2D { x: loc_x, y: loc_y };
+        //
+        // state
+        //     .controller_field
+        //     .set_object_location(*self, Real2D { x: loc_x, y: loc_y });
     }
 
     /// Put the code that decides if an agent should be removed or not
