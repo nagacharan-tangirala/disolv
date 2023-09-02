@@ -9,9 +9,7 @@ pub(crate) struct ConfigReader {
 impl ConfigReader {
     pub(crate) fn new(file_name: &str) -> Self {
         let file_path = PathBuf::from(file_name);
-        Self {
-            file_path: file_path,
-        }
+        Self { file_path }
     }
 
     pub(crate) fn parse(&self) -> Result<Config, Box<dyn std::error::Error>> {
