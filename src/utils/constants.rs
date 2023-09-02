@@ -1,5 +1,11 @@
 pub(crate) const STREAM_TIME: u64 = 1800;
 
+// Agents need Copy trait, hence vector cannot be used.
+// Hence, we have added arrays with fixed sizes.
+// Make sure to change this value if there any of the
+// arrays need more data than this size.
+pub(crate) const ARRAY_SIZE: usize = 10;
+
 pub(crate) const VEHICLES: &str = "vehicles";
 pub(crate) const BASE_STATIONS: &str = "base_stations";
 pub(crate) const CONTROLLERS: &str = "controllers";
