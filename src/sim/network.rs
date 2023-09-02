@@ -60,6 +60,7 @@ impl State for Network {
     /// Put the code that should be executed to initialize simulation:
     /// Agent creation and schedule set-up
     fn init(&mut self, schedule: &mut Schedule) {
+        info!("Initializing simulation.");
         self.device_field.init();
         //self.vanet.init();
     }
@@ -86,6 +87,7 @@ impl State for Network {
     /// Put the code that should be executed for each state update here. The state is updated once for each
     /// schedule step.
     fn update(&mut self, _step: u64) {
+        info!("Updating state at step {}", self.step);
         self.device_field.update();
     }
 
