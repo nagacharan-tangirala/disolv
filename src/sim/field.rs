@@ -4,8 +4,11 @@ use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
-use crate::utils::config::PositionFiles;
-use crate::utils::constants::{BASE_STATION_ID, RSU_ID, STREAM_TIME, VEHICLE_ID};
+use crate::utils::config::{DeviceFieldSettings, PositionFiles};
+use crate::utils::constants::{
+    BASE_STATION, COL_BASE_STATION_ID, COL_RSU_ID, COL_VEHICLE_ID, ROADSIDE_UNIT, STREAM_TIME,
+    VEHICLE,
+};
 use crate::DISCRETIZATION;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::fields::field_2d::Field2D;
@@ -30,8 +33,7 @@ pub(crate) struct DeviceField {
 
 impl DeviceField {
     pub(crate) fn new(
-        x_max: f32,
-        y_max: f32,
+        field_settings: &DeviceFieldSettings,
         config_path: &PathBuf,
         position_files: &PositionFiles,
     ) -> Self {
@@ -82,7 +84,7 @@ impl DeviceField {
     }
 
     pub(crate) fn init(&mut self) {
-        info! {"Initializing the device field"};
+        info! {"Initializing the device field"}
         self.vehicle_positions = self.read_vehicle_positions();
         self.rsu_positions = self.read_rsu_positions();
         self.bs_positions = self.read_base_station_positions();
@@ -97,23 +99,42 @@ impl DeviceField {
     }
 
     pub(crate) fn refresh_position_data(&mut self, step: u64) {
+        info! {"Refreshing position data from files at step {}", step}
         self.step = step;
         let vehicle_positions = self.read_vehicle_positions();
-        let rsu_positions = self.read_rsu_positions();
-        let bs_positions = self.read_base_station_positions();
 
         if vehicle_positions.len() > 0 {
             self.vehicle_positions = vehicle_positions;
         }
-        if rsu_positions.len() > 0 {
-            self.rsu_positions = rsu_positions;
-        }
-        if bs_positions.len() > 0 {
-            self.bs_positions = bs_positions;
-        }
     }
 
-    fn read_vehicle_positions(&self) -> HashMap<u64, Trace> {
+    fn stream_device_positions(
+        &self,
+        trace_file: PathBuf,
+        device_id_column: &str,
+    ) -> HashMap<u64, Option<Trace>> {
+        let starting_time: u64 = self.step;
+        let ending_time: u64 = self.step + STREAM_TIME;
+        let vehicle_positions: HashMap<u64, Option<Trace>> = data_io::stream_positions_in_interval(
+            trace_file,
+            device_id_column,
+            starting_time,
+            ending_time,
+        );
+        return vehicle_positions;
+    }
+
+    fn read_all_positions(
+        &self,
+        trace_file: PathBuf,
+        device_id_column: &str,
+    ) -> HashMap<u64, Option<Trace>> {
+        let device_positions: HashMap<u64, Option<Trace>> =
+            data_io::read_all_positions(trace_file, device_id_column);
+        device_positions
+    }
+
+    fn read_vehicle_positions(&self) -> HashMap<u64, Option<Trace>> {
         let trace_file = self
             .config_path
             .join(&self.position_files.vehicle_positions);
@@ -121,35 +142,61 @@ impl DeviceField {
             panic!("Vehicle trace file is not found.");
         }
 
-        let starting_time: u64 = self.step;
-        let ending_time: u64 = (self.step + STREAM_TIME);
-        let vehicle_positions: HashMap<u64, Trace> = data_io::stream_positions_in_interval(
-            trace_file,
-            VEHICLE_ID,
-            starting_time,
-            ending_time,
-        );
-        vehicle_positions
+        let trace_flag: bool = match self.field_settings.trace_flags.get(VEHICLE) {
+            Some(trace_flag) => *trace_flag,
+            None => {
+                panic!("RSU trace flag is not set in the config file.")
+            }
+        };
+
+        let vehicle_positions = if trace_flag == true {
+            self.stream_device_positions(trace_file, COL_VEHICLE_ID)
+        } else {
+            self.read_all_positions(trace_file, COL_VEHICLE_ID)
+        };
+        return vehicle_positions;
     }
 
-    fn read_rsu_positions(&self) -> HashMap<u64, Trace> {
+    fn read_rsu_positions(&self) -> HashMap<u64, Option<Trace>> {
         let trace_file = self.config_path.join(&self.position_files.rsu_positions);
         if trace_file.exists() == false {
             panic!("RSU trace file is not found.");
         }
 
-        let rsu_positions: HashMap<u64, Trace> = data_io::read_all_positions(trace_file, RSU_ID);
-        rsu_positions
+        let trace_flag: bool = match self.field_settings.trace_flags.get(ROADSIDE_UNIT) {
+            Some(trace_flag) => *trace_flag,
+            None => {
+                panic!("RSU trace flag is not set in the config file.")
+            }
+        };
+
+        let rsu_positions = if trace_flag == true {
+            self.stream_device_positions(trace_file, COL_RSU_ID)
+        } else {
+            self.read_all_positions(trace_file, COL_RSU_ID)
+        };
+        return rsu_positions;
     }
 
-    fn read_base_station_positions(&self) -> HashMap<u64, Trace> {
+    fn read_base_station_positions(&self) -> HashMap<u64, Option<Trace>> {
         let trace_file = self.config_path.join(&self.position_files.bs_positions);
         if trace_file.exists() == false {
             panic!("Base station trace file is not found.");
         }
-        let bs_positions: HashMap<u64, Trace> =
-            data_io::read_all_positions(trace_file, BASE_STATION_ID);
-        bs_positions
+
+        let trace_flag: bool = match self.field_settings.trace_flags.get(BASE_STATION) {
+            Some(trace_flag) => *trace_flag,
+            None => {
+                panic!("Base station trace flag is not set in the config file.")
+            }
+        };
+
+        let bs_positions = if trace_flag == true {
+            self.stream_device_positions(trace_file, COL_BASE_STATION_ID)
+        } else {
+            self.read_all_positions(trace_file, COL_BASE_STATION_ID)
+        };
+        return bs_positions;
     }
 
     fn read_controller_positions(&self) -> HashMap<u64, (f32, f32)> {
