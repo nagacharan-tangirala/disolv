@@ -71,7 +71,7 @@ impl State for Network {
     /// Put the code that should be executed to initialize simulation:
     /// Agent creation and schedule set-up
     fn init(&mut self, schedule: &mut Schedule) {
-        info!("Initializing simulation.");
+        info!("Initializing simulation...");
         self.device_field.init();
         //self.vanet.init();
     }

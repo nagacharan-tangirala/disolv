@@ -65,7 +65,7 @@ impl PavenetBuilder {
         let base_stations = self.build_base_stations();
         let controllers = self.build_controllers();
 
-        info! {"Building empty device field and VANET..."};
+        debug! {"Building empty device field and VANET..."};
         let device_field = self.build_empty_device_field();
         let vanet: Vanet = self.build_empty_vanet();
 
@@ -137,7 +137,7 @@ impl PavenetBuilder {
             .map(|vehicle_setting| vehicle_setting.ratio)
             .collect();
 
-        info!("Vehicle ratios: {:?}", ratios);
+        debug!("Vehicle ratios: {:?}", ratios);
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
 
@@ -154,7 +154,7 @@ impl PavenetBuilder {
                 panic!("Duplicate Vehicle id: {}", value.id);
             }
         }
-        info!("Number of vehicles: {}", vehicles.len());
+        info!("Done! Number of vehicles: {}", vehicles.len());
         return vehicles;
     }
 
@@ -175,7 +175,7 @@ impl PavenetBuilder {
             .map(|rsu_settings| rsu_settings.ratio)
             .collect();
 
-        info!("RSU ratios: {:?}", ratios);
+        debug!("RSU ratios: {:?}", ratios);
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
 
@@ -192,7 +192,7 @@ impl PavenetBuilder {
                 panic!("Duplicate RSU id: {}", value.id);
             }
         }
-        info!("Number of Roadside Units: {}", roadside_units.len());
+        info!("Done! Number of Roadside Units: {}", roadside_units.len());
         return roadside_units;
     }
 
@@ -216,7 +216,7 @@ impl PavenetBuilder {
             .map(|bs_settings| bs_settings.ratio)
             .collect();
 
-        info!("Base station ratios: {:?}", ratios);
+        debug!("Base station ratios: {:?}", ratios);
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
 
@@ -233,7 +233,7 @@ impl PavenetBuilder {
                 panic!("Duplicate base station id: {}", value.id);
             }
         }
-        info!("Number of Base stations: {}", base_stations.len());
+        info!("Done! Number of Base stations: {}", base_stations.len());
         return base_stations;
     }
 
@@ -258,7 +258,7 @@ impl PavenetBuilder {
             .map(|controller_settings| controller_settings.ratio)
             .collect();
 
-        info!("Controller ratios: {:?}", ratios);
+        debug!("Controller ratios: {:?}", ratios);
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
 
@@ -276,7 +276,7 @@ impl PavenetBuilder {
                 panic!("Duplicate controller id: {}", value.id);
             }
         }
-        info!("Number of Controllers: {}", controllers.len());
+        info!("Done! Number of Controllers: {}", controllers.len());
         return controllers;
     }
 
