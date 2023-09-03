@@ -55,11 +55,11 @@ pub(crate) struct ActivationFiles {
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct LinkFiles {
     pub(crate) v2v_links: String,
-    pub(crate) v2b_links: String,
-    pub(crate) v2r_links: String,
-    pub(crate) r2r_links: String,
-    pub(crate) r2b_links: String,
-    pub(crate) b2c_links: String,
+    pub(crate) v2bs_links: String,
+    pub(crate) v2rsu_links: String,
+    pub(crate) rsu2rsu_links: String,
+    pub(crate) rsu2bs_links: String,
+    pub(crate) bs2c_links: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
