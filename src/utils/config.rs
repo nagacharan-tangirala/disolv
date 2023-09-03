@@ -1,5 +1,5 @@
 use serde_derive::Deserialize;
-use std::collections::HashMap as Map;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub(crate) struct ConfigReader {
@@ -28,12 +28,14 @@ pub(crate) struct Config {
     pub(crate) simulation_settings: SimSettings,
     pub(crate) log_settings: LogSettings,
     pub(crate) output_settings: OutputSettings,
-    pub(crate) vehicles: Map<String, VehicleSettings>,
-    pub(crate) roadside_units: Map<String, RSUSettings>,
-    pub(crate) base_stations: Map<String, BaseStationSettings>,
-    pub(crate) controllers: Map<String, ControllerSettings>,
+    pub(crate) vehicles: HashMap<String, VehicleSettings>,
+    pub(crate) roadside_units: HashMap<String, RSUSettings>,
+    pub(crate) base_stations: HashMap<String, BaseStationSettings>,
+    pub(crate) controllers: HashMap<String, ControllerSettings>,
     pub(crate) mesh_links: MeshLinkSettings,
     pub(crate) infra_links: InfraLinkSettings,
+    pub(crate) field_settings: DeviceFieldSettings,
+    pub(crate) network_settings: NetworkSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -137,7 +139,7 @@ pub(crate) struct ControllerSettings {
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct AllocatorStrategy {
-    pub(crate) strategy: Map<String, String>,
+    pub(crate) strategy: HashMap<String, String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
