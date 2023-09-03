@@ -1,5 +1,5 @@
+use krabmaga::hashbrown::HashMap;
 use serde_derive::Deserialize;
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub(crate) struct ConfigReader {
