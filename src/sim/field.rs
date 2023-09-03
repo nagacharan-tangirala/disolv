@@ -40,14 +40,33 @@ impl DeviceField {
         let bs_positions = HashMap::new();
         let controller_positions = HashMap::new();
 
-        info!("Creating individual device fields");
-        let vehicle_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
-        let rsu_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
-        let bs_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
-        let controller_field = Field2D::new(x_max, y_max, DISCRETIZATION, false);
+        let vehicle_field = Field2D::new(
+            field_settings.width,
+            field_settings.height,
+            DISCRETIZATION,
+            false,
+        );
+        let rsu_field = Field2D::new(
+            field_settings.width,
+            field_settings.height,
+            DISCRETIZATION,
+            false,
+        );
+        let bs_field = Field2D::new(
+            field_settings.width,
+            field_settings.height,
+            DISCRETIZATION,
+            false,
+        );
+        let controller_field = Field2D::new(
+            field_settings.width,
+            field_settings.height,
+            DISCRETIZATION,
+            false,
+        );
 
-        info!("Creating the combined device field");
-        DeviceField {
+        Self {
+            field_settings: field_settings.clone(),
             vehicle_field,
             rsu_field,
             bs_field,
