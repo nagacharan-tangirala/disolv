@@ -30,7 +30,7 @@ pub(crate) fn stream_positions_in_interval(
     device_id_column: &str,
     start_interval: u64,
     end_interval: u64,
-) -> HashMap<u64, Trace> {
+) -> HashMap<u64, Option<Trace>> {
     let trace_df =
         match file_io::stream_parquet_in_interval(trace_file, start_interval, end_interval) {
             Ok(trace_df) => trace_df,
@@ -39,11 +39,11 @@ pub(crate) fn stream_positions_in_interval(
             }
         };
 
-    let trace_map: HashMap<u64, Trace> =
+    let trace_map: HashMap<u64, Option<Trace>> =
         match df_handler::prepare_trace_data(&trace_df, device_id_column) {
             Ok(trace_map) => trace_map,
             Err(e) => {
-                panic!("Error while converting DF to hashmap: {}", e);
+                panic!("Error while converting trace DF to hashmap: {}", e);
             }
         };
     return trace_map;
@@ -52,7 +52,7 @@ pub(crate) fn stream_positions_in_interval(
 pub(crate) fn read_all_positions(
     trace_file: PathBuf,
     device_id_column: &str,
-) -> HashMap<u64, Trace> {
+) -> HashMap<u64, Option<Trace>> {
     let trace_df = match file_io::read_parquet_data(trace_file) {
         Ok(trace_df) => trace_df,
         Err(e) => {
@@ -60,7 +60,7 @@ pub(crate) fn read_all_positions(
         }
     };
 
-    let trace_map: HashMap<u64, Trace> =
+    let trace_map: HashMap<u64, Option<Trace>> =
         match df_handler::prepare_trace_data(&trace_df, device_id_column) {
             Ok(trace_map) => trace_map,
             Err(e) => {
@@ -73,19 +73,13 @@ pub(crate) fn read_all_positions(
 pub(crate) fn read_controller_positions(
     controller_file: PathBuf,
 ) -> Result<HashMap<u64, (f32, f32)>, Box<dyn std::error::Error>> {
-    let controller_df = match file_io::read_csv_data(controller_file) {
-        Ok(controller_df) => controller_df,
-        Err(e) => {
-            panic!("Error while reading the controller data from file: {}", e);
-        }
-    };
-
+    let controller_df = file_io::read_csv_data(controller_file)?;
     let controller_ids: Vec<u64> =
-        df_handler::convert_series_to_integer_vector(&controller_df, CONTROLLER_ID)?;
+        df_handler::convert_series_to_integer_vector(&controller_df, COL_CONTROLLER_ID)?;
     let x_positions: Vec<f32> =
-        df_handler::convert_series_to_floating_vector(&controller_df, COORD_X)?;
+        df_handler::convert_series_to_floating_vector(&controller_df, COL_COORD_X)?;
     let y_positions: Vec<f32> =
-        df_handler::convert_series_to_floating_vector(&controller_df, COORD_Y)?;
+        df_handler::convert_series_to_floating_vector(&controller_df, COL_COORD_Y)?;
 
     let mut controller_map: HashMap<u64, (f32, f32)> = HashMap::new();
     for i in 0..controller_ids.len() {
