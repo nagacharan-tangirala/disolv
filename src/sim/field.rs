@@ -14,13 +14,14 @@ use log::info;
 use std::path::PathBuf;
 
 pub(crate) struct DeviceField {
+    pub(crate) field_settings: DeviceFieldSettings,
     pub(crate) vehicle_field: Field2D<Vehicle>,
     pub(crate) rsu_field: Field2D<RoadsideUnit>,
     pub(crate) bs_field: Field2D<BaseStation>,
     pub(crate) controller_field: Field2D<Controller>,
-    pub(crate) vehicle_positions: HashMap<u64, Trace>,
-    pub(crate) rsu_positions: HashMap<u64, Trace>,
-    pub(crate) bs_positions: HashMap<u64, Trace>,
+    pub(crate) vehicle_positions: HashMap<u64, Option<Trace>>,
+    pub(crate) rsu_positions: HashMap<u64, Option<Trace>>,
+    pub(crate) bs_positions: HashMap<u64, Option<Trace>>,
     pub(crate) controller_positions: HashMap<u64, (f32, f32)>,
     pub(crate) position_files: PositionFiles,
     pub(crate) config_path: PathBuf,
