@@ -1,4 +1,4 @@
-use crate::utils::constants::TIME_STEP;
+use crate::utils::constants::COL_TIME_STEP;
 use polars::prelude::{col, lit, LazyFrame, PolarsResult, ScanArgsParquet};
 use polars_core::prelude::DataFrame;
 use polars_io::{prelude, SerReader};
@@ -11,8 +11,8 @@ pub(crate) fn stream_parquet_in_interval(
 ) -> PolarsResult<DataFrame> {
     let args = ScanArgsParquet::default();
     LazyFrame::scan_parquet(file_name, args)?
-        .filter(col(TIME_STEP).gt(lit(interval_begin)))
-        .filter(col(TIME_STEP).lt(lit(interval_end)))
+        .filter(col(COL_TIME_STEP).gt(lit(interval_begin)))
+        .filter(col(COL_TIME_STEP).lt(lit(interval_end)))
         .collect()
 }
 

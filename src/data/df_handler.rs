@@ -1,6 +1,7 @@
-use crate::data::data_io::{Activation, Trace};
+use crate::data::data_io::{Activation, DynamicLink, Link, Trace};
 use crate::utils::constants::{
-    COORD_X, COORD_Y, DEVICE_ID, END_TIME, START_TIME, TIME_STEP, VEHICLE_ID, VELOCITY,
+    COL_BASE_STATION_ID, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y, COL_DEVICE_ID, COL_DISTANCES,
+    COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VEHICLE_ID, COL_VELOCITY,
 };
 use krabmaga::hashbrown::HashMap;
 use log::info;
@@ -11,44 +12,43 @@ use polars_core::prelude::Series;
 pub(crate) fn prepare_trace_data(
     trace_df: &DataFrame,
     device_id_column: &str,
-) -> Result<HashMap<u64, Trace>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<u64, Option<Trace>>, Box<dyn std::error::Error>> {
     let filtered_df: DataFrame = trace_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
-        .groupby([col(TIME_STEP)])
+        .groupby([col(COL_TIME_STEP)])
         .agg(
             vec![
                 col(device_id_column),
-                col(COORD_X),
-                col(COORD_Y),
-                col(VELOCITY),
+                col(COL_COORD_X),
+                col(COL_COORD_Y),
+                col(COL_VELOCITY),
             ]
             .into_iter()
             .collect::<Vec<_>>(),
         )
         .collect()?;
 
-    let time_stamps: Vec<u64> = convert_series_to_integer_vector(&filtered_df, TIME_STEP)?;
-    let mut time_stamp_traces: HashMap<u64, Trace> = HashMap::new();
+    let time_stamps: Vec<u64> = convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
+    let mut time_stamp_traces: HashMap<u64, Option<Trace>> = HashMap::new();
     for time_stamp in time_stamps.iter() {
         let ts_df = filtered_df
             .clone()
             .lazy()
-            .filter(col(TIME_STEP).eq(lit(*time_stamp)))
-            .collect()
-            .unwrap();
+            .filter(col(COL_TIME_STEP).eq(lit(*time_stamp)))
+            .collect()?;
 
         if ts_df.height() == 0 {
-            time_stamp_traces.insert(*time_stamp, (vec![], vec![], vec![], vec![]));
+            time_stamp_traces.insert(*time_stamp, None);
             continue;
         }
-        let time_steps: Vec<u64> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
-        let x_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COORD_X)?;
-        let y_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COORD_Y)?;
-        let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, VELOCITY)?;
+        let device_ids: Vec<u64> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
+        let x_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_COORD_X)?;
+        let y_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_COORD_Y)?;
+        let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_VELOCITY)?;
 
-        let trace: Trace = (time_steps, x_positions, y_positions, velocities);
-        time_stamp_traces.insert(*time_stamp, trace);
+        let trace: Trace = (device_ids, x_positions, y_positions, velocities);
+        time_stamp_traces.insert(*time_stamp, Some(trace));
     }
     return Ok(time_stamp_traces);
 }
@@ -59,31 +59,32 @@ pub(crate) fn prepare_device_activations(
     let filtered_df = activation_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
-        .groupby([col(DEVICE_ID)])
+        .groupby([col(COL_DEVICE_ID)])
         .agg(
-            vec![col(START_TIME), col(END_TIME)]
+            vec![col(COL_START_TIME), col(COL_END_TIME)]
                 .into_iter()
                 .collect::<Vec<_>>(),
         )
-        .collect()
-        .unwrap();
+        .collect()?;
 
-    let device_ids_vec: Vec<u64> = convert_series_to_integer_vector(&filtered_df, DEVICE_ID)?;
+    let device_ids_vec: Vec<u64> = convert_series_to_integer_vector(&filtered_df, COL_DEVICE_ID)?;
 
     let mut activation_dfs: HashMap<u64, Activation> = HashMap::new();
     for device_id in device_ids_vec.iter() {
         let device_df = filtered_df
             .clone()
             .lazy()
-            .filter(col(DEVICE_ID).eq(lit(*device_id)))
+            .filter(col(COL_DEVICE_ID).eq(lit(*device_id)))
             .collect()
             .unwrap();
 
-        let activation_timings = match convert_series_to_integer_vector(&device_df, START_TIME) {
+        let activation_timings = match convert_series_to_integer_vector(&device_df, COL_START_TIME)
+        {
             Ok(timings) => timings,
             Err(e) => return Err(e.into()),
         };
-        let deactivation_timings = match convert_series_to_integer_vector(&device_df, END_TIME) {
+        let deactivation_timings = match convert_series_to_integer_vector(&device_df, COL_END_TIME)
+        {
             Ok(timings) => timings,
             Err(e) => return Err(e.into()),
         };
