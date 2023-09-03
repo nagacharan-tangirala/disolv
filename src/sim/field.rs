@@ -4,7 +4,7 @@ use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
-use crate::utils::config::{DeviceFieldSettings, PositionFiles};
+use crate::utils::config::{FieldSettings, PositionFiles, TraceFlags};
 use crate::utils::constants::{
     BASE_STATION, COL_BASE_STATION_ID, COL_RSU_ID, COL_VEHICLE_ID, ROADSIDE_UNIT, STREAM_TIME,
     VEHICLE,
@@ -17,7 +17,8 @@ use log::info;
 use std::path::PathBuf;
 
 pub(crate) struct DeviceField {
-    pub(crate) field_settings: DeviceFieldSettings,
+    pub(crate) field_settings: FieldSettings,
+    pub(crate) trace_flags: TraceFlags,
     pub(crate) vehicle_field: Field2D<Vehicle>,
     pub(crate) rsu_field: Field2D<RoadsideUnit>,
     pub(crate) bs_field: Field2D<BaseStation>,
@@ -33,7 +34,8 @@ pub(crate) struct DeviceField {
 
 impl DeviceField {
     pub(crate) fn new(
-        field_settings: &DeviceFieldSettings,
+        field_settings: &FieldSettings,
+        trace_flags: &TraceFlags,
         config_path: &PathBuf,
         position_files: &PositionFiles,
     ) -> Self {
@@ -69,6 +71,7 @@ impl DeviceField {
 
         Self {
             field_settings: field_settings.clone(),
+            trace_flags: trace_flags.clone(),
             vehicle_field,
             rsu_field,
             bs_field,
@@ -142,14 +145,7 @@ impl DeviceField {
             panic!("Vehicle trace file is not found.");
         }
 
-        let trace_flag: bool = match self.field_settings.trace_flags.get(VEHICLE) {
-            Some(trace_flag) => *trace_flag,
-            None => {
-                panic!("RSU trace flag is not set in the config file.")
-            }
-        };
-
-        let vehicle_positions = if trace_flag == true {
+        let vehicle_positions = if self.trace_flags.vehicle == true {
             self.stream_device_positions(trace_file, COL_VEHICLE_ID)
         } else {
             self.read_all_positions(trace_file, COL_VEHICLE_ID)
@@ -163,14 +159,7 @@ impl DeviceField {
             panic!("RSU trace file is not found.");
         }
 
-        let trace_flag: bool = match self.field_settings.trace_flags.get(ROADSIDE_UNIT) {
-            Some(trace_flag) => *trace_flag,
-            None => {
-                panic!("RSU trace flag is not set in the config file.")
-            }
-        };
-
-        let rsu_positions = if trace_flag == true {
+        let rsu_positions = if self.trace_flags.vehicle == true {
             self.stream_device_positions(trace_file, COL_RSU_ID)
         } else {
             self.read_all_positions(trace_file, COL_RSU_ID)
@@ -184,14 +173,7 @@ impl DeviceField {
             panic!("Base station trace file is not found.");
         }
 
-        let trace_flag: bool = match self.field_settings.trace_flags.get(BASE_STATION) {
-            Some(trace_flag) => *trace_flag,
-            None => {
-                panic!("Base station trace flag is not set in the config file.")
-            }
-        };
-
-        let bs_positions = if trace_flag == true {
+        let bs_positions = if self.trace_flags.vehicle == true {
             self.stream_device_positions(trace_file, COL_BASE_STATION_ID)
         } else {
             self.read_all_positions(trace_file, COL_BASE_STATION_ID)

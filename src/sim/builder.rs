@@ -7,7 +7,7 @@ use crate::sim::field::DeviceField;
 use crate::sim::network::{Network, Timing};
 use crate::sim::vanet::{InfraLinks, MeshLinks, Vanet};
 use crate::utils::config::{BaseStationSettings, ControllerSettings, RSUSettings, VehicleSettings};
-use crate::utils::constants::ARRAY_SIZE;
+use crate::utils::constants::{ARRAY_SIZE, ROADSIDE_UNIT, VEHICLE};
 use crate::utils::ds_config::AllDataSources;
 use crate::utils::{config, ds_config, logger};
 use krabmaga::hashbrown::HashMap;
@@ -65,7 +65,7 @@ impl PavenetBuilder {
         let base_stations = self.build_base_stations();
         let controllers = self.build_controllers();
 
-        debug! {"Building empty device field and VANET..."};
+        debug! {"Building empty device field and VANET..."}
         let device_field = self.build_empty_device_field();
         let vanet: Vanet = self.build_empty_vanet();
 
@@ -96,7 +96,7 @@ impl PavenetBuilder {
         let logger_config = match logger::setup_logging(log_level, log_file_path) {
             Ok(logger_config) => logger_config,
             Err(e) => {
-                panic!("Error while configuring the loggerr: {}", e);
+                panic!("Error while configuring the logger: {}", e);
             }
         };
 
@@ -111,13 +111,19 @@ impl PavenetBuilder {
     fn build_empty_device_field(&self) -> DeviceField {
         return DeviceField::new(
             &self.config.field_settings,
+            &self.config.trace_flags,
             &self.config_path,
             &self.config.position_files,
         );
     }
 
     fn build_empty_vanet(&self) -> Vanet {
-        return Vanet::new(mesh_links, infra_links);
+        return Vanet::new(
+            &self.config_path,
+            &self.config.link_files,
+            &self.config.network_settings,
+            &self.config.trace_flags,
+        );
     }
 
     fn build_vehicles(&mut self) -> HashMap<u64, Vehicle> {

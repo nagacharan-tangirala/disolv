@@ -34,8 +34,9 @@ pub(crate) struct Config {
     pub(crate) controllers: HashMap<String, ControllerSettings>,
     pub(crate) mesh_links: MeshLinkSettings,
     pub(crate) infra_links: InfraLinkSettings,
-    pub(crate) field_settings: DeviceFieldSettings,
+    pub(crate) field_settings: FieldSettings,
     pub(crate) network_settings: NetworkSettings,
+    pub(crate) trace_flags: TraceFlags,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -157,10 +158,16 @@ pub(crate) struct InfraLinkSettings {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct DeviceFieldSettings {
+pub(crate) struct FieldSettings {
     pub(crate) width: f32,
     pub(crate) height: f32,
-    pub(crate) trace_flags: HashMap<String, bool>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct TraceFlags {
+    pub(crate) vehicle: bool,
+    pub(crate) roadside_unit: bool,
+    pub(crate) base_station: bool,
 }
 
 #[derive(Deserialize, Debug, Clone)]
