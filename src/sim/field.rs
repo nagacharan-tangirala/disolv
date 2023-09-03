@@ -118,13 +118,13 @@ impl DeviceField {
     ) -> HashMap<u64, Option<Trace>> {
         let starting_time: u64 = self.step;
         let ending_time: u64 = self.step + STREAM_TIME;
-        let vehicle_positions: HashMap<u64, Option<Trace>> = data_io::stream_positions_in_interval(
+        let device_positions: HashMap<u64, Option<Trace>> = data_io::stream_positions_in_interval(
             trace_file,
             device_id_column,
             starting_time,
             ending_time,
         );
-        return vehicle_positions;
+        return device_positions;
     }
 
     fn read_all_positions(
