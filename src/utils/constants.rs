@@ -6,27 +6,28 @@ pub(crate) const STREAM_TIME: u64 = 1800;
 // arrays need more data than this size.
 pub(crate) const ARRAY_SIZE: usize = 10;
 
-pub(crate) const VEHICLES: &str = "vehicles";
-pub(crate) const BASE_STATIONS: &str = "base_stations";
-pub(crate) const CONTROLLERS: &str = "controllers";
-pub(crate) const ROADSIDE_UNITS: &str = "roadside_units";
+// Devices
+pub(crate) const VEHICLE: &str = "vehicle";
+pub(crate) const BASE_STATION: &str = "base_station";
+pub(crate) const CONTROLLER: &str = "controller";
+pub(crate) const ROADSIDE_UNIT: &str = "roadside_unit";
 
-pub(crate) const VEHICLE_ID: &str = "vehicle_id";
-pub(crate) const BASE_STATION_ID: &str = "base_station_id";
-pub(crate) const CONTROLLER_ID: &str = "controller_id";
-pub(crate) const RSU_ID: &str = "rsu_id";
-pub(crate) const LINK_ID: &str = "link_id";
-pub(crate) const DEVICE_ID: &str = "device_id";
+// Dataframe columns
+pub(crate) const COL_VEHICLE_ID: &str = "vehicle_id";
+pub(crate) const COL_BASE_STATION_ID: &str = "base_station_id";
+pub(crate) const COL_CONTROLLER_ID: &str = "controller_id";
+pub(crate) const COL_RSU_ID: &str = "rsu_id";
+pub(crate) const COL_DEVICE_ID: &str = "device_id";
 
-pub(crate) const START_TIME: &str = "start_time";
-pub(crate) const END_TIME: &str = "end_time";
-pub(crate) const TIME_STEP: &str = "time_step";
+pub(crate) const COL_VEHICLES: &str = "vehicles_str";
+pub(crate) const COL_BASE_STATIONS: &str = "base_stations_str";
+pub(crate) const COL_ROADSIDE_UNITS: &str = "roadside_units_str";
 
-pub(crate) const VELOCITY: &str = "velocity";
-pub(crate) const VEHICLES_STR: &str = "vehicles_str";
-pub(crate) const BASE_STATIONS_STR: &str = "base_stations_str";
-pub(crate) const ROADSIDE_UNITS_STR: &str = "roadside_units_str";
-pub(crate) const DISTANCES_STR: &str = "distances_str";
+pub(crate) const COL_DISTANCES: &str = "distances_str";
+pub(crate) const COL_VELOCITY: &str = "velocity";
+pub(crate) const COL_START_TIME: &str = "start_time";
+pub(crate) const COL_END_TIME: &str = "end_time";
+pub(crate) const COL_TIME_STEP: &str = "time_step";
 
-pub(crate) const COORD_X: &str = "x";
-pub(crate) const COORD_Y: &str = "y";
+pub(crate) const COL_COORD_X: &str = "x";
+pub(crate) const COL_COORD_Y: &str = "y";
