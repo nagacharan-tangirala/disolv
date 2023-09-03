@@ -11,7 +11,7 @@ use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::AllDataSources;
 use crate::utils::{config, ds_config, logger};
 use krabmaga::hashbrown::HashMap;
-use log::info;
+use log::{debug, info};
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use std::fs;
@@ -109,14 +109,14 @@ impl PavenetBuilder {
     }
 
     fn build_empty_device_field(&self) -> DeviceField {
-        let x_max = self.config.simulation_settings.dimension_x_max;
-        let y_max = self.config.simulation_settings.dimension_y_max;
-        return DeviceField::new(x_max, y_max, &self.config_path, &self.config.position_files);
+        return DeviceField::new(
+            &self.config.field_settings,
+            &self.config_path,
+            &self.config.position_files,
+        );
     }
 
     fn build_empty_vanet(&self) -> Vanet {
-        let mesh_links = MeshLinks::new();
-        let infra_links = InfraLinks::new();
         return Vanet::new(mesh_links, infra_links);
     }
 
