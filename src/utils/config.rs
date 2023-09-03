@@ -73,8 +73,6 @@ pub(crate) struct SimSettings {
     pub(crate) sim_duration: u64,
     pub(crate) sim_step: u64,
     pub(crate) sim_streaming_step: u64,
-    pub(crate) dimension_x_max: f32,
-    pub(crate) dimension_y_max: f32,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -155,3 +153,13 @@ pub(crate) struct InfraLinkSettings {
     pub(crate) r2b_allocator: AllocatorStrategy,
     pub(crate) b2c_allocator: AllocatorStrategy,
 }
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct DeviceFieldSettings {
+    pub(crate) width: f32,
+    pub(crate) height: f32,
+    pub(crate) trace_flags: HashMap<String, bool>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct NetworkSettings {}
