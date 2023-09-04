@@ -95,41 +95,120 @@ pub(crate) fn prepare_device_activations(
     return Ok(activation_dfs);
 }
 
-pub(crate) fn convert_series_to_integer_vector(
-    df: &DataFrame,
-    column_name: &str,
-) -> Result<Vec<u64>, Box<dyn std::error::Error>> {
-    let column_as_series: &Series = match df.columns([column_name])?.get(0) {
-        Some(series) => *series,
-        None => return Err("Error in the column name".into()),
-    };
-    let series_to_list: Series = column_as_series.explode()?;
-    let list_to_option_vec: Vec<Option<i64>> = series_to_list.i64()?.to_vec();
-    let option_vec_to_vec: Vec<u64> = list_to_option_vec
-        .iter()
-        .map(|x| x.unwrap() as u64) // todo! unsafe casting but fine for the value range we have.
-        .collect::<Vec<u64>>();
+pub(crate) fn prepare_b2c_links(
+    b2c_links_df: &DataFrame,
+) -> Result<HashMap<u64, u64>, Box<dyn std::error::Error>> {
+    let base_stations: Vec<u64> =
+        convert_series_to_integer_vector(&b2c_links_df, COL_BASE_STATION_ID)?;
+    let controller_ids: Vec<u64> =
+        convert_series_to_integer_vector(&b2c_links_df, COL_CONTROLLER_ID)?;
 
-    return Ok(option_vec_to_vec);
+    let mut b2c_links: HashMap<u64, u64> = HashMap::new();
+    for i in 0..base_stations.len() {
+        b2c_links.insert(base_stations[i], controller_ids[i]);
+    }
+    return Ok(b2c_links);
 }
 
-pub(crate) fn convert_series_to_floating_vector(
-    df: &DataFrame,
-    column_name: &str,
-) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
-    let column_as_series: &Series = match df.columns([column_name])?.get(0) {
-        Some(series) => *series,
-        None => return Err("Error in the column name".into()),
-    };
-    let series_to_list: PolarsResult<Series> = column_as_series.explode();
-    let list_to_option_vec: Vec<Option<f64>> = series_to_list.unwrap().f64()?.to_vec();
-    let option_vec_to_vec: Vec<f32> = list_to_option_vec
-        .iter()
-        .map(|x| x.unwrap() as f32) // todo! lossy casting but fine for the value range we have.
-        .collect::<Vec<f32>>();
+pub(crate) fn prepare_static_links(
+    links_df: &DataFrame,
+    device_id_column: &str,
+    neighbour_column: &str,
+) -> Result<HashMap<TimeStamp, HashMap<DeviceId, Link>>, Box<dyn std::error::Error>> {
+    let mut static_links: HashMap<TimeStamp, HashMap<DeviceId, Link>> = HashMap::new();
+    let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&links_df, device_id_column)?;
 
-    if option_vec_to_vec.iter().map(|x| x < &0.).any(|x| x) {
-        return Err("Error in converting series to vector".into());
+    let mut device_map: HashMap<DeviceId, Link> = HashMap::new();
+    for device_id in device_ids.iter() {
+        let device_df = links_df
+            .clone()
+            .lazy()
+            .filter(col(device_id_column).eq(lit(*device_id)))
+            .collect()?;
+
+        let neighbour_string: String = match device_df.columns([neighbour_column])?.get(0) {
+            Some(series) => match series.get(0) {
+                Ok(series) => series.to_string(),
+                Err(e) => return Err("Error in reading neighbour column".into()),
+            },
+            None => return Err("Error in reading neighbour column".into()),
+        };
+
+        let distance_string: String = match device_df.columns([COL_DISTANCES])?.get(0) {
+            Some(series) => match series.get(0) {
+                Ok(series) => series.to_string(),
+                Err(e) => return Err("Error in reading distance column".into()),
+            },
+            None => return Err("Error in reading distance column".into()),
+        };
+
+        let neighbour_ids: Vec<u64> = convert_string_to_integer_vector(neighbour_string.as_str())?;
+        let distances: Vec<f32> = convert_string_to_floating_vector(distance_string.as_str())?;
+
+        device_map.insert(*device_id, (neighbour_ids, distances));
     }
-    return Ok(option_vec_to_vec);
+    static_links.insert(0, device_map);
+    return Ok(static_links);
+}
+
+pub(crate) fn prepare_dynamic_links(
+    links_df: &DataFrame,
+    device_id_column: &str,
+    neighbour_column: &str,
+) -> Result<HashMap<TimeStamp, HashMap<DeviceId, Link>>, Box<dyn std::error::Error>> {
+    let mut dynamic_links: HashMap<TimeStamp, HashMap<DeviceId, Link>> = HashMap::new();
+    debug!("Converting {} links to map...", links_df.height());
+    let filtered_df: DataFrame = links_df
+        .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
+        .lazy()
+        .groupby([col(COL_TIME_STEP)])
+        .agg(
+            vec![
+                col(device_id_column),
+                col(neighbour_column),
+                col(COL_DISTANCES),
+            ]
+            .into_iter()
+            .collect::<Vec<_>>(),
+        )
+        .collect()?;
+
+    let time_stamps: Vec<TimeStamp> =
+        convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
+
+    for time_stamp in time_stamps.iter() {
+        let ts_df = links_df
+            .clone()
+            .lazy()
+            .filter(col(COL_TIME_STEP).eq(lit(*time_stamp)))
+            .collect()?;
+
+        let mut device_map: HashMap<DeviceId, Link> = HashMap::new();
+        let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
+
+        let neighbour_list: &ListChunked = match ts_df.columns([neighbour_column])?.get(0) {
+            Some(series) => series.list()?,
+            None => return Err("Error in reading neighbour column".into()),
+        };
+        let distance_list: &ListChunked = match ts_df.columns([COL_DISTANCES])?.get(0) {
+            Some(series) => series.list()?,
+            None => return Err("Error in reading distance column".into()),
+        };
+
+        let mut idx = 0;
+        for (neighbour, distance) in neighbour_list.into_iter().zip(distance_list) {
+            let neighbour_opt_vec: Vec<Option<i64>> = neighbour.unwrap().i64()?.to_vec();
+            let neighbour_vec: Vec<DeviceId> = neighbour_opt_vec
+                .iter()
+                .map(|x| x.unwrap() as u64)
+                .collect();
+            let distance_opt_vec: Vec<Option<f64>> = distance.unwrap().f64()?.to_vec();
+            let distance_vec: Vec<f32> =
+                distance_opt_vec.iter().map(|x| x.unwrap() as f32).collect();
+            device_map.insert(device_ids[idx], (neighbour_vec, distance_vec));
+            idx += 1;
+        }
+        dynamic_links.insert(*time_stamp, device_map);
+    }
+    return Ok(dynamic_links);
 }
