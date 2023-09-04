@@ -13,7 +13,7 @@ pub(crate) fn setup_logging(
 
     let log_file = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new(
-            "{d(%Y.%m.%d %H:%M:%S)} | {({l}):5.5} | {f}:{L} — {m}{n}",
+            "{d(%Y.%m.%d %H:%M:%S)} | {({l}):5.5} | {({f}:{L}):>30.30} — {m}{n}",
         )))
         .build(log_file_path)
         .unwrap();
