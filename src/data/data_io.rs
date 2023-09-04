@@ -28,34 +28,10 @@ pub(crate) fn read_activation_data(activations_file: PathBuf) -> HashMap<DeviceI
     return activations_map;
 }
 
-pub(crate) fn stream_positions_in_interval(
-    trace_file: PathBuf,
-    device_id_column: &str,
-    start_interval: u64,
-    end_interval: u64,
-) -> HashMap<u64, Option<Trace>> {
-    let trace_df =
-        match file_io::stream_parquet_in_interval(trace_file, start_interval, end_interval) {
-            Ok(trace_df) => trace_df,
-            Err(e) => {
-                panic!("Error while streaming parquet: {}", e);
-            }
-        };
-
-    let trace_map: HashMap<u64, Option<Trace>> =
-        match df_handler::prepare_trace_data(&trace_df, device_id_column) {
-            Ok(trace_map) => trace_map,
-            Err(e) => {
-                panic!("Error while converting trace DF to hashmap: {}", e);
-            }
-        };
-    return trace_map;
-}
-
 pub(crate) fn read_all_positions(
     trace_file: PathBuf,
     device_id_column: &str,
-) -> HashMap<u64, Option<Trace>> {
+) -> HashMap<TimeStamp, Option<Trace>> {
     let trace_df = match file_io::read_parquet_data(trace_file) {
         Ok(trace_df) => trace_df,
         Err(e) => {
