@@ -1,22 +1,33 @@
+use crate::data::data_io::{DeviceId, Link, TimeStamp};
+use crate::data::{data_io, stream_io};
+use crate::utils::config::{LinkFiles, NetworkSettings, TraceFlags};
+use crate::utils::constants::{
+    COL_BASE_STATIONS, COL_ROADSIDE_UNITS, COL_RSU_ID, COL_VEHICLES, COL_VEHICLE_ID, STREAM_TIME,
+};
 use krabmaga::hashbrown::HashMap;
+use log::{debug, info};
+use std::path::{Path, PathBuf};
 
-type Link = (Vec<f32>, Vec<f32>);
-
-pub struct Vanet {
-    pub mesh_links: MeshLinks,
-    pub infra_links: InfraLinks,
+pub(crate) struct Vanet {
+    pub(crate) config_path: PathBuf,
+    pub(crate) trace_flags: TraceFlags,
+    pub(crate) network_settings: NetworkSettings,
+    pub(crate) link_files: LinkFiles,
+    pub(crate) mesh_links: MeshLinks,
+    pub(crate) infra_links: InfraLinks,
+    pub(crate) step: u64,
 }
 
-pub struct MeshLinks {
-    pub v2v_links: HashMap<i64, Link>,
-    pub rsu2rsu_links: HashMap<i64, Link>,
-    pub v2rsu_links: HashMap<i64, Link>,
+pub(crate) struct MeshLinks {
+    pub(crate) v2v_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
+    pub(crate) rsu2rsu_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
+    pub(crate) v2rsu_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
 }
 
-pub struct InfraLinks {
-    pub v2bs_links: HashMap<i64, Link>,
-    pub rsu2bs_links: HashMap<i64, Link>,
-    pub bs2c_links: HashMap<i64, Link>,
+pub(crate) struct InfraLinks {
+    pub(crate) v2bs_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
+    pub(crate) rsu2bs_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
+    pub(crate) bs2c_links: HashMap<DeviceId, DeviceId>,
 }
 
 impl MeshLinks {
