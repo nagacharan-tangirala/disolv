@@ -1,17 +1,16 @@
-use crate::data::file_io::stream_parquet_in_interval;
-use crate::data::{data_io, df_handler, file_io};
+use crate::data::{df_handler, df_utils, file_io};
 use crate::utils::constants::{COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y};
 use krabmaga::hashbrown::HashMap;
-use polars_core::frame::DataFrame;
 use polars_io::SerReader;
 use std::path::PathBuf;
 
-pub(crate) type Activation = (Vec<u64>, Vec<u64>); // (start_time, end_time)
-pub(crate) type Trace = (Vec<u64>, Vec<f32>, Vec<f32>, Vec<f32>); // (device_id, x, y, velocity)
-pub(crate) type Link = (Vec<u64>, Vec<f64>); // (neighbour_ids, distances)
-pub(crate) type DynamicLink = (u64, Link); // (device_id, Link = (neighbour_ids, distances))
+pub(crate) type DeviceId = u64;
+pub(crate) type TimeStamp = u64;
+pub(crate) type Activation = (Vec<TimeStamp>, Vec<TimeStamp>); // (start_time, end_time)
+pub(crate) type Trace = (Vec<DeviceId>, Vec<f32>, Vec<f32>, Vec<f32>); // (device_id, x, y, velocity)
+pub(crate) type Link = (Vec<DeviceId>, Vec<f32>); // (neighbour_ids, distances)
 
-pub(crate) fn read_activation_data(activations_file: PathBuf) -> HashMap<u64, Activation> {
+pub(crate) fn read_activation_data(activations_file: PathBuf) -> HashMap<DeviceId, Activation> {
     let activation_df = match file_io::read_csv_data(activations_file) {
         Ok(activation_df) => activation_df,
         Err(e) => {
