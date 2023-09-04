@@ -1,5 +1,6 @@
 use crate::data::data_io;
-use crate::data::data_io::Trace;
+use crate::data::data_io::{DeviceId, TimeStamp, Trace};
+use crate::data::stream_io;
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
@@ -23,10 +24,10 @@ pub(crate) struct DeviceField {
     pub(crate) rsu_field: Field2D<RoadsideUnit>,
     pub(crate) bs_field: Field2D<BaseStation>,
     pub(crate) controller_field: Field2D<Controller>,
-    pub(crate) vehicle_positions: HashMap<u64, Option<Trace>>,
-    pub(crate) rsu_positions: HashMap<u64, Option<Trace>>,
-    pub(crate) bs_positions: HashMap<u64, Option<Trace>>,
-    pub(crate) controller_positions: HashMap<u64, (f32, f32)>,
+    pub(crate) vehicle_positions: HashMap<TimeStamp, Option<Trace>>,
+    pub(crate) rsu_positions: HashMap<TimeStamp, Option<Trace>>,
+    pub(crate) bs_positions: HashMap<TimeStamp, Option<Trace>>,
+    pub(crate) controller_positions: HashMap<DeviceId, (f32, f32)>,
     pub(crate) position_files: PositionFiles,
     pub(crate) config_path: PathBuf,
     pub(crate) step: u64,

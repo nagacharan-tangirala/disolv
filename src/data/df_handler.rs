@@ -1,18 +1,22 @@
-use crate::data::data_io::{Activation, DynamicLink, Link, Trace};
+use crate::data::data_io::{Activation, DeviceId, Link, TimeStamp, Trace};
+use crate::data::df_utils;
+use crate::data::df_utils::*;
 use crate::utils::constants::{
     COL_BASE_STATION_ID, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y, COL_DEVICE_ID, COL_DISTANCES,
-    COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VEHICLE_ID, COL_VELOCITY,
+    COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VEHICLE_ID, COL_VELOCITY, NEIGHBOUR_SIZE,
 };
 use krabmaga::hashbrown::HashMap;
-use log::info;
-use polars::prelude::{col, lit, IntoLazy, PolarsResult};
+use log::{debug, info};
+use polars::lazy::prelude::*;
+use polars::prelude::{all, col, lit, Expr, IntoLazy, PolarsResult};
 use polars_core::frame::DataFrame;
-use polars_core::prelude::Series;
+use polars_core::prelude::list::*;
+use polars_core::prelude::*;
 
 pub(crate) fn prepare_trace_data(
     trace_df: &DataFrame,
     device_id_column: &str,
-) -> Result<HashMap<u64, Option<Trace>>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<TimeStamp, Option<Trace>>, Box<dyn std::error::Error>> {
     let filtered_df: DataFrame = trace_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
@@ -29,8 +33,10 @@ pub(crate) fn prepare_trace_data(
         )
         .collect()?;
 
-    let time_stamps: Vec<u64> = convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
-    let mut time_stamp_traces: HashMap<u64, Option<Trace>> = HashMap::new();
+    let time_stamps: Vec<TimeStamp> =
+        convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
+
+    let mut time_stamp_traces: HashMap<TimeStamp, Option<Trace>> = HashMap::new();
     for time_stamp in time_stamps.iter() {
         let ts_df = filtered_df
             .clone()
@@ -42,7 +48,7 @@ pub(crate) fn prepare_trace_data(
             time_stamp_traces.insert(*time_stamp, None);
             continue;
         }
-        let device_ids: Vec<u64> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
+        let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
         let x_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_COORD_X)?;
         let y_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_COORD_Y)?;
         let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_VELOCITY)?;
@@ -55,7 +61,7 @@ pub(crate) fn prepare_trace_data(
 
 pub(crate) fn prepare_device_activations(
     activation_df: &DataFrame,
-) -> Result<HashMap<u64, Activation>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<DeviceId, Activation>, Box<dyn std::error::Error>> {
     let filtered_df = activation_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
@@ -69,7 +75,7 @@ pub(crate) fn prepare_device_activations(
 
     let device_ids_vec: Vec<u64> = convert_series_to_integer_vector(&filtered_df, COL_DEVICE_ID)?;
 
-    let mut activation_dfs: HashMap<u64, Activation> = HashMap::new();
+    let mut activation_dfs: HashMap<DeviceId, Activation> = HashMap::new();
     for device_id in device_ids_vec.iter() {
         let device_df = filtered_df
             .clone()

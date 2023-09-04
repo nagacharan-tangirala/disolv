@@ -18,7 +18,7 @@ pub(crate) fn read_activation_data(activations_file: PathBuf) -> HashMap<DeviceI
         }
     };
 
-    let activations_map: HashMap<u64, Activation> =
+    let activations_map: HashMap<DeviceId, Activation> =
         match df_handler::prepare_device_activations(&activation_df) {
             Ok(activation_map) => activation_map,
             Err(e) => {
@@ -39,7 +39,7 @@ pub(crate) fn read_all_positions(
         }
     };
 
-    let trace_map: HashMap<u64, Option<Trace>> =
+    let trace_map: HashMap<TimeStamp, Option<Trace>> =
         match df_handler::prepare_trace_data(&trace_df, device_id_column) {
             Ok(trace_map) => trace_map,
             Err(e) => {
