@@ -116,29 +116,20 @@ impl DeviceField {
         &self,
         trace_file: PathBuf,
         device_id_column: &str,
-    ) -> HashMap<u64, Option<Trace>> {
+    ) -> HashMap<TimeStamp, Option<Trace>> {
         let starting_time: u64 = self.step;
         let ending_time: u64 = self.step + STREAM_TIME;
-        let device_positions: HashMap<u64, Option<Trace>> = data_io::stream_positions_in_interval(
-            trace_file,
-            device_id_column,
-            starting_time,
-            ending_time,
-        );
+        let device_positions: HashMap<TimeStamp, Option<Trace>> =
+            stream_io::stream_positions_in_interval(
+                trace_file,
+                device_id_column,
+                starting_time,
+                ending_time,
+            );
         return device_positions;
     }
 
-    fn read_all_positions(
-        &self,
-        trace_file: PathBuf,
-        device_id_column: &str,
-    ) -> HashMap<u64, Option<Trace>> {
-        let device_positions: HashMap<u64, Option<Trace>> =
-            data_io::read_all_positions(trace_file, device_id_column);
-        device_positions
-    }
-
-    fn read_vehicle_positions(&self) -> HashMap<u64, Option<Trace>> {
+    fn read_vehicle_positions(&self) -> HashMap<TimeStamp, Option<Trace>> {
         let trace_file = self
             .config_path
             .join(&self.position_files.vehicle_positions);
@@ -149,40 +140,40 @@ impl DeviceField {
         let vehicle_positions = if self.trace_flags.vehicle == true {
             self.stream_device_positions(trace_file, COL_VEHICLE_ID)
         } else {
-            self.read_all_positions(trace_file, COL_VEHICLE_ID)
+            data_io::read_all_positions(trace_file, COL_VEHICLE_ID)
         };
         return vehicle_positions;
     }
 
-    fn read_rsu_positions(&self) -> HashMap<u64, Option<Trace>> {
+    fn read_rsu_positions(&self) -> HashMap<TimeStamp, Option<Trace>> {
         let trace_file = self.config_path.join(&self.position_files.rsu_positions);
         if trace_file.exists() == false {
             panic!("RSU trace file is not found.");
         }
 
-        let rsu_positions = if self.trace_flags.vehicle == true {
+        let rsu_positions = if self.trace_flags.roadside_unit == true {
             self.stream_device_positions(trace_file, COL_RSU_ID)
         } else {
-            self.read_all_positions(trace_file, COL_RSU_ID)
+            data_io::read_all_positions(trace_file, COL_RSU_ID)
         };
         return rsu_positions;
     }
 
-    fn read_base_station_positions(&self) -> HashMap<u64, Option<Trace>> {
+    fn read_base_station_positions(&self) -> HashMap<TimeStamp, Option<Trace>> {
         let trace_file = self.config_path.join(&self.position_files.bs_positions);
         if trace_file.exists() == false {
             panic!("Base station trace file is not found.");
         }
 
-        let bs_positions = if self.trace_flags.vehicle == true {
+        let bs_positions = if self.trace_flags.base_station == true {
             self.stream_device_positions(trace_file, COL_BASE_STATION_ID)
         } else {
-            self.read_all_positions(trace_file, COL_BASE_STATION_ID)
+            data_io::read_all_positions(trace_file, COL_BASE_STATION_ID)
         };
         return bs_positions;
     }
 
-    fn read_controller_positions(&self) -> HashMap<u64, (f32, f32)> {
+    fn read_controller_positions(&self) -> HashMap<DeviceId, (f32, f32)> {
         let trace_file = self
             .config_path
             .join(&self.position_files.controller_positions);
