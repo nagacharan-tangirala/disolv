@@ -51,34 +51,48 @@ pub(crate) fn read_all_positions(
 
 pub(crate) fn read_controller_positions(
     controller_file: PathBuf,
-) -> Result<HashMap<u64, (f32, f32)>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<DeviceId, (f32, f32)>, Box<dyn std::error::Error>> {
     let controller_df = file_io::read_csv_data(controller_file)?;
-    let controller_ids: Vec<u64> =
-        df_handler::convert_series_to_integer_vector(&controller_df, COL_CONTROLLER_ID)?;
+    let controller_ids: Vec<DeviceId> =
+        df_utils::convert_series_to_integer_vector(&controller_df, COL_CONTROLLER_ID)?;
     let x_positions: Vec<f32> =
-        df_handler::convert_series_to_floating_vector(&controller_df, COL_COORD_X)?;
+        df_utils::convert_series_to_floating_vector(&controller_df, COL_COORD_X)?;
     let y_positions: Vec<f32> =
-        df_handler::convert_series_to_floating_vector(&controller_df, COL_COORD_Y)?;
+        df_utils::convert_series_to_floating_vector(&controller_df, COL_COORD_Y)?;
 
-    let mut controller_map: HashMap<u64, (f32, f32)> = HashMap::new();
+    let mut controller_map: HashMap<DeviceId, (f32, f32)> = HashMap::new();
     for i in 0..controller_ids.len() {
         controller_map.insert(controller_ids[i], (x_positions[i], y_positions[i]));
     }
+
     return Ok(controller_map);
 }
 
-// pub(crate) fn read_dynamic_links(
-//     &self,
-//     links_file: PathBuf,
-//     links_column: &str,
-// ) -> Result<HashMap<i64, i64>, Box<dyn std::error::Error>> {
-//     let mut links_reader: ParquetDataReader = ParquetDataReader::new(links_file);
-//     let links_df = match links_reader.read_data() {
-//         Ok(controller_df) => controller_df,
-//         Err(e) => {
-//             panic!("Error while reading the controller data from file: {}", e);
-//         }
-//     };
-// }
+pub(crate) fn read_bs2c_links(b2c_links_file: PathBuf) -> HashMap<DeviceId, DeviceId> {
+    let bs2c_links_df = match file_io::read_csv_data(b2c_links_file) {
+        Ok(b2c_links_df) => b2c_links_df,
+        Err(e) => {
+            panic!("Error while reading the bs2c links data from file: {}", e);
+        }
+    };
 
-pub(crate) fn read_static_links() {}
+    let bs2c_links_map: HashMap<DeviceId, DeviceId> =
+        match df_handler::prepare_b2c_links(&bs2c_links_df) {
+            Ok(b2c_links_map) => b2c_links_map,
+            Err(e) => {
+                panic!("Error while converting BS2C links DF to hashmap: {}", e);
+            }
+        };
+    return bs2c_links_map;
+}
+
+pub(crate) fn read_all_links(
+    links_file: PathBuf,
+    device_id_column: &str,
+    neighbour_column: &str,
+) -> Result<HashMap<TimeStamp, HashMap<DeviceId, Link>>, Box<dyn std::error::Error>> {
+    let links_df = file_io::read_csv_data(links_file)?;
+    let static_links: HashMap<u64, HashMap<u64, Link>> =
+        df_handler::prepare_static_links(&links_df, device_id_column, neighbour_column)?;
+    return Ok(static_links);
+}
