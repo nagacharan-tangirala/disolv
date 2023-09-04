@@ -92,6 +92,11 @@ impl PavenetBuilder {
         }
 
         let log_file_path = log_path.join(&self.config.log_settings.log_file_name);
+        if log_file_path.exists() == true {
+            // Clear the log file
+            fs::remove_file(&log_file_path)
+                .unwrap_or_else(|_| panic!("Error while clearing the log file"));
+        }
 
         let logger_config = match logger::setup_logging(log_level, log_file_path) {
             Ok(logger_config) => logger_config,
