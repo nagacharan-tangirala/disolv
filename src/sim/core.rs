@@ -71,21 +71,68 @@ impl Core {
             controllers,
             device_field,
             vanet,
+            devices_to_add: DevicesToAdd::default(),
+            devices_to_pop: DevicesToRemove::default(),
         }
     }
 
     pub(crate) fn get_duration(&self) -> u64 {
         return self.config.simulation_settings.sim_duration;
     }
+
+    pub(crate) fn schedule_activations(&mut self) {}
+}
+
+impl DevicesToAdd {
+    pub(crate) fn clear(&mut self) {
+        self.vehicles.clear();
+        self.roadside_units.clear();
+        self.base_stations.clear();
+        self.controllers.clear();
+    }
+}
+
+impl DevicesToRemove {
+    pub(crate) fn clear(&mut self) {
+        self.vehicles.clear();
+        self.roadside_units.clear();
+        self.base_stations.clear();
+        self.controllers.clear();
+    }
 }
 
 impl State for Core {
-    /// Put the code that should be executed to initialize simulation:
-    /// Agent creation and schedule set-up
     fn init(&mut self, schedule: &mut Schedule) {
         info!("Initializing simulation...");
         self.device_field.init();
         self.vanet.init();
+        info!("Scheduling activation of the devices");
+        for (_, vehicle) in self.vehicles.iter_mut() {
+            debug!("Activating vehicle {}", vehicle.id);
+            let time_stamp = vehicle.timing.pop_activation_time();
+            self.devices_to_add.vehicles.push((*vehicle, time_stamp));
+        }
+        for (_, roadside_unit) in self.roadside_units.iter_mut() {
+            debug!("Activating RSU {}", roadside_unit.id);
+            let time_stamp = roadside_unit.timing.pop_activation_time();
+            self.devices_to_add
+                .roadside_units
+                .push((*roadside_unit, time_stamp));
+        }
+        for (_, base_station) in self.base_stations.iter_mut() {
+            debug!("Activating base_station {}", base_station.id);
+            let time_stamp = base_station.timing.pop_activation_time();
+            self.devices_to_add
+                .base_stations
+                .push((*base_station, time_stamp));
+        }
+        for (_, controller) in self.controllers.iter_mut() {
+            debug!("Activating controller {}", controller.id);
+            let time_stamp = controller.timing.pop_activation_time();
+            self.devices_to_add
+                .controllers
+                .push((*controller, time_stamp));
+        }
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
