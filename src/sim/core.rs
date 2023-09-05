@@ -20,7 +20,7 @@ use log::info;
 
 /// Expand the state definition according to your sim, for example by having a grid struct field
 /// to store the agents' locations.
-pub(crate) struct Network {
+pub(crate) struct Core {
     pub(crate) config: config::Config,
     pub(crate) ds_config: ds_config::AllDataSources,
     pub(crate) step: u64,
@@ -38,7 +38,7 @@ pub(crate) struct Timing {
     pub(crate) deactivation: [Option<u64>; ARRAY_SIZE],
 }
 
-impl Network {
+impl Core {
     pub(crate) fn new(
         config: config::Config,
         ds_config: ds_config::AllDataSources,
@@ -49,7 +49,7 @@ impl Network {
         device_field: DeviceField,
         vanet: Vanet,
     ) -> Self {
-        Network {
+        Self {
             config,
             ds_config,
             step: 0,
@@ -67,13 +67,13 @@ impl Network {
     }
 }
 
-impl State for Network {
+impl State for Core {
     /// Put the code that should be executed to initialize simulation:
     /// Agent creation and schedule set-up
     fn init(&mut self, schedule: &mut Schedule) {
         info!("Initializing simulation...");
         self.device_field.init();
-        //self.vanet.init();
+        self.vanet.init();
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
