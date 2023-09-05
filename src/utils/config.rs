@@ -63,6 +63,7 @@ pub(crate) struct LinkFiles {
     pub(crate) rsu2rsu_links: String,
     pub(crate) rsu2bs_links: String,
     pub(crate) bs2c_links: String,
+    pub(crate) c2c_links: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]

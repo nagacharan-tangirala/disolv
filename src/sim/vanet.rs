@@ -28,6 +28,7 @@ pub(crate) struct InfraLinks {
     pub(crate) v2bs_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
     pub(crate) rsu2bs_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
     pub(crate) bs2c_links: HashMap<DeviceId, DeviceId>,
+    pub(crate) c2c_links: HashMap<DeviceId, DeviceId>,
 }
 
 impl MeshLinks {
@@ -46,6 +47,7 @@ impl InfraLinks {
             v2bs_links: HashMap::new(),
             rsu2bs_links: HashMap::new(),
             bs2c_links: HashMap::new(),
+            c2c_links: HashMap::new(),
         }
     }
 }
@@ -78,6 +80,7 @@ impl Vanet {
         self.mesh_links.v2v_links = self.read_v2v_links();
         self.mesh_links.v2rsu_links = self.read_v2rsu_links();
         self.infra_links.v2bs_links = self.read_v2bs_links();
+        self.infra_links.c2c_links = self.read_c2c_links();
     }
 
     fn stream_links_between_devices(
@@ -132,6 +135,18 @@ impl Vanet {
 
         let bs2c_links: HashMap<DeviceId, DeviceId> = data_io::read_bs2c_links(bs2c_links_file);
         return bs2c_links;
+    }
+
+    fn read_c2c_links(&self) -> HashMap<DeviceId, DeviceId> {
+        info!("Reading controller <-> controller links...");
+        let c2c_links_file = Path::new(&self.config_path).join(&self.link_files.c2c_links);
+        if c2c_links_file.exists() == false {
+            info!("Skipping optional controller to controller links file.");
+            return HashMap::new();
+        }
+
+        let c2c_links: HashMap<DeviceId, DeviceId> = data_io::read_c2c_links(c2c_links_file);
+        return c2c_links;
     }
 
     fn read_rsu2bs_links(&self) -> HashMap<TimeStamp, HashMap<DeviceId, Link>> {

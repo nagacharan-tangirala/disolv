@@ -2,8 +2,9 @@ use crate::data::data_io::{Activation, DeviceId, Link, TimeStamp, Trace};
 use crate::data::df_utils;
 use crate::data::df_utils::*;
 use crate::utils::constants::{
-    COL_BASE_STATION_ID, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y, COL_DEVICE_ID, COL_DISTANCES,
-    COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VEHICLE_ID, COL_VELOCITY, NEIGHBOUR_SIZE,
+    COL_BASE_STATION_ID, COL_CONTROLLERS, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y,
+    COL_DEVICE_ID, COL_DISTANCES, COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VEHICLE_ID,
+    COL_VELOCITY, NEIGHBOUR_SIZE,
 };
 use krabmaga::hashbrown::HashMap;
 use log::{debug, info};
@@ -103,7 +104,7 @@ pub(crate) fn prepare_device_activations(
 
 pub(crate) fn prepare_b2c_links(
     b2c_links_df: &DataFrame,
-) -> Result<HashMap<u64, u64>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<DeviceId, DeviceId>, Box<dyn std::error::Error>> {
     let base_stations: Vec<u64> =
         convert_series_to_integer_vector(&b2c_links_df, COL_BASE_STATION_ID)?;
     let controller_ids: Vec<u64> =
@@ -112,6 +113,21 @@ pub(crate) fn prepare_b2c_links(
     let mut b2c_links: HashMap<u64, u64> = HashMap::new();
     for i in 0..base_stations.len() {
         b2c_links.insert(base_stations[i], controller_ids[i]);
+    }
+    return Ok(b2c_links);
+}
+
+pub(crate) fn prepare_c2c_links(
+    c2c_links_df: &DataFrame,
+) -> Result<HashMap<DeviceId, DeviceId>, Box<dyn std::error::Error>> {
+    let source_controller_ids: Vec<u64> =
+        convert_series_to_integer_vector(&c2c_links_df, COL_CONTROLLER_ID)?;
+    let dest_controller_ids: Vec<u64> =
+        convert_series_to_integer_vector(&c2c_links_df, COL_CONTROLLERS)?;
+
+    let mut b2c_links: HashMap<u64, u64> = HashMap::new();
+    for i in 0..source_controller_ids.len() {
+        b2c_links.insert(source_controller_ids[i], dest_controller_ids[i]);
     }
     return Ok(b2c_links);
 }

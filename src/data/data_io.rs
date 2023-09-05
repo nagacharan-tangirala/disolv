@@ -86,6 +86,24 @@ pub(crate) fn read_bs2c_links(b2c_links_file: PathBuf) -> HashMap<DeviceId, Devi
     return bs2c_links_map;
 }
 
+pub(crate) fn read_c2c_links(c2c_links_file: PathBuf) -> HashMap<DeviceId, DeviceId> {
+    let c2c_links_df = match file_io::read_csv_data(c2c_links_file) {
+        Ok(c2c_links_df) => c2c_links_df,
+        Err(e) => {
+            panic!("Error while reading the c2c links data from file: {}", e);
+        }
+    };
+
+    let c2c_links_map: HashMap<DeviceId, DeviceId> =
+        match df_handler::prepare_c2c_links(&c2c_links_df) {
+            Ok(c2c_links_map) => c2c_links_map,
+            Err(e) => {
+                panic!("Error while converting C2C links DF to hashmap: {}", e);
+            }
+        };
+    return c2c_links_map;
+}
+
 pub(crate) fn read_all_links(
     links_file: PathBuf,
     device_id_column: &str,
