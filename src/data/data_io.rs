@@ -1,6 +1,7 @@
 use crate::data::{df_handler, df_utils, file_io};
 use crate::utils::constants::{COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y};
 use krabmaga::hashbrown::HashMap;
+use log::warn;
 use polars_io::SerReader;
 use std::path::PathBuf;
 
@@ -98,7 +99,8 @@ pub(crate) fn read_c2c_links(c2c_links_file: PathBuf) -> HashMap<DeviceId, Devic
         match df_handler::prepare_c2c_links(&c2c_links_df) {
             Ok(c2c_links_map) => c2c_links_map,
             Err(e) => {
-                panic!("Error while converting C2C links DF to hashmap: {}", e);
+                warn!("Optional C2C links file has problems. Continuing.");
+                HashMap::new()
             }
         };
     return c2c_links_map;
