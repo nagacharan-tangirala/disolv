@@ -26,7 +26,7 @@ fn main() {
             let simulation_core: Core = model_builder.build();
             let duration = simulation_core.get_duration();
             println!("Running the simulation for {} steps", duration);
-            simulate!(sim_model, duration, 1);
+            simulate!(simulation_core, duration, 1);
         }
         _ => {
             println!("Invalid number of arguments. Usage: pavenet config_file");
