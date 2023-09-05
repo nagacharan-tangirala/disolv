@@ -5,7 +5,7 @@ mod models;
 mod sim;
 mod utils;
 use crate::sim::builder::PavenetBuilder;
-use crate::sim::network::Network;
+use crate::sim::core::Core;
 use std::env;
 
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
@@ -23,8 +23,8 @@ fn main() {
         2 => {
             let config_file = &args[1];
             let mut model_builder = PavenetBuilder::new(config_file);
-            let sim_model: Network = model_builder.build();
-            let duration = sim_model.get_duration();
+            let simulation_core: Core = model_builder.build();
+            let duration = simulation_core.get_duration();
             println!("Running the simulation for {} steps", duration);
             simulate!(sim_model, duration, 1);
         }

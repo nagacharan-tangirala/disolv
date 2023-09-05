@@ -9,7 +9,7 @@ use krabmaga::engine::state::State;
 use krabmaga::rand;
 use krabmaga::rand::Rng;
 
-use crate::sim::network::{Network, Timing};
+use crate::sim::core::{Core, Timing};
 use crate::utils::config::ControllerSettings;
 
 /// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
@@ -43,7 +43,7 @@ impl Controller {
 impl Agent for Controller {
     /// Put the code that should happen for each step, for each agent here.
     fn step(&mut self, state: &mut dyn State) {
-        let state = state.as_any().downcast_ref::<Network>().unwrap();
+        let state = state.as_any().downcast_ref::<Core>().unwrap();
         let mut rng = rand::thread_rng();
 
         // let loc_x = toroidal_transform(self.loc.x + self.dir_x, state.vehicle_field.width);

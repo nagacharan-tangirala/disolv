@@ -3,8 +3,8 @@ use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
+use crate::sim::core::{Core, Timing};
 use crate::sim::field::DeviceField;
-use crate::sim::network::{Network, Timing};
 use crate::sim::vanet::{InfraLinks, MeshLinks, Vanet};
 use crate::utils::config::{BaseStationSettings, ControllerSettings, RSUSettings, VehicleSettings};
 use crate::utils::constants::{ARRAY_SIZE, ROADSIDE_UNIT, VEHICLE};
@@ -58,7 +58,7 @@ impl PavenetBuilder {
         }
     }
 
-    pub(crate) fn build(&mut self) -> Network {
+    pub(crate) fn build(&mut self) -> Core {
         self.initiate_logger();
         let vehicles = self.build_vehicles();
         let roadside_units = self.build_roadside_units();
@@ -70,7 +70,7 @@ impl PavenetBuilder {
         let vanet: Vanet = self.build_empty_vanet();
 
         info!("Building the network...");
-        return Network::new(
+        return Core::new(
             self.config.clone(),
             self.ds_config.clone(),
             vehicles,

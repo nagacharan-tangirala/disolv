@@ -11,7 +11,7 @@ use krabmaga::hashbrown::HashMap;
 use krabmaga::rand;
 use krabmaga::rand::Rng;
 
-use crate::sim::network::{Network, Timing};
+use crate::sim::core::{Core, Timing};
 use crate::utils::config::RSUSettings;
 use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
@@ -76,7 +76,7 @@ impl RoadsideUnit {
 impl Agent for RoadsideUnit {
     /// Put the code that should happen for each step, for each agent here.
     fn step(&mut self, state: &mut dyn State) {
-        let state = state.as_any().downcast_ref::<Network>().unwrap();
+        let state = state.as_any().downcast_ref::<Core>().unwrap();
         let mut rng = rand::thread_rng();
 
         // let loc_x = toroidal_transform(self.loc.x + self.dir_x, state.rsu_field.width);

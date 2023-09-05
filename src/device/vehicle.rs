@@ -9,7 +9,7 @@ use krabmaga::hashbrown::HashMap;
 use krabmaga::rand;
 use std::hash::{Hash, Hasher};
 
-use crate::sim::network::{Network, Timing};
+use crate::sim::core::{Core, Timing};
 use crate::utils::config::VehicleSettings;
 use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
@@ -78,7 +78,7 @@ impl Vehicle {
 impl Agent for Vehicle {
     /// Put the code that should happen for each step, for each agent here.
     fn step(&mut self, state: &mut dyn State) {
-        let state = state.as_any().downcast_ref::<Network>().unwrap();
+        let state = state.as_any().downcast_ref::<Core>().unwrap();
         let mut rng = rand::thread_rng();
 
         self.location = Real2D { x: 0.0, y: 0.0 };
