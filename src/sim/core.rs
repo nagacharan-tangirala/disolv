@@ -30,12 +30,24 @@ pub(crate) struct Core {
     pub(crate) controllers: HashMap<u64, Controller>,
     pub(crate) device_field: DeviceField,
     pub(crate) vanet: Vanet,
+    pub(crate) devices_to_add: DevicesToAdd,
+    pub(crate) devices_to_pop: DevicesToRemove,
 }
 
-#[derive(Clone, Debug, Copy, Default)]
-pub(crate) struct Timing {
-    pub(crate) activation: [Option<u64>; ARRAY_SIZE],
-    pub(crate) deactivation: [Option<u64>; ARRAY_SIZE],
+#[derive(Clone, Default)]
+pub(crate) struct DevicesToAdd {
+    pub(crate) vehicles: Vec<(Vehicle, TimeStamp)>,
+    pub(crate) roadside_units: Vec<(RoadsideUnit, TimeStamp)>,
+    pub(crate) base_stations: Vec<(BaseStation, TimeStamp)>,
+    pub(crate) controllers: Vec<(Controller, TimeStamp)>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct DevicesToRemove {
+    pub(crate) vehicles: Vec<Vehicle>,
+    pub(crate) roadside_units: Vec<RoadsideUnit>,
+    pub(crate) base_stations: Vec<BaseStation>,
+    pub(crate) controllers: Vec<Controller>,
 }
 
 impl Core {
