@@ -1,9 +1,10 @@
 use crate::data::data_io;
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
+use crate::device::device_state::Timing;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
-use crate::sim::core::{Core, Timing};
+use crate::sim::core::Core;
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::{InfraLinks, MeshLinks, Vanet};
 use crate::utils::config::{BaseStationSettings, ControllerSettings, RSUSettings, VehicleSettings};
@@ -300,10 +301,7 @@ impl PavenetBuilder {
         for (i, end_time) in activation.1.iter().enumerate() {
             deactivation_times[i] = Some(*end_time);
         }
-        Timing {
-            activation: activation_times,
-            deactivation: deactivation_times,
-        }
+        Timing::new(activation_times, deactivation_times)
     }
 
     pub(crate) fn get_duration(&self) -> u64 {

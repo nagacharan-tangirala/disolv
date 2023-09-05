@@ -1,6 +1,7 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::device::device_state::{DeviceState, Timing};
 use crate::device::roadside_unit::RSUPayload;
 use crate::device::vehicle::VehiclePayload;
 use crate::models::aggregator::{AggregatorType, BasicAggregator};
@@ -12,7 +13,7 @@ use krabmaga::hashbrown::HashMap;
 use krabmaga::rand;
 use krabmaga::rand::Rng;
 
-use crate::sim::core::{Core, Timing};
+use crate::sim::core::Core;
 use crate::utils::config::BaseStationSettings;
 use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::DataSourceSettings;

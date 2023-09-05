@@ -1,6 +1,7 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::device::device_state::{DeviceState, Timing};
 use crate::models::composer::{BasicComposer, ComposerType, RandomComposer};
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
 use krabmaga::engine::agent::Agent;
@@ -11,7 +12,7 @@ use krabmaga::hashbrown::HashMap;
 use krabmaga::rand;
 use krabmaga::rand::Rng;
 
-use crate::sim::core::{Core, Timing};
+use crate::sim::core::Core;
 use crate::utils::config::RSUSettings;
 use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};

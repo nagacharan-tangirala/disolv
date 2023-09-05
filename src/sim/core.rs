@@ -1,25 +1,21 @@
 use std::any::Any;
 
+use crate::data::data_io::TimeStamp;
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
-use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::{config, ds_config};
-use crate::DISCRETIZATION;
-use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::hashbrown::HashMap;
 use krabmaga::{
     engine::{fields::field_2d::Field2D, location::Real2D, schedule::Schedule, state::State},
     rand::{self, Rng},
 };
-use log::info;
+use log::{debug, info};
 
-/// Expand the state definition according to your sim, for example by having a grid struct field
-/// to store the agents' locations.
 pub(crate) struct Core {
     pub(crate) config: config::Config,
     pub(crate) ds_config: ds_config::AllDataSources,
