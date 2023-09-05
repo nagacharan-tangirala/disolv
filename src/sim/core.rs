@@ -107,14 +107,45 @@ impl State for Core {
     /// Put the code that should be executed to reset simulation state
     fn reset(&mut self) {}
 
-    /// Put the code that should be executed for each state update here. The state is updated once for each
-    /// schedule step.
-    fn update(&mut self, _step: u64) {
-        info!("Updating state at step {}", self.step);
-        self.device_field.update();
+    fn before_step(&mut self, schedule: &mut Schedule) {
+        info!("Before step {}", self.step);
+        for vehicle in self.devices_to_add.vehicles.iter() {
+            schedule.schedule_repeating(Box::new(vehicle.0), vehicle.1 as f32, 0);
+        }
+        for roadside_unit in self.devices_to_add.roadside_units.iter() {
+            schedule.schedule_repeating(Box::new(roadside_unit.0), roadside_unit.1 as f32, 1);
+        }
+        for base_station in self.devices_to_add.base_stations.iter() {
+            schedule.schedule_repeating(Box::new(base_station.0), base_station.1 as f32, 2);
+        }
+        for controller in self.devices_to_add.controllers.iter() {
+            schedule.schedule_repeating(Box::new(controller.0), controller.1 as f32, 3);
+        }
+        self.devices_to_add.clear();
     }
 
-    fn after_step(&mut self, _schedule: &mut Schedule) {
-        self.step += 1
+    fn update(&mut self, step: u64) {
+        info!("Updating state at step {}", self.step);
+
+        self.device_field.update();
+        self.step = step;
+    }
+
+    fn after_step(&mut self, schedule: &mut Schedule) {
+        info!("After step {}", self.step);
+        for vehicle in self.devices_to_pop.vehicles.iter() {
+            schedule.dequeue(Box::new(*vehicle), vehicle.id as u32);
+        }
+        for roadside_unit in self.devices_to_pop.roadside_units.iter() {
+            schedule.dequeue(Box::new(*roadside_unit), roadside_unit.id as u32);
+        }
+        for base_station in self.devices_to_pop.base_stations.iter() {
+            schedule.dequeue(Box::new(*base_station), base_station.id as u32);
+        }
+        for controller in self.devices_to_pop.controllers.iter() {
+            schedule.dequeue(Box::new(*controller), controller.id as u32);
+        }
+        self.devices_to_pop.clear();
+        self.step += 1;
     }
 }
