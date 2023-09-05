@@ -1,4 +1,5 @@
 pub(crate) mod base_station;
 pub(crate) mod controller;
+pub(crate) mod device_state;
 pub(crate) mod roadside_unit;
 pub(crate) mod vehicle;
