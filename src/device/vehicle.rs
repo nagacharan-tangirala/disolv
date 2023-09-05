@@ -24,22 +24,23 @@ pub(crate) struct Vehicle {
     storage: f32,
     pub(crate) location: Real2D,
     pub(crate) timing: Timing,
-    pub(crate) vehicle_info: VehicleInfo,
+    pub(crate) sensor_info: SensorInfo,
     pub(crate) composer: ComposerType,
     pub(crate) simplifier: SimplifierType,
+    status: DeviceState,
 }
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct VehiclePayload {
     pub(crate) id: u32,
-    pub(crate) vehicle_info: VehicleInfo,
+    pub(crate) vehicle_info: SensorInfo,
     pub(crate) generated_data_size: HashMap<SensorType, f32>,
     pub(crate) types_with_counts: HashMap<SensorType, u16>,
     pub(crate) preferred_targets: HashMap<SensorType, DataTargetType>,
 }
 
 #[derive(Clone, Debug, Copy, Default)]
-pub(crate) struct VehicleInfo {
+pub(crate) struct SensorInfo {
     pub(crate) location: Real2D,
     pub(crate) speed: f32,
     pub(crate) temperature: f32,
@@ -67,32 +68,52 @@ impl Vehicle {
             storage: vehicle_settings.storage,
             location: Real2D::default(),
             timing: timing_info,
-            vehicle_info: VehicleInfo::default(),
+            sensor_info: SensorInfo::default(),
             composer,
             simplifier,
+            status: DeviceState::Inactive,
         }
     }
 
-    pub(crate) fn get_vehicle_info(&self) -> VehicleInfo {
-        self.vehicle_info
+    pub(crate) fn schedule_activation(&mut self, sim_core: &mut Core) {
+        let step = sim_core.step;
+        let time_stamp = self.timing.pop_activation_time();
+        if time_stamp >= step {
+            sim_core.devices_to_add.vehicles.push((*self, time_stamp));
+        }
+    }
+
+    pub(crate) fn schedule_deactivation(&mut self, sim_core: &mut Core) {
+        let step = sim_core.step;
+    }
+
+    pub(crate) fn get_vehicle_info(&self) -> SensorInfo {
+        self.sensor_info
     }
 }
 
 impl Agent for Vehicle {
-    /// Put the code that should happen for each step, for each agent here.
     fn step(&mut self, state: &mut dyn State) {
-        let state = state.as_any().downcast_ref::<Core>().unwrap();
-        let mut rng = rand::thread_rng();
+        debug!("Vehicle {} step", self.id);
+        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
+        let step = core_state.step;
+        // If we are scheduled, we are active
+        self.status = DeviceState::Active;
+        // Do data transfers.
 
-        self.location = Real2D { x: 0.0, y: 0.0 };
+        // If it is time to deactivate, schedule deactivation
+        if step == self.timing.peek_deactivation_time() {
+            self.status = DeviceState::Inactive;
+            // Add to devices to pop at this time step.
+            let time_stamp = self.timing.pop_deactivation_time();
+            core_state.devices_to_pop.vehicles.push(*self);
 
-        // state
-        //     .vehicle_field
-        //     .set_object_location(*self, Real2D { x: 0.0, y: 0.0 });
+            // Add to devices to add at the next activation time step.
+            let time_stamp = self.timing.pop_activation_time();
+            core_state.devices_to_add.vehicles.push((*self, time_stamp));
+        }
     }
 
-    /// Put the code that decides if an agent should be removed or not
-    /// for example in simulation where agents can die
     fn is_stopped(&mut self, _state: &mut dyn State) -> bool {
         false
     }
