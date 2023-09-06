@@ -102,6 +102,42 @@ impl DeviceField {
         self.controller_positions = self.read_controller_positions();
     }
 
+    pub(crate) fn before_step(&mut self, step: u64) {
+        self.step = step;
+        self.position_cache = HashMap::new();
+        self.velocity_cache = HashMap::new();
+        if let Some(vehicle_traces) = self.vehicle_positions.get(&self.step) {
+            if let vehicle_traces = vehicle_traces.as_ref().unwrap() {
+                let (vehicle_ids, xs, ys, velocities) = vehicle_traces;
+                for (vehicle_id, x, y, velocity) in
+                    izip!(vehicle_ids.iter(), xs.iter(), ys.iter(), velocities.iter())
+                {
+                    self.position_cache
+                        .insert(*vehicle_id, Real2D { x: *x, y: *y });
+                    self.velocity_cache.insert(*vehicle_id, *velocity);
+                }
+            }
+        }
+        if let Some(rsu_positions) = self.rsu_positions.get(&self.step) {
+            if let rsu_positions = rsu_positions.as_ref().unwrap() {
+                let (rsu_ids, xs, ys, _) = rsu_positions;
+                for (rsu_id, x, y) in izip!(rsu_ids.iter(), xs.iter(), ys.iter()) {
+                    self.position_cache.insert(*rsu_id, Real2D { x: *x, y: *y });
+                    self.velocity_cache.insert(*rsu_id, 0.0);
+                }
+            }
+        }
+        if let Some(bs_positions) = self.bs_positions.get(&self.step) {
+            if let bs_positions = bs_positions.as_ref().unwrap() {
+                let (bs_ids, xs, ys, _) = bs_positions;
+                for (bs_id, x, y) in izip!(bs_ids.iter(), xs.iter(), ys.iter()) {
+                    self.position_cache.insert(*bs_id, Real2D { x: *x, y: *y });
+                    self.velocity_cache.insert(*bs_id, 0.0);
+                }
+            }
+        }
+    }
+
     pub(crate) fn update(&mut self) {
         self.vehicle_field.lazy_update();
         self.rsu_field.lazy_update();
