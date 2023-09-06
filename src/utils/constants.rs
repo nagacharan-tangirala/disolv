@@ -1,10 +1,8 @@
-pub(crate) const STREAM_TIME: u64 = 1800;
-
-// Agents need Copy trait, hence vector cannot be used.
+// Agents need Copy trait, which prevents vector usage.
 // Hence, we have added arrays with fixed sizes.
-// Make sure to change this value if there any of the
-// arrays need more data than this size.
+// Make sure to change these values if relevant data size changes.
 pub(crate) const ARRAY_SIZE: usize = 10;
+pub(crate) const NEIGHBOUR_SIZE: usize = 5;
 
 // Devices
 pub(crate) const VEHICLE: &str = "vehicle";
@@ -22,6 +20,7 @@ pub(crate) const COL_DEVICE_ID: &str = "device_id";
 pub(crate) const COL_VEHICLES: &str = "vehicles_str";
 pub(crate) const COL_BASE_STATIONS: &str = "base_stations_str";
 pub(crate) const COL_ROADSIDE_UNITS: &str = "roadside_units_str";
+pub(crate) const COL_CONTROLLERS: &str = "controllers_str";
 
 pub(crate) const COL_DISTANCES: &str = "distances_str";
 pub(crate) const COL_VELOCITY: &str = "velocity";
