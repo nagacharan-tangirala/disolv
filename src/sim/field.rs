@@ -7,14 +7,15 @@ use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
 use crate::utils::config::{FieldSettings, PositionFiles, TraceFlags};
 use crate::utils::constants::{
-    BASE_STATION, COL_BASE_STATION_ID, COL_RSU_ID, COL_VEHICLE_ID, ROADSIDE_UNIT, STREAM_TIME,
-    VEHICLE,
+    BASE_STATION, COL_BASE_STATION_ID, COL_RSU_ID, COL_VEHICLE_ID, ROADSIDE_UNIT, VEHICLE,
 };
 use crate::DISCRETIZATION;
+use itertools::izip;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::fields::field_2d::Field2D;
+use krabmaga::engine::location::Real2D;
 use krabmaga::hashbrown::HashMap;
-use log::info;
+use log::{debug, info};
 use std::path::PathBuf;
 
 pub(crate) struct DeviceField {
