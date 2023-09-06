@@ -76,7 +76,39 @@ impl Core {
         return self.config.simulation_settings.sim_duration;
     }
 
-    pub(crate) fn schedule_activations(&mut self) {}
+    fn deactivate_devices(&mut self) {
+        for vehicle_id in self.devices_to_pop.vehicles.iter() {
+            if let Some(vehicle) = self.vehicles.get_mut(vehicle_id) {
+                vehicle.status = DeviceState::Inactive;
+            } else {
+                panic!("Vehicle {} not found", vehicle_id);
+            }
+        }
+
+        for rsu_id in self.devices_to_pop.roadside_units.iter() {
+            if let Some(rsu) = self.roadside_units.get_mut(rsu_id) {
+                rsu.status = DeviceState::Inactive;
+            } else {
+                panic!("RSU {} not found", rsu_id);
+            }
+        }
+
+        for bs_id in self.devices_to_pop.base_stations.iter() {
+            if let Some(bs) = self.base_stations.get_mut(bs_id) {
+                bs.status = DeviceState::Inactive;
+            } else {
+                panic!("Base station {} not found", bs_id);
+            }
+        }
+
+        for controller_id in self.devices_to_pop.controllers.iter() {
+            if let Some(controller) = self.controllers.get_mut(controller_id) {
+                controller.status = DeviceState::Inactive;
+            } else {
+                panic!("Controller {} not found", controller_id);
+            }
+        }
+    }
 }
 
 impl DevicesToAdd {
