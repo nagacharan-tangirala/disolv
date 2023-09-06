@@ -76,7 +76,7 @@ pub(crate) fn prepare_device_activations(
 
     let device_ids_vec: Vec<u64> = convert_series_to_integer_vector(&filtered_df, COL_DEVICE_ID)?;
 
-    let mut activation_dfs: HashMap<DeviceId, Activation> = HashMap::new();
+    let mut activation_data_map: HashMap<DeviceId, Activation> = HashMap::new();
     for device_id in device_ids_vec.iter() {
         let device_df = filtered_df
             .clone()
@@ -96,10 +96,9 @@ pub(crate) fn prepare_device_activations(
             Err(e) => return Err(e.into()),
         };
         let activation_data: Activation = (activation_timings, deactivation_timings);
-
-        activation_dfs.insert(*device_id, activation_data);
+        activation_data_map.insert(*device_id, activation_data);
     }
-    return Ok(activation_dfs);
+    return Ok(activation_data_map);
 }
 
 pub(crate) fn prepare_b2c_links(
