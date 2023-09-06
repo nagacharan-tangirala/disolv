@@ -44,16 +44,37 @@ impl Controller {
 impl Agent for Controller {
     /// Put the code that should happen for each step, for each agent here.
     fn step(&mut self, state: &mut dyn State) {
-        let state = state.as_any().downcast_ref::<Core>().unwrap();
-        let mut rng = rand::thread_rng();
+        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
+        let step = core_state.step;
 
-        // let loc_x = toroidal_transform(self.loc.x + self.dir_x, state.vehicle_field.width);
-        // let loc_y = toroidal_transform(self.loc.y + self.dir_y, state.vehicle_field.height);
-        // self.loc = Real2D { x: loc_x, y: loc_y };
-        //
-        // state
-        //     .controller_field
-        //     .set_object_location(*self, Real2D { x: loc_x, y: loc_y });
+        // If we are scheduled, we are active
+        self.status = DeviceState::Active;
+
+        match core_state.device_field.position_cache.get(&self.id) {
+            Some(loc) => {
+                self.location = *loc;
+                core_state
+                    .device_field
+                    .controller_field
+                    .set_object_location(*self, self.location);
+            }
+            None => {}
+        }
+
+        // If it is time to deactivate, schedule deactivation
+        if step == self.timing.peek_deactivation_time() {
+            self.status = DeviceState::Inactive;
+            self.timing.increment_timing_index();
+            core_state.devices_to_pop.controllers.push(self.id);
+
+            let time_stamp = self.timing.pop_activation_time();
+            if time_stamp > step {
+                core_state
+                    .devices_to_add
+                    .controllers
+                    .push((self.id, time_stamp));
+            }
+        }
     }
 
     /// Put the code that decides if an agent should be removed or not

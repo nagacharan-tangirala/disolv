@@ -75,47 +75,54 @@ impl Vehicle {
         }
     }
 
-    pub(crate) fn schedule_activation(&mut self, sim_core: &mut Core) {
-        let step = sim_core.step;
-        let time_stamp = self.timing.pop_activation_time();
-        if time_stamp >= step {
-            sim_core.devices_to_add.vehicles.push((*self, time_stamp));
-        }
-    }
-
-    pub(crate) fn schedule_deactivation(&mut self, sim_core: &mut Core) {
-        let step = sim_core.step;
-    }
-
     pub(crate) fn get_vehicle_info(&self) -> SensorInfo {
         self.sensor_info
+    }
+
+    pub fn as_agent(self) -> Box<dyn Agent> {
+        Box::new(self)
     }
 }
 
 impl Agent for Vehicle {
     fn step(&mut self, state: &mut dyn State) {
-        debug!("Vehicle {} step", self.id);
+        self.status = DeviceState::Active;
         let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
         let step = core_state.step;
-        // If we are scheduled, we are active
-        self.status = DeviceState::Active;
-        // Do data transfers.
 
-        // If it is time to deactivate, schedule deactivation
+        match core_state.device_field.position_cache.get(&self.id) {
+            Some(loc) => {
+                self.location = *loc;
+                core_state
+                    .device_field
+                    .vehicle_field
+                    .set_object_location(*self, self.location);
+            }
+            None => {}
+        }
+        self.sensor_info.speed = match core_state.device_field.velocity_cache.get(&self.id) {
+            Some(speed) => *speed,
+            None => 0.0,
+        };
+
+        // Initiate deactivation if it is time
         if step == self.timing.peek_deactivation_time() {
             self.status = DeviceState::Inactive;
-            // Add to devices to pop at this time step.
-            let time_stamp = self.timing.pop_deactivation_time();
-            core_state.devices_to_pop.vehicles.push(*self);
+            self.timing.increment_timing_index();
+            core_state.devices_to_pop.vehicles.push(self.id);
 
-            // Add to devices to add at the next activation time step.
             let time_stamp = self.timing.pop_activation_time();
-            core_state.devices_to_add.vehicles.push((*self, time_stamp));
+            if time_stamp > step {
+                core_state
+                    .devices_to_add
+                    .vehicles
+                    .push((self.id, time_stamp));
+            }
         }
     }
 
     fn is_stopped(&mut self, _state: &mut dyn State) -> bool {
-        false
+        self.status == DeviceState::Inactive
     }
 }
 
