@@ -1,6 +1,7 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::data::data_io::DeviceId;
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::aggregator::{AggregatorType, BasicAggregator};
 use krabmaga::engine::agent::Agent;
@@ -9,6 +10,7 @@ use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
 use krabmaga::rand;
 use krabmaga::rand::Rng;
+use log::debug;
 
 use crate::sim::core::Core;
 use crate::utils::config::ControllerSettings;
@@ -16,10 +18,11 @@ use crate::utils::config::ControllerSettings;
 /// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
 #[derive(Clone, Copy)]
 pub(crate) struct Controller {
-    pub(crate) id: u64,
+    pub(crate) id: DeviceId,
     pub(crate) location: Real2D,
     pub(crate) timing: Timing,
     pub(crate) aggregator: AggregatorType,
+    pub(crate) status: DeviceState,
 }
 
 impl Controller {
@@ -37,6 +40,7 @@ impl Controller {
             location: Real2D::default(),
             timing: timing_info,
             aggregator,
+            status: DeviceState::Inactive,
         }
     }
 }

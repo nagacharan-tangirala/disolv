@@ -1,6 +1,7 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::data::data_io::DeviceId;
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::composer::{BasicComposer, ComposerType, RandomComposer};
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
@@ -11,6 +12,7 @@ use krabmaga::engine::state::State;
 use krabmaga::hashbrown::HashMap;
 use krabmaga::rand;
 use krabmaga::rand::Rng;
+use log::debug;
 
 use crate::sim::core::Core;
 use crate::utils::config::RSUSettings;
@@ -20,26 +22,27 @@ use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
 /// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
 #[derive(Debug, Clone, Copy)]
 pub struct RoadsideUnit {
-    pub(crate) id: u64,
+    pub(crate) id: DeviceId,
     storage: f32,
     pub(crate) location: Real2D,
     pub(crate) timing: Timing,
-    pub(crate) vehicle_info: RSUInfo,
+    pub(crate) vehicle_info: SensorInfo,
     pub(crate) composer: ComposerType,
     pub(crate) simplifier: SimplifierType,
+    pub(crate) status: DeviceState,
 }
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct RSUPayload {
     pub(crate) id: u32,
-    pub(crate) vehicle_info: RSUInfo,
+    pub(crate) vehicle_info: SensorInfo,
     pub(crate) generated_data_size: HashMap<SensorType, f32>,
     pub(crate) types_with_counts: HashMap<SensorType, u16>,
     pub(crate) preferred_targets: HashMap<SensorType, DataTargetType>,
 }
 
 #[derive(Clone, Debug, Copy, Default)]
-pub(crate) struct RSUInfo {
+pub(crate) struct SensorInfo {
     pub(crate) location: Real2D,
     pub(crate) speed: f32,
     pub(crate) temperature: f32,
@@ -67,9 +70,10 @@ impl RoadsideUnit {
             storage: rsu_settings.storage,
             location: Real2D::default(),
             timing: timing_info,
-            vehicle_info: RSUInfo::default(),
+            vehicle_info: SensorInfo::default(),
             composer,
             simplifier,
+            status: DeviceState::Inactive,
         }
     }
 }

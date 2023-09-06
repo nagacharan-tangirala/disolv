@@ -1,4 +1,4 @@
-use crate::data::data_io::TimeStamp;
+use crate::data::data_io::{DeviceId, TimeStamp};
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::composer::{BasicComposer, ComposerType, RandomComposer};
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
@@ -17,17 +17,16 @@ use crate::utils::config::VehicleSettings;
 use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
 
-/// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct Vehicle {
-    pub(crate) id: u64,
-    storage: f32,
+    pub(crate) id: DeviceId,
     pub(crate) location: Real2D,
     pub(crate) timing: Timing,
     pub(crate) sensor_info: SensorInfo,
     pub(crate) composer: ComposerType,
     pub(crate) simplifier: SimplifierType,
-    status: DeviceState,
+    pub(crate) status: DeviceState,
+    storage: f32,
 }
 
 #[derive(Clone, Debug, Default)]
