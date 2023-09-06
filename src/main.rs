@@ -22,8 +22,7 @@ fn main() {
     match args.len() {
         2 => {
             let config_file = &args[1];
-            let mut model_builder = PavenetBuilder::new(config_file);
-            let simulation_core: Core = model_builder.build();
+            let simulation_core: Core = PavenetBuilder::new(config_file).build();
             let duration = simulation_core.get_duration();
             println!("Running the simulation for {} steps", duration);
             simulate!(simulation_core, duration, 1);
