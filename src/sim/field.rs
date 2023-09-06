@@ -161,7 +161,7 @@ impl DeviceField {
         device_id_column: &str,
     ) -> HashMap<TimeStamp, Option<Trace>> {
         let starting_time: u64 = self.step;
-        let ending_time: u64 = self.step + STREAM_TIME;
+        let ending_time: u64 = self.step + self.streaming_interval;
         let device_positions: HashMap<TimeStamp, Option<Trace>> =
             stream_io::stream_positions_in_interval(
                 trace_file,
