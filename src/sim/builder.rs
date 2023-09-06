@@ -1,4 +1,5 @@
 use crate::data::data_io;
+use crate::data::data_io::TimeStamp;
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::device_state::Timing;
@@ -120,6 +121,7 @@ impl PavenetBuilder {
             &self.config.trace_flags,
             &self.config_path,
             &self.config.position_files,
+            self.config.simulation_settings.sim_streaming_step,
         );
     }
 
@@ -129,6 +131,7 @@ impl PavenetBuilder {
             &self.config.link_files,
             &self.config.network_settings,
             &self.config.trace_flags,
+            self.config.simulation_settings.sim_streaming_step,
         );
     }
 
