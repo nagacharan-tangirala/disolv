@@ -130,37 +130,42 @@ impl DevicesToRemove {
 }
 
 impl State for Core {
-    fn init(&mut self, schedule: &mut Schedule) {
+    fn init(&mut self, _schedule: &mut Schedule) {
         info!("Initializing simulation...");
         self.device_field.init();
         self.vanet.init();
         info!("Scheduling activation of the devices");
-        for (_, vehicle) in self.vehicles.iter_mut() {
-            debug!("Activating vehicle {}", vehicle.id);
+
+        for (vehicle_id, vehicle) in self.vehicles.iter_mut() {
             let time_stamp = vehicle.timing.pop_activation_time();
-            self.devices_to_add.vehicles.push((*vehicle, time_stamp));
+            self.devices_to_add.vehicles.push((*vehicle_id, time_stamp));
         }
-        for (_, roadside_unit) in self.roadside_units.iter_mut() {
-            debug!("Activating RSU {}", roadside_unit.id);
+
+        for (rsu_id, roadside_unit) in self.roadside_units.iter_mut() {
             let time_stamp = roadside_unit.timing.pop_activation_time();
             self.devices_to_add
                 .roadside_units
-                .push((*roadside_unit, time_stamp));
+                .push((*rsu_id, time_stamp));
         }
-        for (_, base_station) in self.base_stations.iter_mut() {
-            debug!("Activating base_station {}", base_station.id);
+
+        for (bs_id, base_station) in self.base_stations.iter_mut() {
             let time_stamp = base_station.timing.pop_activation_time();
-            self.devices_to_add
-                .base_stations
-                .push((*base_station, time_stamp));
+            self.devices_to_add.base_stations.push((*bs_id, time_stamp));
         }
-        for (_, controller) in self.controllers.iter_mut() {
-            debug!("Activating controller {}", controller.id);
+
+        for (controller_id, controller) in self.controllers.iter_mut() {
             let time_stamp = controller.timing.pop_activation_time();
             self.devices_to_add
                 .controllers
-                .push((*controller, time_stamp));
+                .push((*controller_id, time_stamp));
         }
+
+        addplot!(
+            String::from("Agents"),
+            String::from("Steps"),
+            String::from("Number of agents"),
+            true
+        );
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
