@@ -21,18 +21,8 @@ impl Timing {
     ) -> Self {
         Self {
             activation,
-            deactivation: deactivation,
+            deactivation,
             array_idx: 0,
-        }
-    }
-
-    pub(crate) fn peek_activation_time(self) -> TimeStamp {
-        if self.array_idx == ARRAY_SIZE {
-            return 0;
-        }
-        match self.activation[self.array_idx] {
-            Some(time_stamp) => time_stamp,
-            None => 0,
         }
     }
 
@@ -59,17 +49,10 @@ impl Timing {
         }
     }
 
-    pub(crate) fn pop_deactivation_time(&mut self) -> TimeStamp {
-        if self.array_idx == ARRAY_SIZE {
-            return 0;
-        }
-        match self.deactivation[self.array_idx] {
-            Some(time_stamp) => {
-                self.array_idx += 1;
-                self.deactivation[self.array_idx] = None;
-                time_stamp
-            }
-            None => 0,
+    pub(crate) fn increment_timing_index(&mut self) {
+        if self.array_idx < ARRAY_SIZE {
+            self.deactivation[self.array_idx] = None;
+            self.array_idx += 1;
         }
     }
 }
