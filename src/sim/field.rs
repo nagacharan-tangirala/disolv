@@ -30,7 +30,10 @@ pub(crate) struct DeviceField {
     pub(crate) controller_positions: HashMap<DeviceId, (f32, f32)>,
     pub(crate) position_files: PositionFiles,
     pub(crate) config_path: PathBuf,
-    pub(crate) step: u64,
+    pub(crate) position_cache: HashMap<DeviceId, Real2D>,
+    pub(crate) velocity_cache: HashMap<DeviceId, f32>,
+    pub(crate) streaming_interval: TimeStamp,
+    pub(crate) step: TimeStamp,
 }
 
 impl DeviceField {
@@ -39,6 +42,7 @@ impl DeviceField {
         trace_flags: &TraceFlags,
         config_path: &PathBuf,
         position_files: &PositionFiles,
+        streaming_interval: u64,
     ) -> Self {
         let vehicle_positions = HashMap::new();
         let rsu_positions = HashMap::new();
@@ -84,6 +88,9 @@ impl DeviceField {
             position_files: position_files.clone(),
             config_path: config_path.clone(),
             step: 0,
+            streaming_interval,
+            position_cache: Default::default(),
+            velocity_cache: Default::default(),
         }
     }
 
