@@ -1,29 +1,34 @@
 use std::any::Any;
 
-use crate::data::data_io::TimeStamp;
+use crate::data::data_io::{DeviceId, TimeStamp};
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
+use crate::device::device_state::DeviceState;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
 use crate::utils::{config, ds_config};
+use itertools::izip;
 use krabmaga::engine::fields::field::Field;
+use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::hashbrown::HashMap;
+use krabmaga::*;
 use krabmaga::{
-    engine::{fields::field_2d::Field2D, location::Real2D, schedule::Schedule, state::State},
-    rand::{self, Rng},
+    addplot,
+    engine::{schedule::Schedule, state::State},
+    plot,
 };
-use log::{debug, info};
+use log::{debug, error, info};
 
 pub(crate) struct Core {
     pub(crate) config: config::Config,
     pub(crate) ds_config: ds_config::AllDataSources,
-    pub(crate) step: u64,
-    pub(crate) vehicles: HashMap<u64, Vehicle>,
-    pub(crate) roadside_units: HashMap<u64, RoadsideUnit>,
-    pub(crate) base_stations: HashMap<u64, BaseStation>,
-    pub(crate) controllers: HashMap<u64, Controller>,
+    pub(crate) step: TimeStamp,
+    pub(crate) vehicles: HashMap<DeviceId, Vehicle>,
+    pub(crate) roadside_units: HashMap<DeviceId, RoadsideUnit>,
+    pub(crate) base_stations: HashMap<DeviceId, BaseStation>,
+    pub(crate) controllers: HashMap<DeviceId, Controller>,
     pub(crate) device_field: DeviceField,
     pub(crate) vanet: Vanet,
     pub(crate) devices_to_add: DevicesToAdd,
@@ -32,18 +37,18 @@ pub(crate) struct Core {
 
 #[derive(Clone, Default)]
 pub(crate) struct DevicesToAdd {
-    pub(crate) vehicles: Vec<(Vehicle, TimeStamp)>,
-    pub(crate) roadside_units: Vec<(RoadsideUnit, TimeStamp)>,
-    pub(crate) base_stations: Vec<(BaseStation, TimeStamp)>,
-    pub(crate) controllers: Vec<(Controller, TimeStamp)>,
+    pub(crate) vehicles: Vec<(DeviceId, TimeStamp)>,
+    pub(crate) roadside_units: Vec<(DeviceId, TimeStamp)>,
+    pub(crate) base_stations: Vec<(DeviceId, TimeStamp)>,
+    pub(crate) controllers: Vec<(DeviceId, TimeStamp)>,
 }
 
 #[derive(Clone, Default)]
 pub(crate) struct DevicesToRemove {
-    pub(crate) vehicles: Vec<Vehicle>,
-    pub(crate) roadside_units: Vec<RoadsideUnit>,
-    pub(crate) base_stations: Vec<BaseStation>,
-    pub(crate) controllers: Vec<Controller>,
+    pub(crate) vehicles: Vec<DeviceId>,
+    pub(crate) roadside_units: Vec<DeviceId>,
+    pub(crate) base_stations: Vec<DeviceId>,
+    pub(crate) controllers: Vec<DeviceId>,
 }
 
 impl Core {
