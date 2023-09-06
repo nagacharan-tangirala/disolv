@@ -41,7 +41,6 @@ pub(crate) struct VehiclePayload {
 
 #[derive(Clone, Debug, Copy, Default)]
 pub(crate) struct SensorInfo {
-    pub(crate) location: Real2D,
     pub(crate) speed: f32,
     pub(crate) temperature: f32,
     pub(crate) env_temperature: f32,
