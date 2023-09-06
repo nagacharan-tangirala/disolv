@@ -300,6 +300,11 @@ impl PavenetBuilder {
         }
         for (i, end_time) in activation.1.iter().enumerate() {
             deactivation_times[i] = Some(*end_time);
+            if i == 0 && end_time == &0 {
+                // Device is always active
+                deactivation_times[i] = Some(TimeStamp::MAX);
+                break;
+            }
         }
         Timing::new(activation_times, deactivation_times)
     }
