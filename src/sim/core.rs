@@ -179,48 +179,97 @@ impl State for Core {
         self
     }
 
-    /// Put the code that should be executed to reset simulation state
     fn reset(&mut self) {}
-
-    fn before_step(&mut self, schedule: &mut Schedule) {
-        info!("Before step {}", self.step);
-        for vehicle in self.devices_to_add.vehicles.iter() {
-            schedule.schedule_repeating(Box::new(vehicle.0), vehicle.1 as f32, 0);
-        }
-        for roadside_unit in self.devices_to_add.roadside_units.iter() {
-            schedule.schedule_repeating(Box::new(roadside_unit.0), roadside_unit.1 as f32, 1);
-        }
-        for base_station in self.devices_to_add.base_stations.iter() {
-            schedule.schedule_repeating(Box::new(base_station.0), base_station.1 as f32, 2);
-        }
-        for controller in self.devices_to_add.controllers.iter() {
-            schedule.schedule_repeating(Box::new(controller.0), controller.1 as f32, 3);
-        }
-        self.devices_to_add.clear();
-    }
 
     fn update(&mut self, step: u64) {
         info!("Updating state at step {}", self.step);
-
         self.device_field.update();
         self.step = step;
     }
 
+    fn before_step(&mut self, schedule: &mut Schedule) {
+        info!("Before step {}", self.step);
+        self.device_field.before_step(self.step);
+        for vehicle_ts in self.devices_to_add.vehicles.iter() {
+            if let Some(vehicle) = self.vehicles.get_mut(&vehicle_ts.0) {
+                if !schedule.schedule_repeating(Box::new(*vehicle), vehicle_ts.1 as f32, 0) {
+                    error!("Could not schedule vehicle {} ", vehicle.id);
+                    panic!("Could not schedule vehicle {} ", vehicle.id);
+                }
+            }
+        }
+
+        for rsu_ts in self.devices_to_add.roadside_units.iter_mut() {
+            if let Some(rsu) = self.roadside_units.get_mut(&rsu_ts.0) {
+                if !schedule.schedule_repeating(Box::new(*rsu), rsu_ts.1 as f32, 1) {
+                    error!("Could not schedule vehicle {} ", rsu.id);
+                    panic!("Could not schedule vehicle {} ", rsu_ts.0);
+                }
+            }
+        }
+
+        for base_station_ts in self.devices_to_add.base_stations.iter() {
+            if let Some(base_station) = self.base_stations.get_mut(&base_station_ts.0) {
+                if !schedule.schedule_repeating(
+                    Box::new(*base_station),
+                    base_station_ts.1 as f32,
+                    2,
+                ) {
+                    error!("Could not schedule vehicle {} ", base_station.id);
+                    panic!("Could not schedule vehicle {} ", base_station_ts.0);
+                }
+            }
+        }
+
+        for controller_ts in self.devices_to_add.controllers.iter() {
+            if let Some(controller) = self.controllers.get_mut(&controller_ts.0) {
+                if !schedule.schedule_repeating(Box::new(*controller), controller_ts.1 as f32, 3) {
+                    error!("Could not schedule vehicle {} ", controller.id);
+                    panic!("Could not schedule vehicle {} ", controller_ts.0);
+                }
+            }
+        }
+
+        if self.step > 0 && self.step % self.config.simulation_settings.sim_streaming_step == 0 {
+            self.vanet.refresh_links_data(self.step);
+            self.device_field.refresh_position_data(self.step);
+        }
+
+        self.devices_to_add.clear();
+    }
+
     fn after_step(&mut self, schedule: &mut Schedule) {
         info!("After step {}", self.step);
-        for vehicle in self.devices_to_pop.vehicles.iter() {
-            schedule.dequeue(Box::new(*vehicle), vehicle.id as u32);
-        }
-        for roadside_unit in self.devices_to_pop.roadside_units.iter() {
-            schedule.dequeue(Box::new(*roadside_unit), roadside_unit.id as u32);
-        }
-        for base_station in self.devices_to_pop.base_stations.iter() {
-            schedule.dequeue(Box::new(*base_station), base_station.id as u32);
-        }
-        for controller in self.devices_to_pop.controllers.iter() {
-            schedule.dequeue(Box::new(*controller), controller.id as u32);
-        }
+        self.deactivate_devices();
         self.devices_to_pop.clear();
-        self.step += 1;
+
+        let agents = schedule.get_all_events();
+        let mut num_vehicles: f32 = 0.;
+        let mut num_bs: f32 = 0.;
+
+        for n in agents {
+            if let Some(v) = n.downcast_ref::<Vehicle>() {
+                if v.status == DeviceState::Active {
+                    num_vehicles += 1.;
+                }
+            }
+            if let Some(_w) = n.downcast_ref::<BaseStation>() {
+                num_bs += 1.;
+            }
+        }
+
+        plot!(
+            String::from("Agents"),
+            String::from("Base Stations"),
+            self.step as f64,
+            num_bs as f64
+        );
+
+        plot!(
+            String::from("Agents"),
+            String::from("Vehicles"),
+            self.step as f64,
+            num_vehicles as f64
+        );
     }
 }
