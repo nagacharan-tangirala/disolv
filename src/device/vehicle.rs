@@ -88,9 +88,9 @@ impl Agent for Vehicle {
         let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
         let step = core_state.step;
 
-        match core_state.device_field.position_cache.get(&self.id) {
+        match core_state.device_field.position_cache.remove(&self.id) {
             Some(loc) => {
-                self.location = *loc;
+                self.location = loc;
                 core_state
                     .device_field
                     .vehicle_field
@@ -98,8 +98,8 @@ impl Agent for Vehicle {
             }
             None => {}
         }
-        self.sensor_info.speed = match core_state.device_field.velocity_cache.get(&self.id) {
-            Some(speed) => *speed,
+        self.sensor_info.speed = match core_state.device_field.velocity_cache.remove(&self.id) {
+            Some(speed) => speed,
             None => 0.0,
         };
 

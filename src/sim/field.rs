@@ -124,7 +124,7 @@ impl DeviceField {
     }
 
     fn refresh_vehicle_cache(&mut self) {
-        if let Some(vehicle_traces) = self.vehicle_positions.get(&self.step) {
+        if let Some(vehicle_traces) = self.vehicle_positions.remove(&self.step) {
             let (vehicle_ids, xs, ys, velocities) = match vehicle_traces {
                 Some(vehicle_traces) => vehicle_traces,
                 None => {
@@ -143,7 +143,7 @@ impl DeviceField {
     }
 
     fn refresh_rsu_cache(&mut self) {
-        if let Some(rsu_traces) = self.rsu_positions.get(&self.step) {
+        if let Some(rsu_traces) = self.rsu_positions.remove(&self.step) {
             let (rsu_ids, xs, ys, velocities) = match rsu_traces {
                 Some(rsu_traces) => rsu_traces,
                 None => {
@@ -161,7 +161,7 @@ impl DeviceField {
     }
 
     fn refresh_bs_cache(&mut self) {
-        if let Some(bs_positions) = self.bs_positions.get(&self.step) {
+        if let Some(bs_positions) = self.bs_positions.remove(&self.step) {
             let (bs_ids, xs, ys, velocities) = match bs_positions {
                 Some(bs_traces) => bs_traces,
                 None => {
