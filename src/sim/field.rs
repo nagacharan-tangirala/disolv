@@ -125,7 +125,7 @@ impl DeviceField {
 
     fn refresh_vehicle_cache(&mut self) {
         if let Some(vehicle_traces) = self.vehicle_positions.get(&self.step) {
-            let (vehicle_ids, xs, ys, velocities) = match vehicle_traces.as_ref() {
+            let (vehicle_ids, xs, ys, velocities) = match vehicle_traces {
                 Some(vehicle_traces) => vehicle_traces,
                 None => {
                     debug! {"No vehicle traces found at step {}", self.step}
@@ -144,8 +144,8 @@ impl DeviceField {
 
     fn refresh_rsu_cache(&mut self) {
         if let Some(rsu_traces) = self.rsu_positions.get(&self.step) {
-            let (rsu_ids, xs, ys, velocities) = match rsu_traces.as_ref() {
-                Some(vehicle_traces) => vehicle_traces,
+            let (rsu_ids, xs, ys, velocities) = match rsu_traces {
+                Some(rsu_traces) => rsu_traces,
                 None => {
                     debug! {"No RSU traces found at step {}", self.step}
                     return;
@@ -162,14 +162,14 @@ impl DeviceField {
 
     fn refresh_bs_cache(&mut self) {
         if let Some(bs_positions) = self.bs_positions.get(&self.step) {
-            let (bs_ids, xs, ys, velocities) = match bs_positions.as_ref() {
-                Some(vehicle_traces) => vehicle_traces,
+            let (bs_ids, xs, ys, velocities) = match bs_positions {
+                Some(bs_traces) => bs_traces,
                 None => {
                     debug! {"No base station traces found at step {}", self.step}
                     return;
                 }
             };
-            for (bs_id, x, y, velocity) in
+            for (bs_id, x, y, _velocity) in
                 izip!(bs_ids.iter(), xs.iter(), ys.iter(), velocities.iter())
             {
                 self.position_cache.insert(*bs_id, Real2D { x: *x, y: *y });
