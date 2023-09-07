@@ -18,6 +18,8 @@ use krabmaga::hashbrown::HashMap;
 use log::{debug, info};
 use std::path::PathBuf;
 
+pub(crate) type TraceMap = HashMap<TimeStamp, Box<Option<Trace>>>;
+
 pub(crate) struct DeviceField {
     pub(crate) field_settings: FieldSettings,
     pub(crate) trace_flags: TraceFlags,
@@ -25,9 +27,9 @@ pub(crate) struct DeviceField {
     pub(crate) rsu_field: Field2D<RoadsideUnit>,
     pub(crate) bs_field: Field2D<BaseStation>,
     pub(crate) controller_field: Field2D<Controller>,
-    pub(crate) vehicle_positions: HashMap<TimeStamp, Option<Trace>>,
-    pub(crate) rsu_positions: HashMap<TimeStamp, Option<Trace>>,
-    pub(crate) bs_positions: HashMap<TimeStamp, Option<Trace>>,
+    pub(crate) vehicle_positions: TraceMap,
+    pub(crate) rsu_positions: TraceMap,
+    pub(crate) bs_positions: TraceMap,
     pub(crate) controller_positions: HashMap<DeviceId, (f32, f32)>,
     pub(crate) position_files: PositionFiles,
     pub(crate) config_path: PathBuf,
