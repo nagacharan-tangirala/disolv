@@ -1,23 +1,21 @@
-use crate::data::data_io::{Activation, DeviceId, Link, TimeStamp, Trace};
-use crate::data::df_utils;
+use crate::data::data_io::{Activation, DeviceId, TimeStamp, Trace};
 use crate::data::df_utils::*;
+use crate::sim::field::TraceMap;
+use crate::sim::vanet::{MultiLinkMap, SingleLinkMap};
 use crate::utils::constants::{
     COL_BASE_STATION_ID, COL_CONTROLLERS, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y,
-    COL_DEVICE_ID, COL_DISTANCES, COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VEHICLE_ID,
-    COL_VELOCITY, NEIGHBOUR_SIZE,
+    COL_DEVICE_ID, COL_DISTANCES, COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VELOCITY,
 };
 use krabmaga::hashbrown::HashMap;
 use log::{debug, info};
-use polars::lazy::prelude::*;
-use polars::prelude::{all, col, lit, Expr, IntoLazy, PolarsResult};
+use polars::prelude::{col, lit, IntoLazy};
 use polars_core::frame::DataFrame;
-use polars_core::prelude::list::*;
 use polars_core::prelude::*;
 
 pub(crate) fn prepare_trace_data(
     trace_df: &DataFrame,
     device_id_column: &str,
-) -> Result<HashMap<TimeStamp, Option<Trace>>, Box<dyn std::error::Error>> {
+) -> Result<TraceMap, Box<dyn std::error::Error>> {
     let filtered_df: DataFrame = trace_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
@@ -37,7 +35,7 @@ pub(crate) fn prepare_trace_data(
     let time_stamps: Vec<TimeStamp> =
         convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
 
-    let mut time_stamp_traces: HashMap<TimeStamp, Option<Trace>> = HashMap::new();
+    let mut time_stamp_traces: TraceMap = HashMap::new();
     for time_stamp in time_stamps.iter() {
         let ts_df = filtered_df
             .clone()
@@ -103,13 +101,13 @@ pub(crate) fn prepare_device_activations(
 
 pub(crate) fn prepare_b2c_links(
     b2c_links_df: &DataFrame,
-) -> Result<HashMap<DeviceId, DeviceId>, Box<dyn std::error::Error>> {
-    let base_stations: Vec<u64> =
+) -> Result<SingleLinkMap, Box<dyn std::error::Error>> {
+    let base_stations: Vec<DeviceId> =
         convert_series_to_integer_vector(&b2c_links_df, COL_BASE_STATION_ID)?;
-    let controller_ids: Vec<u64> =
+    let controller_ids: Vec<DeviceId> =
         convert_series_to_integer_vector(&b2c_links_df, COL_CONTROLLER_ID)?;
 
-    let mut b2c_links: HashMap<u64, u64> = HashMap::new();
+    let mut b2c_links: SingleLinkMap = HashMap::new();
     for i in 0..base_stations.len() {
         b2c_links.insert(base_stations[i], controller_ids[i]);
     }
@@ -118,13 +116,13 @@ pub(crate) fn prepare_b2c_links(
 
 pub(crate) fn prepare_c2c_links(
     c2c_links_df: &DataFrame,
-) -> Result<HashMap<DeviceId, DeviceId>, Box<dyn std::error::Error>> {
-    let source_controller_ids: Vec<u64> =
+) -> Result<SingleLinkMap, Box<dyn std::error::Error>> {
+    let source_controller_ids: Vec<DeviceId> =
         convert_series_to_integer_vector(&c2c_links_df, COL_CONTROLLER_ID)?;
-    let dest_controller_ids: Vec<u64> =
+    let dest_controller_ids: Vec<DeviceId> =
         convert_series_to_integer_vector(&c2c_links_df, COL_CONTROLLERS)?;
 
-    let mut b2c_links: HashMap<u64, u64> = HashMap::new();
+    let mut b2c_links: SingleLinkMap = HashMap::new();
     for i in 0..source_controller_ids.len() {
         b2c_links.insert(source_controller_ids[i], dest_controller_ids[i]);
     }
@@ -135,11 +133,11 @@ pub(crate) fn prepare_static_links(
     links_df: &DataFrame,
     device_id_column: &str,
     neighbour_column: &str,
-) -> Result<HashMap<TimeStamp, HashMap<DeviceId, Link>>, Box<dyn std::error::Error>> {
-    let mut static_links: HashMap<TimeStamp, HashMap<DeviceId, Link>> = HashMap::new();
+) -> Result<HashMap<TimeStamp, MultiLinkMap>, Box<dyn std::error::Error>> {
+    let mut static_links: HashMap<TimeStamp, MultiLinkMap> = HashMap::new();
     let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&links_df, device_id_column)?;
 
-    let mut device_map: HashMap<DeviceId, Link> = HashMap::new();
+    let mut device_map: MultiLinkMap = HashMap::new();
     for device_id in device_ids.iter() {
         let device_df = links_df
             .clone()
@@ -170,8 +168,8 @@ pub(crate) fn prepare_dynamic_links(
     links_df: &DataFrame,
     device_id_column: &str,
     neighbour_column: &str,
-) -> Result<HashMap<TimeStamp, HashMap<DeviceId, Link>>, Box<dyn std::error::Error>> {
-    let mut dynamic_links: HashMap<TimeStamp, HashMap<DeviceId, Link>> = HashMap::new();
+) -> Result<HashMap<TimeStamp, MultiLinkMap>, Box<dyn std::error::Error>> {
+    let mut dynamic_links: HashMap<TimeStamp, MultiLinkMap> = HashMap::new();
     debug!("Converting {} links to map...", links_df.height());
     let filtered_df: DataFrame = links_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
@@ -198,7 +196,7 @@ pub(crate) fn prepare_dynamic_links(
             .filter(col(COL_TIME_STEP).eq(lit(*time_stamp)))
             .collect()?;
 
-        let mut device_map: HashMap<DeviceId, Link> = HashMap::new();
+        let mut device_map: MultiLinkMap = HashMap::new();
         let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
 
         let neighbour_list: &ListChunked = match ts_df.columns([neighbour_column])?.get(0) {
