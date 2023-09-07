@@ -1,5 +1,5 @@
 use crate::data::data_io;
-use crate::data::data_io::TimeStamp;
+use crate::data::data_io::{Activation, DeviceId, TimeStamp};
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::device_state::Timing;
@@ -7,9 +7,9 @@ use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
 use crate::sim::core::Core;
 use crate::sim::field::DeviceField;
-use crate::sim::vanet::{InfraLinks, MeshLinks, Vanet};
+use crate::sim::vanet::Vanet;
 use crate::utils::config::{BaseStationSettings, ControllerSettings, RSUSettings, VehicleSettings};
-use crate::utils::constants::{ARRAY_SIZE, ROADSIDE_UNIT, VEHICLE};
+use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::AllDataSources;
 use crate::utils::{config, ds_config, logger};
 use krabmaga::hashbrown::HashMap;
@@ -142,7 +142,7 @@ impl PavenetBuilder {
         if activation_file.exists() == false {
             panic!("Vehicle activation file is not found.");
         }
-        let vehicle_activations: HashMap<u64, data_io::Activation> =
+        let vehicle_activations: HashMap<DeviceId, Activation> =
             data_io::read_activation_data(activation_file);
 
         let mut vehicles: HashMap<u64, Vehicle> = HashMap::new();
@@ -180,7 +180,7 @@ impl PavenetBuilder {
         if activation_file.exists() == false {
             panic!("RSU activation file is not found.");
         }
-        let rsu_activations: HashMap<u64, data_io::Activation> =
+        let rsu_activations: HashMap<DeviceId, Activation> =
             data_io::read_activation_data(activation_file);
 
         let mut roadside_units: HashMap<u64, RoadsideUnit> = HashMap::new();
@@ -219,7 +219,7 @@ impl PavenetBuilder {
         if activation_file.exists() == false {
             panic!("Base station activation file is not found.");
         }
-        let bs_activations: HashMap<u64, data_io::Activation> =
+        let bs_activations: HashMap<DeviceId, Activation> =
             data_io::read_activation_data(activation_file);
 
         let mut base_stations: HashMap<u64, BaseStation> = HashMap::new();
@@ -261,7 +261,7 @@ impl PavenetBuilder {
             panic!("Controller activation file is not found.");
         }
 
-        let controller_activations: HashMap<u64, data_io::Activation> =
+        let controller_activations: HashMap<DeviceId, Activation> =
             data_io::read_activation_data(activation_file);
 
         let mut controllers: HashMap<u64, Controller> = HashMap::new();
