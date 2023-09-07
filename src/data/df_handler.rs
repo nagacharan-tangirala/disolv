@@ -148,18 +148,12 @@ pub(crate) fn prepare_static_links(
             .collect()?;
 
         let neighbour_string: String = match device_df.columns([neighbour_column])?.get(0) {
-            Some(series) => match series.get(0) {
-                Ok(series) => series.to_string(),
-                Err(e) => return Err("Error in reading neighbour column".into()),
-            },
+            Some(series) => series.get(0)?.to_string(),
             None => return Err("Error in reading neighbour column".into()),
         };
 
         let distance_string: String = match device_df.columns([COL_DISTANCES])?.get(0) {
-            Some(series) => match series.get(0) {
-                Ok(series) => series.to_string(),
-                Err(e) => return Err("Error in reading distance column".into()),
-            },
+            Some(series) => series.get(0)?.to_string(),
             None => return Err("Error in reading distance column".into()),
         };
 
