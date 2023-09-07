@@ -23,8 +23,8 @@ pub(crate) fn stream_links_in_interval(
 pub(crate) fn stream_positions_in_interval(
     trace_file: PathBuf,
     device_id_column: &str,
-    start_interval: u64,
-    end_interval: u64,
+    start_interval: TimeStamp,
+    end_interval: TimeStamp,
 ) -> TraceMap {
     let trace_df =
         match file_io::stream_parquet_in_interval(trace_file, start_interval, end_interval) {

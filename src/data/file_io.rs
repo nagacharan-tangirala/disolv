@@ -1,3 +1,4 @@
+use crate::data::data_io::TimeStamp;
 use crate::utils::constants::COL_TIME_STEP;
 use polars::prelude::{col, lit, LazyFrame, PolarsResult, ScanArgsParquet};
 use polars_core::prelude::DataFrame;
@@ -6,8 +7,8 @@ use std::path::PathBuf;
 
 pub(crate) fn stream_parquet_in_interval(
     file_name: PathBuf,
-    interval_begin: u64,
-    interval_end: u64,
+    interval_begin: TimeStamp,
+    interval_end: TimeStamp,
 ) -> PolarsResult<DataFrame> {
     let args = ScanArgsParquet::default();
     LazyFrame::scan_parquet(file_name, args)?

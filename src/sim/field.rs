@@ -178,7 +178,7 @@ impl DeviceField {
         }
     }
 
-    pub(crate) fn refresh_position_data(&mut self, step: u64) {
+    pub(crate) fn refresh_position_data(&mut self, step: TimeStamp) {
         info! {"Refreshing position data from files at step {}", step}
         self.step = step;
         let vehicle_positions = self.read_vehicle_positions();
@@ -189,8 +189,8 @@ impl DeviceField {
     }
 
     fn stream_device_positions(&self, trace_file: PathBuf, device_id_column: &str) -> TraceMap {
-        let starting_time: u64 = self.step;
-        let ending_time: u64 = self.step + self.streaming_interval;
+        let starting_time: TimeStamp = self.step;
+        let ending_time: TimeStamp = self.step + self.streaming_interval;
         let device_positions: TraceMap = stream_io::stream_positions_in_interval(
             trace_file,
             device_id_column,
