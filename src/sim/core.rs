@@ -81,6 +81,70 @@ impl Core {
         return self.config.simulation_settings.sim_duration;
     }
 
+    fn init_devices_to_activate(&mut self) {
+        for (vehicle_id, vehicle) in self.vehicles.iter_mut() {
+            let time_stamp = vehicle.timing.pop_activation_time();
+            self.devices_to_add.vehicles.push((*vehicle_id, time_stamp));
+        }
+
+        for (rsu_id, roadside_unit) in self.roadside_units.iter_mut() {
+            let time_stamp = roadside_unit.timing.pop_activation_time();
+            self.devices_to_add
+                .roadside_units
+                .push((*rsu_id, time_stamp));
+        }
+
+        for (bs_id, base_station) in self.base_stations.iter_mut() {
+            let time_stamp = base_station.timing.pop_activation_time();
+            self.devices_to_add.base_stations.push((*bs_id, time_stamp));
+        }
+
+        for (controller_id, controller) in self.controllers.iter_mut() {
+            let time_stamp = controller.timing.pop_activation_time();
+            self.devices_to_add
+                .controllers
+                .push((*controller_id, time_stamp));
+        }
+    }
+
+    fn schedule_activation(&mut self, schedule: &mut Schedule) {
+        for vehicle_ts in self.devices_to_add.vehicles.iter() {
+            if let Some(vehicle) = self.vehicles.get_mut(&vehicle_ts.0) {
+                if !schedule.schedule_repeating(Box::new(*vehicle), vehicle_ts.1 as f32, 0) {
+                    error!("Could not schedule vehicle {} ", vehicle.id);
+                    panic!("Could not schedule vehicle {} ", vehicle.id);
+                }
+            }
+        }
+
+        for rsu_ts in self.devices_to_add.roadside_units.iter_mut() {
+            if let Some(rsu) = self.roadside_units.get_mut(&rsu_ts.0) {
+                if !schedule.schedule_repeating(Box::new(*rsu), rsu_ts.1 as f32, 1) {
+                    error!("Could not schedule vehicle {} ", rsu.id);
+                    panic!("Could not schedule vehicle {} ", rsu_ts.0);
+                }
+            }
+        }
+
+        for bs_ts in self.devices_to_add.base_stations.iter() {
+            if let Some(base_station) = self.base_stations.get_mut(&bs_ts.0) {
+                if !schedule.schedule_repeating(Box::new(*base_station), bs_ts.1 as f32, 2) {
+                    error!("Could not schedule vehicle {} ", base_station.id);
+                    panic!("Could not schedule vehicle {} ", bs_ts.0);
+                }
+            }
+        }
+
+        for controller_ts in self.devices_to_add.controllers.iter() {
+            if let Some(controller) = self.controllers.get_mut(&controller_ts.0) {
+                if !schedule.schedule_repeating(Box::new(*controller), controller_ts.1 as f32, 3) {
+                    error!("Could not schedule vehicle {} ", controller.id);
+                    panic!("Could not schedule vehicle {} ", controller_ts.0);
+                }
+            }
+        }
+    }
+
     fn deactivate_devices(&mut self) {
         for vehicle_id in self.devices_to_pop.vehicles.iter() {
             if let Some(vehicle) = self.vehicles.get_mut(vehicle_id) {
@@ -140,30 +204,7 @@ impl State for Core {
         self.device_field.init();
         self.vanet.init();
         info!("Scheduling activation of the devices");
-
-        for (vehicle_id, vehicle) in self.vehicles.iter_mut() {
-            let time_stamp = vehicle.timing.pop_activation_time();
-            self.devices_to_add.vehicles.push((*vehicle_id, time_stamp));
-        }
-
-        for (rsu_id, roadside_unit) in self.roadside_units.iter_mut() {
-            let time_stamp = roadside_unit.timing.pop_activation_time();
-            self.devices_to_add
-                .roadside_units
-                .push((*rsu_id, time_stamp));
-        }
-
-        for (bs_id, base_station) in self.base_stations.iter_mut() {
-            let time_stamp = base_station.timing.pop_activation_time();
-            self.devices_to_add.base_stations.push((*bs_id, time_stamp));
-        }
-
-        for (controller_id, controller) in self.controllers.iter_mut() {
-            let time_stamp = controller.timing.pop_activation_time();
-            self.devices_to_add
-                .controllers
-                .push((*controller_id, time_stamp));
-        }
+        self.init_devices_to_activate();
 
         addplot!(
             String::from("Agents"),
@@ -200,45 +241,7 @@ impl State for Core {
     fn before_step(&mut self, schedule: &mut Schedule) {
         info!("Before step {}", self.step);
         self.device_field.before_step(self.step);
-        for vehicle_ts in self.devices_to_add.vehicles.iter() {
-            if let Some(vehicle) = self.vehicles.get_mut(&vehicle_ts.0) {
-                if !schedule.schedule_repeating(Box::new(*vehicle), vehicle_ts.1 as f32, 0) {
-                    error!("Could not schedule vehicle {} ", vehicle.id);
-                    panic!("Could not schedule vehicle {} ", vehicle.id);
-                }
-            }
-        }
-
-        for rsu_ts in self.devices_to_add.roadside_units.iter_mut() {
-            if let Some(rsu) = self.roadside_units.get_mut(&rsu_ts.0) {
-                if !schedule.schedule_repeating(Box::new(*rsu), rsu_ts.1 as f32, 1) {
-                    error!("Could not schedule vehicle {} ", rsu.id);
-                    panic!("Could not schedule vehicle {} ", rsu_ts.0);
-                }
-            }
-        }
-
-        for base_station_ts in self.devices_to_add.base_stations.iter() {
-            if let Some(base_station) = self.base_stations.get_mut(&base_station_ts.0) {
-                if !schedule.schedule_repeating(
-                    Box::new(*base_station),
-                    base_station_ts.1 as f32,
-                    2,
-                ) {
-                    error!("Could not schedule vehicle {} ", base_station.id);
-                    panic!("Could not schedule vehicle {} ", base_station_ts.0);
-                }
-            }
-        }
-
-        for controller_ts in self.devices_to_add.controllers.iter() {
-            if let Some(controller) = self.controllers.get_mut(&controller_ts.0) {
-                if !schedule.schedule_repeating(Box::new(*controller), controller_ts.1 as f32, 3) {
-                    error!("Could not schedule vehicle {} ", controller.id);
-                    panic!("Could not schedule vehicle {} ", controller_ts.0);
-                }
-            }
-        }
+        self.schedule_activation(schedule);
 
         if self.step > 0 && self.step % self.config.simulation_settings.sim_streaming_step == 0 {
             self.vanet.refresh_links_data(self.step);
