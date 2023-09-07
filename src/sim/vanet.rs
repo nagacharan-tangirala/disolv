@@ -1,12 +1,16 @@
-use crate::data::data_io::{DeviceId, Link, TimeStamp};
+use crate::data::data_io::{DeviceId, TimeStamp};
 use crate::data::{data_io, stream_io};
 use crate::utils::config::{LinkFiles, NetworkSettings, TraceFlags};
 use crate::utils::constants::{
-    COL_BASE_STATIONS, COL_ROADSIDE_UNITS, COL_RSU_ID, COL_VEHICLES, COL_VEHICLE_ID, STREAM_TIME,
+    COL_BASE_STATIONS, COL_ROADSIDE_UNITS, COL_RSU_ID, COL_VEHICLES, COL_VEHICLE_ID,
 };
 use krabmaga::hashbrown::HashMap;
 use log::{debug, info};
 use std::path::{Path, PathBuf};
+
+pub(crate) type Link = (Vec<DeviceId>, Vec<f32>); // (neighbour_device_ids, distances)
+pub(crate) type SingleLinkMap = HashMap<DeviceId, DeviceId>;
+pub(crate) type MultiLinkMap = HashMap<DeviceId, Link>;
 
 pub(crate) struct Vanet {
     pub(crate) config_path: PathBuf,
