@@ -6,9 +6,7 @@ use crate::device::controller::Controller;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
 use crate::utils::config::{FieldSettings, PositionFiles, TraceFlags};
-use crate::utils::constants::{
-    BASE_STATION, COL_BASE_STATION_ID, COL_RSU_ID, COL_VEHICLE_ID, ROADSIDE_UNIT, VEHICLE,
-};
+use crate::utils::constants::{COL_BASE_STATION_ID, COL_RSU_ID, COL_VEHICLE_ID};
 use crate::DISCRETIZATION;
 use itertools::izip;
 use krabmaga::engine::fields::field::Field;
