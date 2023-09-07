@@ -107,6 +107,7 @@ pub(crate) struct AggregatorSettings {
 pub(crate) struct SimplifierSettings {
     pub(crate) name: String,
     pub(crate) compression_factor: f32,
+    pub(crate) sampling_factor: f32,
 }
 
 #[derive(Deserialize, Debug, Clone)]
