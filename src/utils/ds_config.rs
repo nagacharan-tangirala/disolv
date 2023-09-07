@@ -1,5 +1,5 @@
 use serde_derive::Deserialize;
-use std::collections::HashMap as Map;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Deserialize, Default, Debug, Copy, Clone)]
@@ -25,8 +25,8 @@ pub(crate) enum SensorType {
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct AllDataSources {
-    pub(crate) vehicle_sources: Map<String, Map<String, DataSourceSettings>>,
-    pub(crate) rsu_sources: Map<String, Map<String, DataSourceSettings>>,
+    pub(crate) vehicle_sources: HashMap<String, HashMap<String, DataSourceSettings>>,
+    pub(crate) rsu_sources: HashMap<String, HashMap<String, DataSourceSettings>>,
 }
 
 #[derive(Deserialize, Default, Debug, Clone, Copy)]
