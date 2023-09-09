@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::aggregator::{AggregatorType, BasicAggregator};
-use crate::reader::activation::DeviceId;
+use crate::reader::activation::{DeviceId, TimeStamp};
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
@@ -13,7 +13,6 @@ use log::debug;
 use crate::sim::core::Core;
 use crate::utils::config::ControllerSettings;
 
-/// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
 #[derive(Clone, Copy)]
 pub(crate) struct Controller {
     pub(crate) id: DeviceId,
@@ -21,6 +20,7 @@ pub(crate) struct Controller {
     pub(crate) timing: Timing,
     pub(crate) aggregator: AggregatorType,
     pub(crate) status: DeviceState,
+    step: TimeStamp,
 }
 
 impl Controller {
@@ -39,23 +39,14 @@ impl Controller {
             timing: timing_info,
             aggregator,
             status: DeviceState::Inactive,
+            step: 0,
         }
     }
-}
 
-impl Agent for Controller {
-    /// Put the code that should happen for each step, for each agent here.
-    fn step(&mut self, state: &mut dyn State) {
-        debug!("{} is active", self.id);
-        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
-        let step = core_state.step;
-
-        // If we are scheduled, we are active
-        self.status = DeviceState::Active;
-
-        match core_state.device_field.position_cache.get(&self.id) {
+    fn update_geo_data(&mut self, core_state: &mut Core) {
+        match core_state.device_field.position_cache.remove(&self.id) {
             Some(loc) => {
-                self.location = *loc;
+                self.location = loc;
                 core_state
                     .device_field
                     .controller_field
@@ -63,25 +54,39 @@ impl Agent for Controller {
             }
             None => {}
         }
+    }
 
-        // If it is time to deactivate, schedule deactivation
-        if step == self.timing.peek_deactivation_time() {
-            self.status = DeviceState::Inactive;
-            self.timing.increment_timing_index();
-            core_state.devices_to_pop.controllers.push(self.id);
+    fn deactivate(&mut self, core_state: &mut Core) {
+        self.status = DeviceState::Inactive;
+        self.timing.increment_timing_index();
+        core_state.devices_to_pop.controllers.push(self.id);
 
-            let time_stamp = self.timing.pop_activation_time();
-            if time_stamp > step {
-                core_state
-                    .devices_to_add
-                    .controllers
-                    .push((self.id, time_stamp));
-            }
+        let time_stamp = self.timing.pop_activation_time();
+        if time_stamp > self.step {
+            core_state
+                .devices_to_add
+                .controllers
+                .push((self.id, time_stamp));
+        }
+    }
+}
+
+impl Agent for Controller {
+    fn step(&mut self, state: &mut dyn State) {
+        debug!("{} is active", self.id);
+        debug!("{} is active", self.id);
+        self.status = DeviceState::Active;
+        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
+        self.step = core_state.step;
+
+        self.update_geo_data(core_state);
+
+        // Initiate deactivation if it is time
+        if self.step == self.timing.peek_deactivation_time() {
+            self.deactivate(core_state);
         }
     }
 
-    /// Put the code that decides if an agent should be removed or not
-    /// for example in simulation where agents can die
     fn is_stopped(&mut self, _state: &mut dyn State) -> bool {
         false
     }
