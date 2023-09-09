@@ -37,35 +37,45 @@ pub(crate) struct RandomComposer {
     pub(crate) data_sources: [Option<DataSourceSettings>; ARRAY_SIZE],
 }
 
-trait DataComposer {
-    fn compose_payload(&self) -> VehiclePayload;
-}
+impl BasicComposer {
+    pub(crate) fn new(data_sources: [Option<DataSourceSettings>; ARRAY_SIZE]) -> Self {
+        Self { data_sources }
+    }
 
-impl DataComposer for BasicComposer {
-    fn compose_payload(&self) -> VehiclePayload {
-        let mut payload = VehiclePayload::default();
-        for i in 0..self.data_sources.len() {
-            let data_source: DataSourceSettings = match self.data_sources[i] {
+    pub(crate) fn compose_payload(&self, target_type: DataTargetType) -> DevicePayload {
+        let mut payload = DevicePayload::default();
+        let total_data_size = 0.0;
+        let total_data_count: u16 = 0;
+        for data_source in self.data_sources {
+            let data_source: DataSourceSettings = match data_source {
                 Some(ds) => ds,
                 None => continue,
             };
 
+            if data_source.target_type != target_type {
+                continue;
+            }
+
             let data_type = data_source.data_type;
             let data_counts: u16 = data_source.data_counts;
             let data_size = data_source.unit_size * data_source.data_counts as f32;
+
             payload.generated_data_size.insert(data_type, data_size);
             payload.types_with_counts.insert(data_type, data_counts);
-            payload
-                .preferred_targets
-                .insert(data_type, data_source.target_type);
         }
+        payload.total_data_count = total_data_count;
+        payload.total_data_size = total_data_size;
         return payload;
     }
 }
 
-impl DataComposer for RandomComposer {
-    fn compose_payload(&self) -> VehiclePayload {
-        let payload = VehiclePayload::default();
+impl RandomComposer {
+    pub(crate) fn new(data_sources: [Option<DataSourceSettings>; ARRAY_SIZE]) -> Self {
+        Self { data_sources }
+    }
+
+    pub(crate) fn compose_payload(&self) -> DevicePayload {
+        let payload = DevicePayload::default();
         return payload;
     }
 }
