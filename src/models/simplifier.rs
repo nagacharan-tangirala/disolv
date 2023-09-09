@@ -1,8 +1,11 @@
-use crate::device::vehicle::VehiclePayload;
-use crate::utils::ds_config::DataSourceSettings;
+use crate::models::composer::DevicePayload;
+use crate::utils::config::SimplifierSettings;
 
 #[derive(Clone, Debug, Copy)]
-pub(crate) struct BasicSimplifier;
+pub(crate) struct BasicSimplifier {
+    pub(crate) compression_factor: f32,
+    pub(crate) sampling_factor: f32,
+}
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct RandomSimplifier;
@@ -13,10 +16,25 @@ pub(crate) enum SimplifierType {
     Random(RandomSimplifier),
 }
 
-trait VehicleSimplifier {
-    fn simplify_payload(&self, vehicle_payload: VehiclePayload) -> VehiclePayload;
+impl BasicSimplifier {
+    pub(crate) fn new(simplifier_settings: SimplifierSettings) -> Self {
+        Self {
+            compression_factor: simplifier_settings.compression_factor,
+            sampling_factor: simplifier_settings.sampling_factor,
+        }
+    }
+    pub(crate) fn simplify_payload(&self, payload: DevicePayload) -> DevicePayload {
+        let mut simplified_payload = DevicePayload::default();
+        return simplified_payload;
+    }
 }
 
-trait RSUSimplifier {
-    fn simplify_payload(&self, vehicle_payload: VehiclePayload) -> VehiclePayload;
+impl RandomSimplifier {
+    pub(crate) fn new(simplifier_settings: SimplifierSettings) -> Self {
+        Self {}
+    }
+
+    pub(crate) fn simplify_payload(&self, payload: DevicePayload) -> DevicePayload {
+        return payload;
+    }
 }
