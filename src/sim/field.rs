@@ -103,14 +103,8 @@ impl DeviceField {
         self.controller_positions = self.read_controller_positions();
     }
 
-    pub(crate) fn clear(&mut self) {
-        self.position_cache = HashMap::new();
-        self.velocity_cache = HashMap::new();
-    }
-
     pub(crate) fn before_step(&mut self, step: TimeStamp) {
         self.step = step;
-        self.clear();
         self.refresh_vehicle_cache();
         self.refresh_rsu_cache();
         self.refresh_bs_cache();
