@@ -21,7 +21,7 @@ impl ConfigReader {
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct Config {
-    pub(crate) position_files: PositionFiles,
+    pub(crate) geo_data_files: GeoDataFiles,
     pub(crate) activation_files: ActivationFiles,
     pub(crate) link_files: LinkFiles,
     pub(crate) data_source_config_file: DataSourceConfigFile,
@@ -40,11 +40,11 @@ pub(crate) struct Config {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct PositionFiles {
-    pub(crate) vehicle_positions: String,
-    pub(crate) rsu_positions: String,
-    pub(crate) bs_positions: String,
-    pub(crate) controller_positions: String,
+pub(crate) struct GeoDataFiles {
+    pub(crate) vehicle_geo_data: String,
+    pub(crate) rsu_geo_data: String,
+    pub(crate) bs_geo_data: String,
+    pub(crate) controller_geo_data: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
