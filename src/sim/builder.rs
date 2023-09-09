@@ -295,6 +295,19 @@ impl PavenetBuilder {
         return controllers;
     }
 
+    fn convert_data_sources_to_array(
+        &self,
+        data_sources: &std::collections::HashMap<String, DataSourceSettings>,
+    ) -> [Option<DataSourceSettings>; ARRAY_SIZE] {
+        let mut data_sources_array: [Option<DataSourceSettings>; ARRAY_SIZE] = [None; ARRAY_SIZE];
+        let mut index = 0;
+        for (_, data_source) in data_sources.iter() {
+            data_sources_array[index] = Some(data_source.clone());
+            index += 1;
+        }
+        return data_sources_array;
+    }
+
     pub(crate) fn convert_activation_to_timing(activation: &data_io::Activation) -> Timing {
         let mut activation_times: [Option<u64>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         let mut deactivation_times: [Option<u64>; ARRAY_SIZE] = [None; ARRAY_SIZE];
