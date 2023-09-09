@@ -66,15 +66,86 @@ impl Vehicle {
             storage: vehicle_settings.storage,
             location: Real2D::default(),
             timing: timing_info,
-            sensor_info: SensorInfo::default(),
+            sensor_data: SensorData::default(),
             composer,
             simplifier,
             status: DeviceState::Inactive,
+            step: 0,
         }
     }
 
-    pub(crate) fn get_vehicle_info(&self) -> SensorInfo {
-        self.sensor_info
+    fn update_geo_data(&mut self, core_state: &mut Core) {
+        match core_state.device_field.position_cache.remove(&self.id) {
+            Some(loc) => {
+                self.location = loc;
+                core_state
+                    .device_field
+                    .vehicle_field
+                    .set_object_location(*self, self.location);
+            }
+            None => {}
+        }
+        self.sensor_data.speed = match core_state.device_field.velocity_cache.remove(&self.id) {
+            Some(speed) => speed,
+            None => 0.0,
+        };
+    }
+
+    pub(crate) fn deactivate(&mut self, core_state: &mut Core) {
+        self.status = DeviceState::Inactive;
+        self.timing.increment_timing_index();
+        core_state.devices_to_pop.vehicles.push(self.id);
+
+        let time_stamp = self.timing.pop_activation_time();
+        if time_stamp > self.step {
+            core_state
+                .devices_to_add
+                .vehicles
+                .push((self.id, time_stamp));
+        }
+    }
+
+    pub(crate) fn transfer_data_to_vehicles(&mut self, core_state: &mut Core) {
+        let mut v2v_payload = match self.composer {
+            ComposerType::Basic(ref composer) => composer.compose_payload(DataTargetType::Vehicle),
+            ComposerType::Random(ref composer) => composer.compose_payload(),
+        };
+
+        v2v_payload = match self.simplifier {
+            SimplifierType::Basic(ref simplifier) => simplifier.simplify_payload(v2v_payload),
+            SimplifierType::Random(ref simplifier) => simplifier.simplify_payload(v2v_payload),
+        };
+
+        v2v_payload.id = self.id;
+        v2v_payload.sensor_data = self.sensor_data;
+    }
+
+    pub(crate) fn transfer_data_to_bs(&mut self, core_state: &mut Core) {
+        let mut v2bs_payload = match self.composer {
+            ComposerType::Basic(ref composer) => {
+                composer.compose_payload(DataTargetType::BaseStation)
+            }
+            ComposerType::Random(ref composer) => composer.compose_payload(),
+        };
+        v2bs_payload = match self.simplifier {
+            SimplifierType::Basic(ref simplifier) => simplifier.simplify_payload(v2bs_payload),
+            SimplifierType::Random(ref simplifier) => simplifier.simplify_payload(v2bs_payload),
+        };
+        v2bs_payload.id = self.id;
+        v2bs_payload.sensor_data = self.sensor_data;
+    }
+
+    pub(crate) fn transfer_data_to_rsu(&mut self, core_state: &mut Core) {
+        let mut v2rsu_payload = match self.composer {
+            ComposerType::Basic(ref composer) => composer.compose_payload(DataTargetType::RSU),
+            ComposerType::Random(ref composer) => composer.compose_payload(),
+        };
+        v2rsu_payload = match self.simplifier {
+            SimplifierType::Basic(ref simplifier) => simplifier.simplify_payload(v2rsu_payload),
+            SimplifierType::Random(ref simplifier) => simplifier.simplify_payload(v2rsu_payload),
+        };
+        v2rsu_payload.id = self.id;
+        v2rsu_payload.sensor_data = self.sensor_data;
     }
 
     pub fn as_agent(self) -> Box<dyn Agent> {
@@ -86,36 +157,16 @@ impl Agent for Vehicle {
     fn step(&mut self, state: &mut dyn State) {
         self.status = DeviceState::Active;
         let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
-        let step = core_state.step;
+        self.step = core_state.step;
 
-        match core_state.device_field.position_cache.remove(&self.id) {
-            Some(loc) => {
-                self.location = loc;
-                core_state
-                    .device_field
-                    .vehicle_field
-                    .set_object_location(*self, self.location);
-            }
-            None => {}
-        }
-        self.sensor_info.speed = match core_state.device_field.velocity_cache.remove(&self.id) {
-            Some(speed) => speed,
-            None => 0.0,
-        };
+        self.update_geo_data(core_state);
+        self.transfer_data_to_rsu(core_state);
+        self.transfer_data_to_bs(core_state);
+        self.transfer_data_to_vehicles(core_state);
 
         // Initiate deactivation if it is time
-        if step == self.timing.peek_deactivation_time() {
-            self.status = DeviceState::Inactive;
-            self.timing.increment_timing_index();
-            core_state.devices_to_pop.vehicles.push(self.id);
-
-            let time_stamp = self.timing.pop_activation_time();
-            if time_stamp > step {
-                core_state
-                    .devices_to_add
-                    .vehicles
-                    .push((self.id, time_stamp));
-            }
+        if self.step == self.timing.peek_deactivation_time() {
+            self.deactivate(core_state);
         }
     }
 
