@@ -233,17 +233,19 @@ impl State for Core {
     fn reset(&mut self) {}
 
     fn update(&mut self, step: u64) {
-        info!("Updating state at step {}", self.step);
         self.device_field.update();
         self.step = step;
+        debug!("Updating state at step {}", self.step);
     }
 
     fn before_step(&mut self, schedule: &mut Schedule) {
-        info!("Before step {}", self.step);
+        debug!("Before step {}", self.step);
         self.device_field.before_step(self.step);
+        self.vanet.before_step(self.step);
         self.schedule_activation(schedule);
 
         if self.step > 0 && self.step % self.config.simulation_settings.sim_streaming_step == 0 {
+            info!("Streaming data at step {}", self.step);
             self.vanet.refresh_links_data(self.step);
             self.device_field.refresh_position_data(self.step);
         }
@@ -252,7 +254,8 @@ impl State for Core {
     }
 
     fn after_step(&mut self, schedule: &mut Schedule) {
-        info!("After step {}", self.step);
+        debug!("After step {}", self.step);
+        self.vanet.after_step();
         self.deactivate_devices();
         self.devices_to_pop.clear();
 
