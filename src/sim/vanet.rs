@@ -1,60 +1,58 @@
-use crate::data::data_io::{DeviceId, TimeStamp};
-use crate::data::{data_io, stream_io};
+use crate::models::aggregator::BSPayload;
+use crate::models::composer::DevicePayload;
+use crate::reader::activation::{DeviceId, TimeStamp};
+use crate::reader::links::LinksReader;
 use crate::utils::config::{LinkFiles, NetworkSettings, TraceFlags};
-use crate::utils::constants::{
-    COL_BASE_STATIONS, COL_ROADSIDE_UNITS, COL_RSU_ID, COL_VEHICLES, COL_VEHICLE_ID,
-};
 use krabmaga::hashbrown::HashMap;
 use log::{debug, info};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub(crate) type Link = (Vec<DeviceId>, Vec<f32>); // (neighbour_device_ids, distances)
 pub(crate) type SingleLinkMap = HashMap<DeviceId, DeviceId>;
 pub(crate) type MultiLinkMap = HashMap<DeviceId, Link>;
 
 pub(crate) struct Vanet {
-    pub(crate) config_path: PathBuf,
-    pub(crate) trace_flags: TraceFlags,
     pub(crate) network_settings: NetworkSettings,
-    pub(crate) link_files: LinkFiles,
     pub(crate) mesh_links: MeshLinks,
     pub(crate) infra_links: InfraLinks,
-    pub(crate) step: u64,
+    pub(crate) links_reader: LinksReader,
+    pub(crate) step: TimeStamp,
+    pub(crate) data_payloads: DataPayloads,
 }
 
+#[derive(Clone, Debug, Default)]
 pub(crate) struct MeshLinks {
-    pub(crate) v2v_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
-    pub(crate) rsu2rsu_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
-    pub(crate) v2rsu_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
+    pub(crate) v2v_links: HashMap<TimeStamp, MultiLinkMap>,
+    pub(crate) rsu2rsu_links: HashMap<TimeStamp, MultiLinkMap>,
+    pub(crate) v2rsu_links: HashMap<TimeStamp, MultiLinkMap>,
+    pub(crate) v2v_link_cache: MultiLinkMap,
+    pub(crate) rsu2rsu_link_cache: MultiLinkMap,
+    pub(crate) v2rsu_link_cache: MultiLinkMap,
 }
 
+#[derive(Clone, Debug, Default)]
 pub(crate) struct InfraLinks {
-    pub(crate) v2bs_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
-    pub(crate) rsu2bs_links: HashMap<TimeStamp, HashMap<DeviceId, Link>>,
-    pub(crate) bs2c_links: HashMap<DeviceId, DeviceId>,
-    pub(crate) c2c_links: HashMap<DeviceId, DeviceId>,
+    pub(crate) v2bs_links: HashMap<TimeStamp, MultiLinkMap>,
+    pub(crate) rsu2bs_links: HashMap<TimeStamp, MultiLinkMap>,
+    pub(crate) bs2c_links: SingleLinkMap,
+    pub(crate) c2c_links: SingleLinkMap,
+    pub(crate) v2bs_link_cache: MultiLinkMap,
+    pub(crate) rsu2bs_link_cache: MultiLinkMap,
 }
 
-impl MeshLinks {
-    pub(crate) fn new() -> Self {
-        Self {
-            v2v_links: HashMap::new(),
-            rsu2rsu_links: HashMap::new(),
-            v2rsu_links: HashMap::new(),
-        }
-    }
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DataPayloads {
+    pub(crate) v2v_data: HashMap<DeviceId, DevicePayload>,
+    pub(crate) v2rsu_data: HashMap<DeviceId, DevicePayload>,
+    pub(crate) v2bs_data: HashMap<DeviceId, DevicePayload>,
+    pub(crate) rsu2v_data: HashMap<DeviceId, DevicePayload>,
+    pub(crate) rsu2bs_data: HashMap<DeviceId, DevicePayload>,
+    pub(crate) rsu2rsu_data: HashMap<DeviceId, DevicePayload>,
+    pub(crate) bs2c_data: HashMap<DeviceId, BSPayload>,
+    pub(crate) c2c_data: HashMap<DeviceId, BSPayload>,
 }
 
-impl InfraLinks {
-    pub(crate) fn new() -> Self {
-        Self {
-            v2bs_links: HashMap::new(),
-            rsu2bs_links: HashMap::new(),
-            bs2c_links: HashMap::new(),
-            c2c_links: HashMap::new(),
-        }
-    }
-}
+pub(crate) struct Responses {}
 
 impl Vanet {
     pub(crate) fn new(
@@ -62,180 +60,89 @@ impl Vanet {
         link_files: &LinkFiles,
         network_settings: &NetworkSettings,
         trace_flags: &TraceFlags,
+        streaming_interval: u64,
     ) -> Self {
-        let mesh_links = MeshLinks::new();
-        let infra_links = InfraLinks::new();
+        let links_reader =
+            LinksReader::new(config_path, link_files, trace_flags, streaming_interval);
         Self {
-            config_path: config_path.clone(),
             network_settings: network_settings.clone(),
-            trace_flags: trace_flags.clone(),
-            link_files: link_files.clone(),
-            mesh_links,
-            infra_links,
+            links_reader,
+            mesh_links: MeshLinks::default(),
+            infra_links: InfraLinks::default(),
             step: 0,
+            data_payloads: DataPayloads::default(),
         }
     }
 
     pub(crate) fn init(&mut self) {
         info!("Initializing VANET...");
-        self.infra_links.bs2c_links = self.read_bs2c_links();
-        self.infra_links.rsu2bs_links = self.read_rsu2bs_links();
-        self.mesh_links.rsu2rsu_links = self.read_rsu2rsu_links();
-        self.mesh_links.v2v_links = self.read_v2v_links();
-        self.mesh_links.v2rsu_links = self.read_v2rsu_links();
-        self.infra_links.v2bs_links = self.read_v2bs_links();
-        self.infra_links.c2c_links = self.read_c2c_links();
+        self.infra_links.bs2c_links = self.links_reader.read_bs2c_links();
+        self.infra_links.rsu2bs_links = self.links_reader.read_rsu2bs_links();
+        self.mesh_links.rsu2rsu_links = self.links_reader.read_rsu2rsu_links();
+        self.mesh_links.v2v_links = self.links_reader.read_v2v_links();
+        self.mesh_links.v2rsu_links = self.links_reader.read_v2rsu_links();
+        self.infra_links.v2bs_links = self.links_reader.read_v2bs_links();
+        self.infra_links.c2c_links = self.links_reader.read_c2c_links();
     }
 
-    fn stream_links_between_devices(
-        &self,
-        links_file: PathBuf,
-        device_column: &str,
-        neighbour_column: &str,
-    ) -> HashMap<TimeStamp, HashMap<DeviceId, Link>> {
-        let starting_time: u64 = self.step;
-        let ending_time: u64 = self.step + STREAM_TIME;
-        debug!("Streaming links from file: {}", links_file.display());
-        debug!("Starting time: {}", starting_time);
-        debug!("Ending time: {}", ending_time);
-        let links: HashMap<TimeStamp, HashMap<DeviceId, Link>> =
-            match stream_io::stream_links_in_interval(
-                links_file,
-                device_column,
-                neighbour_column,
-                starting_time,
-                ending_time,
-            ) {
-                Ok(links) => links,
-                Err(e) => {
-                    panic!("Error while reading links: {}", e);
-                }
-            };
-        return links;
+    pub(crate) fn before_step(&mut self, step: TimeStamp) {
+        self.step = step;
+        self.refresh_v2v_cache();
+        self.refresh_rsu2rsu_cache();
+        self.refresh_v2rsu_cache();
+        self.refresh_v2bs_cache();
+        self.refresh_rsu2bs_cache();
     }
 
-    fn read_all_links(
-        &self,
-        links_file: PathBuf,
-        device_column: &str,
-        neighbour_column: &str,
-    ) -> HashMap<TimeStamp, HashMap<DeviceId, Link>> {
-        let links: HashMap<TimeStamp, HashMap<DeviceId, Link>> =
-            match data_io::read_all_links(links_file, device_column, neighbour_column) {
-                Ok(bs2c_links) => bs2c_links,
-                Err(e) => {
-                    panic!("Error while reading links: {}", e);
-                }
-            };
-        return links;
+    pub(crate) fn after_step(&mut self) {
+        // Generate responses for the data transfers.
     }
 
-    fn read_bs2c_links(&self) -> HashMap<DeviceId, DeviceId> {
-        info!("Reading base station <-> controller links...");
-        let bs2c_links_file = Path::new(&self.config_path).join(&self.link_files.bs2c_links);
-        if bs2c_links_file.exists() == false {
-            panic!("Base stations to controller link file is not found.");
-        }
-
-        let bs2c_links: HashMap<DeviceId, DeviceId> = data_io::read_bs2c_links(bs2c_links_file);
-        return bs2c_links;
+    pub(crate) fn refresh_links_data(&mut self, step: u64) {
+        info! {"Refreshing links data from files at step {}", step}
+        self.step = step;
+        self.links_reader.step = step;
+        self.infra_links.rsu2bs_links = self.links_reader.read_rsu2bs_links();
+        self.mesh_links.rsu2rsu_links = self.links_reader.read_rsu2rsu_links();
+        self.mesh_links.v2v_links = self.links_reader.read_v2v_links();
+        self.mesh_links.v2rsu_links = self.links_reader.read_v2rsu_links();
+        self.infra_links.v2bs_links = self.links_reader.read_v2bs_links();
     }
 
-    fn read_c2c_links(&self) -> HashMap<DeviceId, DeviceId> {
-        info!("Reading controller <-> controller links...");
-        let c2c_links_file = Path::new(&self.config_path).join(&self.link_files.c2c_links);
-        if c2c_links_file.exists() == false {
-            info!("Skipping optional controller to controller links file.");
-            return HashMap::new();
-        }
-
-        let c2c_links: HashMap<DeviceId, DeviceId> = data_io::read_c2c_links(c2c_links_file);
-        return c2c_links;
-    }
-
-    fn read_rsu2bs_links(&self) -> HashMap<TimeStamp, HashMap<DeviceId, Link>> {
-        info!("Reading RSU <-> base station links...");
-        let rsu2bs_links_file = Path::new(&self.config_path).join(&self.link_files.rsu2bs_links);
-        if rsu2bs_links_file.exists() == false {
-            panic!("RSU to base station file is not found.");
-        }
-
-        if self.trace_flags.roadside_unit == true {
-            return self.stream_links_between_devices(
-                rsu2bs_links_file,
-                COL_RSU_ID,
-                COL_BASE_STATIONS,
-            );
-        } else {
-            return self.read_all_links(rsu2bs_links_file, COL_RSU_ID, COL_BASE_STATIONS);
+    fn refresh_v2v_cache(&mut self) {
+        self.mesh_links.v2v_link_cache = match self.mesh_links.v2v_links.remove(&self.step) {
+            Some(v2v_links) => v2v_links,
+            None => HashMap::new(),
         };
     }
 
-    fn read_rsu2rsu_links(&self) -> HashMap<TimeStamp, HashMap<DeviceId, Link>> {
-        info!("Reading RSU <-> RSU links...");
-        let rsu2rsu_links_file = Path::new(&self.config_path).join(&self.link_files.rsu2rsu_links);
-        if rsu2rsu_links_file.exists() == false {
-            panic!("RSU to RSU links file is not found.");
-        }
-
-        if self.trace_flags.roadside_unit == true {
-            return self.stream_links_between_devices(
-                rsu2rsu_links_file,
-                COL_RSU_ID,
-                COL_ROADSIDE_UNITS,
-            );
-        } else {
-            return self.read_all_links(rsu2rsu_links_file, COL_RSU_ID, COL_ROADSIDE_UNITS);
+    fn refresh_rsu2rsu_cache(&mut self) {
+        self.mesh_links.rsu2rsu_link_cache = match self.mesh_links.rsu2rsu_links.remove(&self.step)
+        {
+            Some(rsu2rsu_links) => rsu2rsu_links,
+            None => HashMap::new(),
         };
     }
 
-    fn read_v2v_links(&self) -> HashMap<TimeStamp, HashMap<DeviceId, Link>> {
-        info!("Reading Vehicle <-> Vehicle links...");
-        let v2v_links_file = Path::new(&self.config_path).join(&self.link_files.v2v_links);
-        if v2v_links_file.exists() == false {
-            panic!("Vehicle to vehicle links file is not found.");
-        }
-
-        if self.trace_flags.vehicle == true {
-            return self.stream_links_between_devices(v2v_links_file, COL_VEHICLE_ID, COL_VEHICLES);
-        } else {
-            return self.read_all_links(v2v_links_file, COL_VEHICLE_ID, COL_VEHICLES);
+    fn refresh_v2rsu_cache(&mut self) {
+        self.mesh_links.v2rsu_link_cache = match self.mesh_links.v2rsu_links.remove(&self.step) {
+            Some(v2rsu_links) => v2rsu_links,
+            None => HashMap::new(),
         };
     }
 
-    fn read_v2rsu_links(&self) -> HashMap<TimeStamp, HashMap<DeviceId, Link>> {
-        info!("Reading Vehicle <-> RSU links...");
-        let v2rsu_links_file = Path::new(&self.config_path).join(&self.link_files.v2rsu_links);
-        if v2rsu_links_file.exists() == false {
-            panic!("Vehicle to RSU links file is not found.");
-        }
-
-        if self.trace_flags.vehicle == true {
-            return self.stream_links_between_devices(
-                v2rsu_links_file,
-                COL_VEHICLE_ID,
-                COL_ROADSIDE_UNITS,
-            );
-        } else {
-            return self.read_all_links(v2rsu_links_file, COL_VEHICLE_ID, COL_ROADSIDE_UNITS);
+    fn refresh_v2bs_cache(&mut self) {
+        self.infra_links.v2bs_link_cache = match self.infra_links.v2bs_links.remove(&self.step) {
+            Some(v2bs_links) => v2bs_links,
+            None => HashMap::new(),
         };
     }
 
-    fn read_v2bs_links(&self) -> HashMap<TimeStamp, HashMap<DeviceId, Link>> {
-        info!("Reading Vehicle <-> Base Station links...");
-        let v2bs_links_file = Path::new(&self.config_path).join(&self.link_files.v2bs_links);
-        if v2bs_links_file.exists() == false {
-            panic!("Vehicle to Base Station links file is not found.");
-        }
-
-        if self.trace_flags.vehicle == true {
-            return self.stream_links_between_devices(
-                v2bs_links_file,
-                COL_VEHICLE_ID,
-                COL_BASE_STATIONS,
-            );
-        } else {
-            return self.read_all_links(v2bs_links_file, COL_VEHICLE_ID, COL_BASE_STATIONS);
+    fn refresh_rsu2bs_cache(&mut self) {
+        self.infra_links.rsu2bs_link_cache = match self.infra_links.rsu2bs_links.remove(&self.step)
+        {
+            Some(rsu2bs_links) => rsu2bs_links,
+            None => HashMap::new(),
         };
     }
 }
