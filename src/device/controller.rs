@@ -1,13 +1,14 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
-use crate::data::data_io::DeviceId;
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::aggregator::{AggregatorType, BasicAggregator};
+use crate::reader::activation::DeviceId;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
+use log::debug;
 
 use crate::sim::core::Core;
 use crate::utils::config::ControllerSettings;
@@ -45,6 +46,7 @@ impl Controller {
 impl Agent for Controller {
     /// Put the code that should happen for each step, for each agent here.
     fn step(&mut self, state: &mut dyn State) {
+        debug!("{} is active", self.id);
         let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
         let step = core_state.step;
 

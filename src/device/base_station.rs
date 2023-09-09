@@ -1,15 +1,16 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
-use crate::data::data_io::{DeviceId, TimeStamp};
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::aggregator::{AggregatorType, BasicAggregator};
 use crate::models::composer::DevicePayload;
+use crate::reader::activation::{DeviceId, TimeStamp};
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
 use krabmaga::hashbrown::HashMap;
+use log::debug;
 
 use crate::sim::core::Core;
 use crate::utils::config::BaseStationSettings;

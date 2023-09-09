@@ -1,4 +1,4 @@
-use crate::data::data_io::TimeStamp;
+use crate::reader::activation::TimeStamp;
 use crate::utils::constants::ARRAY_SIZE;
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
