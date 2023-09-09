@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Deserialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum DataTargetType {
+pub(crate) enum DeviceType {
     #[default]
     None = 0,
     Vehicle,
     RSU,
     BaseStation,
+    Controller,
 }
 
 #[derive(Deserialize, Default, Debug, Hash, Copy, Clone, PartialEq, Eq)]
@@ -34,7 +35,7 @@ pub(crate) struct DataSourceSettings {
     pub(crate) data_type: SensorType,
     pub(crate) data_counts: u16,
     pub(crate) unit_size: f32,
-    pub(crate) target_type: DataTargetType,
+    pub(crate) target_type: DeviceType,
 }
 
 pub(crate) struct DSConfigReader {

@@ -1,6 +1,6 @@
 use crate::reader::activation::DeviceId;
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
+use crate::utils::ds_config::{DataSourceSettings, DeviceType, SensorType};
 use krabmaga::hashbrown::HashMap;
 
 #[derive(Clone, Debug, Default)]
@@ -42,7 +42,7 @@ impl BasicComposer {
         Self { data_sources }
     }
 
-    pub(crate) fn compose_payload(&self, target_type: DataTargetType) -> DevicePayload {
+    pub(crate) fn compose_payload(&self, target_type: DeviceType) -> DevicePayload {
         let mut payload = DevicePayload::default();
         let total_data_size = 0.0;
         let total_data_count: u16 = 0;

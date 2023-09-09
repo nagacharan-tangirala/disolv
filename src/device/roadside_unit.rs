@@ -17,7 +17,7 @@ use log::debug;
 use crate::sim::core::Core;
 use crate::utils::config::RSUSettings;
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
+use crate::utils::ds_config::{DataSourceSettings, DeviceType, SensorType};
 
 #[derive(Debug, Clone, Copy)]
 pub struct RoadsideUnit {
@@ -98,7 +98,7 @@ impl RoadsideUnit {
 
     pub(crate) fn transfer_data_to_vehicles(&mut self, core_state: &mut Core) {
         let mut rsu2v_payload = match self.composer {
-            ComposerType::Basic(ref composer) => composer.compose_payload(DataTargetType::Vehicle),
+            ComposerType::Basic(ref composer) => composer.compose_payload(DeviceType::Vehicle),
             ComposerType::Random(ref composer) => composer.compose_payload(),
         };
 
@@ -112,16 +112,14 @@ impl RoadsideUnit {
 
         core_state
             .vanet
-            .data_payloads
+            .payloads
             .rsu2v_data
             .insert(self.id, rsu2v_payload);
     }
 
     pub(crate) fn transfer_data_to_bs(&mut self, core_state: &mut Core) {
         let mut rsu2bs_payload = match self.composer {
-            ComposerType::Basic(ref composer) => {
-                composer.compose_payload(DataTargetType::BaseStation)
-            }
+            ComposerType::Basic(ref composer) => composer.compose_payload(DeviceType::BaseStation),
             ComposerType::Random(ref composer) => composer.compose_payload(),
         };
         rsu2bs_payload = match self.simplifier {
@@ -133,14 +131,14 @@ impl RoadsideUnit {
 
         core_state
             .vanet
-            .data_payloads
+            .payloads
             .rsu2bs_data
             .insert(self.id, rsu2bs_payload);
     }
 
     pub(crate) fn transfer_data_to_rsu(&mut self, core_state: &mut Core) {
         let mut rsu2rsu_payload = match self.composer {
-            ComposerType::Basic(ref composer) => composer.compose_payload(DataTargetType::RSU),
+            ComposerType::Basic(ref composer) => composer.compose_payload(DeviceType::RSU),
             ComposerType::Random(ref composer) => composer.compose_payload(),
         };
         rsu2rsu_payload = match self.simplifier {
@@ -152,7 +150,7 @@ impl RoadsideUnit {
 
         core_state
             .vanet
-            .data_payloads
+            .payloads
             .rsu2rsu_data
             .insert(self.id, rsu2rsu_payload);
     }
