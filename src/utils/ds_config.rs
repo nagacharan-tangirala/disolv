@@ -2,7 +2,7 @@ use serde_derive::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-#[derive(Deserialize, Default, Debug, Copy, Clone)]
+#[derive(Deserialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum DataTargetType {
     #[default]
     None = 0,

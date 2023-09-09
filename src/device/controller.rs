@@ -8,9 +8,6 @@ use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
-use krabmaga::rand;
-use krabmaga::rand::Rng;
-use log::debug;
 
 use crate::sim::core::Core;
 use crate::utils::config::ControllerSettings;

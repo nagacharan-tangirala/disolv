@@ -1,26 +1,21 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
-use crate::data::data_io::DeviceId;
+use crate::data::data_io::{DeviceId, TimeStamp};
 use crate::device::device_state::{DeviceState, Timing};
-use crate::device::roadside_unit::RSUPayload;
-use crate::device::vehicle::VehiclePayload;
 use crate::models::aggregator::{AggregatorType, BasicAggregator};
+use crate::models::composer::DevicePayload;
 use krabmaga::engine::agent::Agent;
-use krabmaga::engine::fields::field_2d::{toroidal_transform, Location2D};
+use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
 use krabmaga::hashbrown::HashMap;
-use krabmaga::rand;
-use krabmaga::rand::Rng;
-use log::debug;
 
 use crate::sim::core::Core;
 use crate::utils::config::BaseStationSettings;
 use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::ds_config::DataSourceSettings;
 
-/// The most basic agent should implement Clone, Copy and Agent to be able to be inserted in a Schedule.
 #[derive(Clone, Copy)]
 pub(crate) struct BaseStation {
     pub(crate) id: DeviceId,
