@@ -2,13 +2,6 @@
 // Hence, we have added arrays with fixed sizes.
 // Make sure to change these values if relevant data size changes.
 pub(crate) const ARRAY_SIZE: usize = 10;
-pub(crate) const NEIGHBOUR_SIZE: usize = 5;
-
-// Devices
-pub(crate) const VEHICLE: &str = "vehicle";
-pub(crate) const BASE_STATION: &str = "base_station";
-pub(crate) const CONTROLLER: &str = "controller";
-pub(crate) const ROADSIDE_UNIT: &str = "roadside_unit";
 
 // Dataframe columns
 pub(crate) const COL_VEHICLE_ID: &str = "vehicle_id";
