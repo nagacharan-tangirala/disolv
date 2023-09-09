@@ -1,6 +1,6 @@
-use crate::data::data_io::{Activation, DeviceId, TimeStamp, Trace};
-use crate::data::df_utils::*;
-use crate::sim::field::TraceMap;
+use crate::reader::activation::{Activation, DeviceId, TimeStamp};
+use crate::reader::df_utils::*;
+use crate::sim::field::{GeoData, GeoMap};
 use crate::sim::vanet::{MultiLinkMap, SingleLinkMap};
 use crate::utils::constants::{
     COL_BASE_STATION_ID, COL_CONTROLLERS, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y,
@@ -12,11 +12,11 @@ use polars::prelude::{col, lit, IntoLazy};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::*;
 
-pub(crate) fn prepare_trace_data(
-    trace_df: &DataFrame,
+pub(crate) fn prepare_geo_data(
+    geo_df: &DataFrame,
     device_id_column: &str,
-) -> Result<TraceMap, Box<dyn std::error::Error>> {
-    let filtered_df: DataFrame = trace_df
+) -> Result<GeoMap, Box<dyn std::error::Error>> {
+    let filtered_df: DataFrame = geo_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
         .groupby([col(COL_TIME_STEP)])
@@ -35,7 +35,7 @@ pub(crate) fn prepare_trace_data(
     let time_stamps: Vec<TimeStamp> =
         convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
 
-    let mut time_stamp_traces: TraceMap = HashMap::new();
+    let mut time_stamp_traces: GeoMap = HashMap::new();
     for time_stamp in time_stamps.iter() {
         let ts_df = filtered_df
             .clone()
@@ -52,7 +52,7 @@ pub(crate) fn prepare_trace_data(
         let y_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_COORD_Y)?;
         let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_VELOCITY)?;
 
-        let trace: Trace = (device_ids, x_positions, y_positions, velocities);
+        let trace: GeoData = (device_ids, x_positions, y_positions, velocities);
         time_stamp_traces.insert(*time_stamp, Some(trace));
     }
     return Ok(time_stamp_traces);

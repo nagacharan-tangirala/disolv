@@ -1,10 +1,10 @@
-use crate::data::data_io;
-use crate::data::data_io::{Activation, DeviceId, TimeStamp};
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::device_state::Timing;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
+use crate::reader::activation;
+use crate::reader::activation::{Activation, DeviceId, TimeStamp};
 use crate::sim::core::Core;
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
@@ -120,7 +120,7 @@ impl PavenetBuilder {
             &self.config.field_settings,
             &self.config.trace_flags,
             &self.config_path,
-            &self.config.position_files,
+            &self.config.geo_data_files,
             self.config.simulation_settings.sim_streaming_step,
         );
     }
@@ -143,7 +143,7 @@ impl PavenetBuilder {
             panic!("Vehicle activation file is not found.");
         }
         let vehicle_activations: HashMap<DeviceId, Activation> =
-            data_io::read_activation_data(activation_file);
+            activation::read_activation_data(activation_file);
 
         let mut vehicles: HashMap<u64, Vehicle> = HashMap::new();
         let all_vehicle_setting_ids: Vec<&String> = self.config.vehicles.keys().collect();
@@ -196,7 +196,7 @@ impl PavenetBuilder {
             panic!("RSU activation file is not found.");
         }
         let rsu_activations: HashMap<DeviceId, Activation> =
-            data_io::read_activation_data(activation_file);
+            activation::read_activation_data(activation_file);
 
         let mut roadside_units: HashMap<u64, RoadsideUnit> = HashMap::new();
         let all_rsu_setting_ids: Vec<&String> = self.config.roadside_units.keys().collect();
@@ -250,7 +250,7 @@ impl PavenetBuilder {
             panic!("Base station activation file is not found.");
         }
         let bs_activations: HashMap<DeviceId, Activation> =
-            data_io::read_activation_data(activation_file);
+            activation::read_activation_data(activation_file);
 
         let mut base_stations: HashMap<u64, BaseStation> = HashMap::new();
         let all_bs_settings: Vec<&BaseStationSettings> =
@@ -292,7 +292,7 @@ impl PavenetBuilder {
         }
 
         let controller_activations: HashMap<DeviceId, Activation> =
-            data_io::read_activation_data(activation_file);
+            activation::read_activation_data(activation_file);
 
         let mut controllers: HashMap<u64, Controller> = HashMap::new();
         let all_controller_settings: Vec<&ControllerSettings> =
@@ -338,7 +338,7 @@ impl PavenetBuilder {
         return data_sources_array;
     }
 
-    pub(crate) fn convert_activation_to_timing(activation: &data_io::Activation) -> Timing {
+    pub(crate) fn convert_activation_to_timing(activation: &activation::Activation) -> Timing {
         let mut activation_times: [Option<u64>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         let mut deactivation_times: [Option<u64>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         for (i, start_time) in activation.0.iter().enumerate() {

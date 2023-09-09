@@ -1,5 +1,5 @@
 // Global imports (needed for the simulation to run)
-mod data;
+mod reader;
 mod device;
 mod models;
 mod sim;

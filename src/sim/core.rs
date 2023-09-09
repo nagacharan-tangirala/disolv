@@ -1,11 +1,11 @@
 use std::any::Any;
 
-use crate::data::data_io::{DeviceId, TimeStamp};
 use crate::device::base_station::BaseStation;
 use crate::device::controller::Controller;
 use crate::device::device_state::DeviceState;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
+use crate::reader::activation::{DeviceId, TimeStamp};
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
 use crate::utils::{config, ds_config};

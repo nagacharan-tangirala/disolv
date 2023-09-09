@@ -1,4 +1,4 @@
-use crate::data::data_io::TimeStamp;
+use crate::reader::activation::TimeStamp;
 use crate::utils::constants::COL_TIME_STEP;
 use polars::prelude::{col, lit, LazyFrame, PolarsResult, ScanArgsParquet};
 use polars_core::prelude::DataFrame;

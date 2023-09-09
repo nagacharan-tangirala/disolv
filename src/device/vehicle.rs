@@ -1,14 +1,16 @@
-use crate::data::data_io::{DeviceId, TimeStamp};
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::composer::{
     BasicComposer, ComposerType, DevicePayload, RandomComposer, SensorData,
 };
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
+use crate::reader::activation::{DeviceId, TimeStamp};
 use core::fmt;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
+use krabmaga::engine::schedule::ScheduleOptions;
 use krabmaga::engine::state::State;
+use log::debug;
 use std::hash::{Hash, Hasher};
 
 use crate::sim::core::Core;
