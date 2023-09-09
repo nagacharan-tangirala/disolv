@@ -146,25 +146,40 @@ impl PavenetBuilder {
             data_io::read_activation_data(activation_file);
 
         let mut vehicles: HashMap<u64, Vehicle> = HashMap::new();
-        let all_vehicle_settings: Vec<&VehicleSettings> = self.config.vehicles.values().collect();
-        let ratios: Vec<f32> = all_vehicle_settings
-            .iter()
-            .map(|vehicle_setting| vehicle_setting.ratio)
-            .collect();
+        let all_vehicle_setting_ids: Vec<&String> = self.config.vehicles.keys().collect();
+        let ratios: Vec<f32> = self.config.vehicles.values().map(|v| v.ratio).collect();
 
         debug!("Vehicle ratios: {:?}", ratios);
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
 
         for (vehicle_id, activation_data) in vehicle_activations.iter() {
-            let vehicle_setting = match all_vehicle_settings.get(dist.sample(&mut rng)) {
-                Some(vehicle_setting) => *vehicle_setting,
+            let setting_id = match all_vehicle_setting_ids.get(dist.sample(&mut rng)) {
+                Some(setting_id) => setting_id,
                 None => {
-                    panic!("Error while selecting vehicle settings.");
+                    panic!("Error while selecting Vehicle setting ID.");
                 }
             };
+            let vehicle_setting = match self.config.vehicles.get(*setting_id) {
+                Some(vehicle_setting) => vehicle_setting,
+                None => {
+                    panic!("Error while reading vehicle settings from map.");
+                }
+            };
+            let vehicle_sources = match self.ds_config.vehicle_sources.get(*setting_id) {
+                Some(data_sources) => self.convert_data_sources_to_array(data_sources),
+                None => {
+                    panic!("Error while selecting vehicle data sources.");
+                }
+            };
+
             let vehicle_timing = Self::convert_activation_to_timing(&activation_data);
-            let new_vehicle = Vehicle::new(*vehicle_id, vehicle_timing, vehicle_setting);
+            let new_vehicle = Vehicle::new(
+                *vehicle_id,
+                vehicle_timing,
+                vehicle_setting,
+                vehicle_sources,
+            );
             if let Some(value) = vehicles.insert(*vehicle_id, new_vehicle) {
                 panic!("Duplicate Vehicle id: {}", value.id);
             }
@@ -184,10 +199,12 @@ impl PavenetBuilder {
             data_io::read_activation_data(activation_file);
 
         let mut roadside_units: HashMap<u64, RoadsideUnit> = HashMap::new();
-        let all_rsu_settings: Vec<&RSUSettings> = self.config.roadside_units.values().collect();
-        let ratios: Vec<f32> = all_rsu_settings
-            .iter()
-            .map(|rsu_settings| rsu_settings.ratio)
+        let all_rsu_setting_ids: Vec<&String> = self.config.roadside_units.keys().collect();
+        let ratios: Vec<f32> = self
+            .config
+            .roadside_units
+            .values()
+            .map(|r| r.ratio)
             .collect();
 
         debug!("RSU ratios: {:?}", ratios);
@@ -195,14 +212,27 @@ impl PavenetBuilder {
         let mut rng = thread_rng();
 
         for (rsu_id, activation_data) in rsu_activations.iter() {
-            let rsu_settings = match all_rsu_settings.get(dist.sample(&mut rng)) {
-                Some(rsu_setting) => *rsu_setting,
+            let setting_id = match all_rsu_setting_ids.get(dist.sample(&mut rng)) {
+                Some(setting_id) => setting_id,
                 None => {
-                    panic!("Error while selecting RSU settings.");
+                    panic!("Error while selecting RSU setting ID.");
                 }
             };
+            let rsu_settings = match self.config.roadside_units.get(*setting_id) {
+                Some(rsu_setting) => rsu_setting,
+                None => {
+                    panic!("Error while reading RSU settings from map.");
+                }
+            };
+            let rsu_sources = match self.ds_config.rsu_sources.get(*setting_id) {
+                Some(data_sources) => self.convert_data_sources_to_array(data_sources),
+                None => {
+                    panic!("Error while selecting RSU data sources.");
+                }
+            };
+
             let rsu_timing = Self::convert_activation_to_timing(&activation_data);
-            let new_rsu = RoadsideUnit::new(*rsu_id, rsu_timing, rsu_settings);
+            let new_rsu = RoadsideUnit::new(*rsu_id, rsu_timing, rsu_settings, rsu_sources);
             if let Some(value) = roadside_units.insert(*rsu_id, new_rsu) {
                 panic!("Duplicate RSU id: {}", value.id);
             }
