@@ -1,64 +1,49 @@
 use crate::data::data_io::{DeviceId, TimeStamp};
 use crate::device::device_state::{DeviceState, Timing};
-use crate::models::composer::{BasicComposer, ComposerType, RandomComposer};
+use crate::models::composer::{
+    BasicComposer, ComposerType, DevicePayload, RandomComposer, SensorData,
+};
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
 use core::fmt;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
-use krabmaga::hashbrown::HashMap;
-use krabmaga::rand;
-use log::debug;
 use std::hash::{Hash, Hasher};
 
 use crate::sim::core::Core;
+use crate::sim::vanet::Link;
 use crate::utils::config::VehicleSettings;
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
+use crate::utils::ds_config::{DataSourceSettings, DataTargetType};
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct Vehicle {
     pub(crate) id: DeviceId,
     pub(crate) location: Real2D,
     pub(crate) timing: Timing,
-    pub(crate) sensor_info: SensorInfo,
+    pub(crate) sensor_data: SensorData,
     pub(crate) composer: ComposerType,
     pub(crate) simplifier: SimplifierType,
     pub(crate) status: DeviceState,
     storage: f32,
-}
-
-#[derive(Clone, Debug, Default)]
-pub(crate) struct VehiclePayload {
-    pub(crate) id: u32,
-    pub(crate) vehicle_info: SensorInfo,
-    pub(crate) generated_data_size: HashMap<SensorType, f32>,
-    pub(crate) types_with_counts: HashMap<SensorType, u16>,
-    pub(crate) preferred_targets: HashMap<SensorType, DataTargetType>,
-}
-
-#[derive(Clone, Debug, Copy, Default)]
-pub(crate) struct SensorInfo {
-    pub(crate) speed: f32,
-    pub(crate) temperature: f32,
-    pub(crate) env_temperature: f32,
+    step: TimeStamp,
 }
 
 impl Vehicle {
-    pub(crate) fn new(id: u64, timing_info: Timing, vehicle_settings: &VehicleSettings) -> Self {
-        let data_sources: [Option<DataSourceSettings>; ARRAY_SIZE] = [None; ARRAY_SIZE];
+    pub(crate) fn new(
+        id: u64,
+        timing_info: Timing,
+        vehicle_settings: &VehicleSettings,
+        data_sources: [Option<DataSourceSettings>; ARRAY_SIZE],
+    ) -> Self {
         let composer: ComposerType = match vehicle_settings.composer.name.as_str() {
-            "random" => ComposerType::Random(RandomComposer {
-                data_sources: data_sources.clone(),
-            }),
-            _ => ComposerType::Basic(BasicComposer {
-                data_sources: data_sources.clone(),
-            }),
+            "random" => ComposerType::Random(RandomComposer::new(data_sources.clone())),
+            _ => ComposerType::Basic(BasicComposer::new(data_sources.clone())),
         };
-        let simplifier: SimplifierType = match vehicle_settings.composer.name.as_str() {
+        let simplifier: SimplifierType = match vehicle_settings.simplifier.name.as_str() {
             "random" => SimplifierType::Random(RandomSimplifier {}),
-            _ => SimplifierType::Basic(BasicSimplifier {}),
+            _ => SimplifierType::Basic(BasicSimplifier::new(vehicle_settings.simplifier.clone())),
         };
 
         Self {
