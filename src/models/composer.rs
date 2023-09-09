@@ -1,6 +1,25 @@
-use crate::device::vehicle::VehiclePayload;
+use crate::reader::activation::DeviceId;
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, SensorType};
+use crate::utils::ds_config::{DataSourceSettings, DataTargetType, SensorType};
+use krabmaga::hashbrown::HashMap;
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DevicePayload {
+    pub(crate) id: DeviceId,
+    pub(crate) target_id: DeviceId,
+    pub(crate) sensor_data: SensorData,
+    pub(crate) generated_data_size: HashMap<SensorType, f32>,
+    pub(crate) types_with_counts: HashMap<SensorType, u16>,
+    pub(crate) total_data_size: f32,
+    pub(crate) total_data_count: u16,
+}
+
+#[derive(Clone, Debug, Copy, Default)]
+pub(crate) struct SensorData {
+    pub(crate) speed: f32,
+    pub(crate) temperature: f32,
+    pub(crate) env_temperature: f32,
+}
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) enum ComposerType {
