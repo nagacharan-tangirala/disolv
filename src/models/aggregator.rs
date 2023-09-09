@@ -1,7 +1,6 @@
-use crate::device::base_station::BSPayload;
-use crate::device::vehicle::VehiclePayload;
-use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, SensorType};
+use crate::device::base_station::BSInfo;
+use crate::models::composer::DevicePayload;
+use krabmaga::hashbrown::HashMap;
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) enum AggregatorType {
@@ -10,6 +9,14 @@ pub(crate) enum AggregatorType {
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct BasicAggregator;
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct BSPayload {
+    pub(crate) id: u32,
+    pub(crate) bs_info: BSInfo,
+    pub(crate) v2bs_data: HashMap<u64, DevicePayload>,
+    pub(crate) rsu2bs_data: HashMap<u64, DevicePayload>,
+}
 
 trait DataAggregator {
     fn aggregate_vehicle_data(&self);

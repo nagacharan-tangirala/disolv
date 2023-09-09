@@ -26,14 +26,7 @@ pub(crate) struct BaseStation {
     pub(crate) timing: Timing,
     pub(crate) aggregator: AggregatorType,
     pub(crate) status: DeviceState,
-}
-
-#[derive(Clone, Debug, Default)]
-pub(crate) struct BSPayload {
-    pub(crate) id: u32,
-    pub(crate) bs_info: BSInfo,
-    pub(crate) v2bs_data: HashMap<u64, VehiclePayload>,
-    pub(crate) rsu2bs_data: HashMap<u64, RSUPayload>,
+    step: TimeStamp,
 }
 
 #[derive(Clone, Debug, Copy, Default)]
@@ -57,19 +50,14 @@ impl BaseStation {
             bs_info: BSInfo::default(),
             aggregator,
             status: DeviceState::Inactive,
+            step: 0,
         }
     }
-}
 
-impl Agent for BaseStation {
-    /// Put the code that should happen for each step, for each agent here.
-    fn step(&mut self, state: &mut dyn State) {
-        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
-        let step = core_state.step;
-
-        match core_state.device_field.position_cache.get(&self.id) {
+    fn update_geo_data(&mut self, core_state: &mut Core) {
+        match core_state.device_field.position_cache.remove(&self.id) {
             Some(loc) => {
-                self.location = *loc;
+                self.location = loc;
                 core_state
                     .device_field
                     .bs_field
@@ -77,28 +65,38 @@ impl Agent for BaseStation {
             }
             None => {}
         }
+    }
 
-        // If we are scheduled, we are active
+    pub(crate) fn deactivate(&mut self, core_state: &mut Core) {
+        self.status = DeviceState::Inactive;
+        self.timing.increment_timing_index();
+        core_state.devices_to_pop.base_stations.push(self.id);
+
+        let time_stamp = self.timing.pop_activation_time();
+        if time_stamp > self.step {
+            core_state
+                .devices_to_add
+                .base_stations
+                .push((self.id, time_stamp));
+        }
+    }
+}
+
+impl Agent for BaseStation {
+    fn step(&mut self, state: &mut dyn State) {
+        debug!("{} is active", self.id);
         self.status = DeviceState::Active;
+        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
+        self.step = core_state.step;
 
-        // If it is time to deactivate, schedule deactivation
-        if step == self.timing.peek_deactivation_time() {
-            self.status = DeviceState::Inactive;
-            self.timing.increment_timing_index();
-            core_state.devices_to_pop.base_stations.push(self.id);
+        self.update_geo_data(core_state);
 
-            let time_stamp = self.timing.pop_activation_time();
-            if time_stamp > step {
-                core_state
-                    .devices_to_add
-                    .base_stations
-                    .push((self.id, time_stamp));
-            }
+        // Initiate deactivation if it is time
+        if self.step == self.timing.peek_deactivation_time() {
+            self.deactivate(core_state);
         }
     }
 
-    /// Put the code that decides if an agent should be removed or not
-    /// for example in simulation where agents can die
     fn is_stopped(&mut self, _state: &mut dyn State) -> bool {
         false
     }
