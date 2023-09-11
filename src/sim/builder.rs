@@ -338,7 +338,7 @@ impl PavenetBuilder {
         return data_sources_array;
     }
 
-    pub(crate) fn convert_activation_to_timing(activation: &activation::Activation) -> Timing {
+    pub(crate) fn convert_activation_to_timing(activation: &Activation) -> Timing {
         let mut activation_times: [Option<u64>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         let mut deactivation_times: [Option<u64>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         for (i, start_time) in activation.0.iter().enumerate() {

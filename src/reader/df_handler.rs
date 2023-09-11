@@ -1,11 +1,11 @@
 use crate::reader::activation::{Activation, DeviceId, TimeStamp};
-use crate::reader::df_utils::*;
 use crate::sim::field::{GeoData, GeoMap};
 use crate::sim::vanet::{MultiLinkMap, SingleLinkMap};
 use crate::utils::constants::{
     COL_BASE_STATION_ID, COL_CONTROLLERS, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y,
     COL_DEVICE_ID, COL_DISTANCES, COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VELOCITY,
 };
+use crate::utils::dfs::*;
 use krabmaga::hashbrown::HashMap;
 use log::{debug, info};
 use polars::prelude::{col, lit, IntoLazy};

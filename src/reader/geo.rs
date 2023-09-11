@@ -1,10 +1,11 @@
 use crate::reader::activation::{DeviceId, TimeStamp};
-use crate::reader::{df_handler, df_utils, files};
+use crate::reader::{df_handler, files};
 use crate::sim::field::GeoMap;
 use crate::utils::config::{GeoDataFiles, TraceFlags};
 use crate::utils::constants::{
     COL_BASE_STATION_ID, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y, COL_RSU_ID, COL_VEHICLE_ID,
 };
+use crate::utils::dfs;
 use krabmaga::hashbrown::HashMap;
 use std::path::PathBuf;
 
@@ -96,11 +97,11 @@ impl GeoReader {
     ) -> Result<HashMap<DeviceId, (f32, f32)>, Box<dyn std::error::Error>> {
         let controller_df = files::read_csv_data(controller_file)?;
         let controller_ids: Vec<DeviceId> =
-            df_utils::convert_series_to_integer_vector(&controller_df, COL_CONTROLLER_ID)?;
+            dfs::convert_series_to_integer_vector(&controller_df, COL_CONTROLLER_ID)?;
         let x_positions: Vec<f32> =
-            df_utils::convert_series_to_floating_vector(&controller_df, COL_COORD_X)?;
+            dfs::convert_series_to_floating_vector(&controller_df, COL_COORD_X)?;
         let y_positions: Vec<f32> =
-            df_utils::convert_series_to_floating_vector(&controller_df, COL_COORD_Y)?;
+            dfs::convert_series_to_floating_vector(&controller_df, COL_COORD_Y)?;
 
         let mut controller_map: HashMap<DeviceId, (f32, f32)> = HashMap::new();
         for i in 0..controller_ids.len() {
