@@ -127,11 +127,25 @@ impl RoadsideUnit {
         rsu2v_payload.id = self.id;
         rsu2v_payload.sensor_data = self.sensor_data;
 
-        core_state
+        let rsu2v_links: Vec<DeviceId> = match core_state
             .vanet
-            .payloads
-            .rsu2v_data
-            .insert(self.id, rsu2v_payload);
+            .mesh_links
+            .rsu2v_link_cache
+            .remove(&self.id)
+        {
+            Some(rsu2v_links) => rsu2v_links,
+            None => Vec::new(),
+        };
+
+        for vehicle_id in rsu2v_links {
+            core_state
+                .vanet
+                .payloads
+                .rsu2v_data
+                .entry(vehicle_id)
+                .and_modify(|payload| payload.push(rsu2v_payload.clone()))
+                .or_insert(vec![rsu2v_payload.clone()]);
+        }
     }
 
     pub(crate) fn transfer_data_to_bs(&mut self, core_state: &mut Core) {
@@ -146,11 +160,29 @@ impl RoadsideUnit {
         rsu2bs_payload.id = self.id;
         rsu2bs_payload.sensor_data = self.sensor_data;
 
-        core_state
+        let rsu2bs_links = core_state
             .vanet
-            .payloads
-            .rsu2bs_data
-            .insert(self.id, rsu2bs_payload);
+            .infra_links
+            .rsu2bs_link_cache
+            .remove(&self.id);
+
+        let selected_bs_id = match self.linker {
+            RSULinkerType::Simple(ref linker) => linker.find_bs_link(rsu2bs_links),
+        };
+        self.rsu_data_stats.assigned_bs_id = selected_bs_id;
+
+        match selected_bs_id {
+            Some(bs_id) => {
+                core_state
+                    .vanet
+                    .payloads
+                    .rsu2bs_data
+                    .entry(bs_id)
+                    .and_modify(|payload| payload.push(rsu2bs_payload.clone()))
+                    .or_insert(vec![rsu2bs_payload.clone()]);
+            }
+            None => {}
+        }
     }
 
     pub(crate) fn transfer_data_to_rsu(&mut self, core_state: &mut Core) {
@@ -165,11 +197,25 @@ impl RoadsideUnit {
         rsu2rsu_payload.id = self.id;
         rsu2rsu_payload.sensor_data = self.sensor_data;
 
-        core_state
+        let rsu2rsu_links = core_state
             .vanet
-            .payloads
-            .rsu2rsu_data
-            .insert(self.id, rsu2rsu_payload);
+            .mesh_links
+            .rsu2rsu_link_cache
+            .remove(&self.id);
+
+        let selected_rsu_ids = match self.linker {
+            RSULinkerType::Simple(ref linker) => linker.find_rsu_mesh_links(rsu2rsu_links),
+        };
+
+        for rsu_id in selected_rsu_ids.unwrap_or(Vec::new()) {
+            core_state
+                .vanet
+                .payloads
+                .rsu2rsu_data
+                .entry(rsu_id)
+                .and_modify(|payload| payload.push(rsu2rsu_payload.clone()))
+                .or_insert(vec![rsu2rsu_payload.clone()]);
+        }
     }
 }
 
