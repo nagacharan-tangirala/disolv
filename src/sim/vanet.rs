@@ -1,5 +1,6 @@
-use crate::models::aggregator::BSPayload;
+use crate::models::aggregator::InfraPayload;
 use crate::models::composer::DevicePayload;
+use crate::models::responder::DeviceResponse;
 use crate::reader::activation::{DeviceId, TimeStamp};
 use crate::reader::links::LinksReader;
 use crate::utils::config::{LinkFiles, NetworkSettings, TraceFlags};
@@ -17,7 +18,8 @@ pub(crate) struct Vanet {
     pub(crate) infra_links: InfraLinks,
     pub(crate) links_reader: LinksReader,
     pub(crate) step: TimeStamp,
-    pub(crate) data_payloads: DataPayloads,
+    pub(crate) payloads: TargetIDPayloads,
+    pub(crate) responses: TargetIDResponses,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -28,6 +30,7 @@ pub(crate) struct MeshLinks {
     pub(crate) v2v_link_cache: MultiLinkMap,
     pub(crate) rsu2rsu_link_cache: MultiLinkMap,
     pub(crate) v2rsu_link_cache: MultiLinkMap,
+    pub(crate) rsu2v_link_cache: HashMap<DeviceId, Vec<DeviceId>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -41,18 +44,24 @@ pub(crate) struct InfraLinks {
 }
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct DataPayloads {
-    pub(crate) v2v_data: HashMap<DeviceId, DevicePayload>,
-    pub(crate) v2rsu_data: HashMap<DeviceId, DevicePayload>,
-    pub(crate) v2bs_data: HashMap<DeviceId, DevicePayload>,
-    pub(crate) rsu2v_data: HashMap<DeviceId, DevicePayload>,
-    pub(crate) rsu2bs_data: HashMap<DeviceId, DevicePayload>,
-    pub(crate) rsu2rsu_data: HashMap<DeviceId, DevicePayload>,
-    pub(crate) bs2c_data: HashMap<DeviceId, BSPayload>,
-    pub(crate) c2c_data: HashMap<DeviceId, BSPayload>,
+pub(crate) struct TargetIDPayloads {
+    pub(crate) v2v_data: HashMap<DeviceId, Vec<DevicePayload>>,
+    pub(crate) v2rsu_data: HashMap<DeviceId, Vec<DevicePayload>>,
+    pub(crate) v2bs_data: HashMap<DeviceId, Vec<DevicePayload>>,
+    pub(crate) rsu2v_data: HashMap<DeviceId, Vec<DevicePayload>>,
+    pub(crate) rsu2bs_data: HashMap<DeviceId, Vec<DevicePayload>>,
+    pub(crate) rsu2rsu_data: HashMap<DeviceId, Vec<DevicePayload>>,
+    pub(crate) bs2c_data: HashMap<DeviceId, InfraPayload>,
+    pub(crate) c2c_data: HashMap<DeviceId, InfraPayload>,
 }
 
-pub(crate) struct Responses {}
+#[derive(Clone, Debug, Default)]
+pub(crate) struct TargetIDResponses {
+    pub(crate) vehicle_responses: HashMap<DeviceId, DeviceResponse>,
+    pub(crate) bs_responses: HashMap<DeviceId, DeviceResponse>,
+    pub(crate) rsu_responses: HashMap<DeviceId, DeviceResponse>,
+    pub(crate) controller_responses: HashMap<DeviceId, DeviceResponse>,
+}
 
 impl Vanet {
     pub(crate) fn new(
@@ -70,7 +79,8 @@ impl Vanet {
             mesh_links: MeshLinks::default(),
             infra_links: InfraLinks::default(),
             step: 0,
-            data_payloads: DataPayloads::default(),
+            payloads: TargetIDPayloads::default(),
+            responses: TargetIDResponses::default(),
         }
     }
 
