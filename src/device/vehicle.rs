@@ -27,9 +27,27 @@ pub(crate) struct Vehicle {
     pub(crate) sensor_data: SensorData,
     pub(crate) composer: ComposerType,
     pub(crate) simplifier: SimplifierType,
+    pub(crate) linker: VehLinkerType,
     pub(crate) status: DeviceState,
+    pub(crate) veh_data_stats: VDataStats,
     storage: f32,
     step: TimeStamp,
+}
+
+#[derive(Clone, Debug, Copy, Default)]
+pub(crate) struct VDataStats {
+    pub(crate) generated_data_size: f32,
+    pub(crate) outgoing_v2bs_data_size: f32,
+    pub(crate) outgoing_v2rsu_data_size: f32,
+    pub(crate) outgoing_v2v_data_size: f32,
+    pub(crate) assigned_bs_id: Option<DeviceId>,
+    pub(crate) assigned_rsu_id: Option<DeviceId>,
+
+    pub(crate) v2bs_latency_factor: f32,
+    pub(crate) v2rsu_latency_factor: f32,
+    pub(crate) v2v_latency_factor: f32,
+    pub(crate) incoming_v2v_data_size: f32,
+    pub(crate) incoming_rsu_data_size: f32,
 }
 
 impl Vehicle {

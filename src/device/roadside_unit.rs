@@ -28,8 +28,25 @@ pub struct RoadsideUnit {
     pub(crate) sensor_data: SensorData,
     pub(crate) composer: ComposerType,
     pub(crate) simplifier: SimplifierType,
+    pub(crate) linker: RSULinkerType,
     pub(crate) status: DeviceState,
+    pub(crate) rsu_data_stats: RSUDataStats,
     step: TimeStamp,
+}
+
+#[derive(Clone, Debug, Copy, Default)]
+pub(crate) struct RSUDataStats {
+    pub(crate) generated_data_size: f32,
+    pub(crate) outgoing_rsu2bs_data_size: f32,
+    pub(crate) outgoing_rsu2rsu_data_size: f32,
+    pub(crate) outgoing_rsu2v_data_size: f32,
+    pub(crate) assigned_bs_id: Option<DeviceId>,
+
+    pub(crate) rsu2bs_latency_factor: f32,
+    pub(crate) rsu2rsu_latency_factor: f32,
+    pub(crate) rsu2v_latency_factor: f32,
+    pub(crate) incoming_rsu2rsu_data_size: f32,
+    pub(crate) incoming_v2rsu_data_size: f32,
 }
 
 impl RoadsideUnit {
