@@ -13,11 +13,12 @@ use krabmaga::engine::state::State;
 use log::debug;
 use std::hash::{Hash, Hasher};
 
+use crate::models::links::veh_linker::{SimpleVehLinker, VehLinkerType};
+
 use crate::sim::core::Core;
-use crate::sim::vanet::Link;
 use crate::utils::config::VehicleSettings;
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, DataTargetType};
+use crate::utils::ds_config::{DataSourceSettings, DeviceType};
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct Vehicle {
@@ -65,6 +66,12 @@ impl Vehicle {
             "random" => SimplifierType::Random(RandomSimplifier {}),
             _ => SimplifierType::Basic(BasicSimplifier::new(vehicle_settings.simplifier.clone())),
         };
+        let linker: VehLinkerType = match vehicle_settings.linker.name.as_str() {
+            "simple" => {
+                VehLinkerType::Simple(SimpleVehLinker::new(vehicle_settings.linker.clone()))
+            }
+            _ => VehLinkerType::Simple(SimpleVehLinker::new(vehicle_settings.linker.clone())),
+        };
 
         Self {
             id,
@@ -74,7 +81,9 @@ impl Vehicle {
             sensor_data: SensorData::default(),
             composer,
             simplifier,
+            linker,
             status: DeviceState::Inactive,
+            veh_data_stats: VDataStats::default(),
             step: 0,
         }
     }

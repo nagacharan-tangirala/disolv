@@ -5,6 +5,7 @@ use crate::device::device_state::{DeviceState, Timing};
 use crate::models::composer::{
     BasicComposer, ComposerType, DevicePayload, RandomComposer, SensorData,
 };
+use crate::models::links::rsu_linker::{RSULinkerType, SimpleRSULinker};
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
 use crate::reader::activation::{DeviceId, TimeStamp};
 use krabmaga::engine::agent::Agent;
@@ -68,6 +69,10 @@ impl RoadsideUnit {
             "random" => SimplifierType::Random(RandomSimplifier {}),
             _ => SimplifierType::Basic(BasicSimplifier::new(rsu_settings.simplifier.clone())),
         };
+        let linker: RSULinkerType = match rsu_settings.linker.name.as_str() {
+            "simple" => RSULinkerType::Simple(SimpleRSULinker::new(rsu_settings.linker.clone())),
+            _ => RSULinkerType::Simple(SimpleRSULinker::new(rsu_settings.linker.clone())),
+        };
 
         Self {
             id,
@@ -77,7 +82,9 @@ impl RoadsideUnit {
             sensor_data: SensorData::default(),
             composer,
             simplifier,
+            linker,
             status: DeviceState::Inactive,
+            rsu_data_stats: RSUDataStats::default(),
             step: 0,
         }
     }
@@ -227,9 +234,11 @@ impl Agent for RoadsideUnit {
         self.step = core_state.step;
 
         self.update_geo_data(core_state);
+        self.rsu_data_stats.generated_data_size = 0.0;
         self.transfer_data_to_rsu(core_state);
         self.transfer_data_to_bs(core_state);
         self.transfer_data_to_vehicles(core_state);
+        self.storage += self.rsu_data_stats.generated_data_size;
 
         // Initiate deactivation if it is time
         if self.step == self.timing.peek_deactivation_time() {
