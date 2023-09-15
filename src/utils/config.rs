@@ -32,8 +32,6 @@ pub(crate) struct Config {
     pub(crate) roadside_units: HashMap<String, RSUSettings>,
     pub(crate) base_stations: HashMap<String, BaseStationSettings>,
     pub(crate) controllers: HashMap<String, ControllerSettings>,
-    pub(crate) mesh_links: MeshLinkSettings,
-    pub(crate) infra_links: InfraLinkSettings,
     pub(crate) field_settings: FieldSettings,
     pub(crate) network_settings: NetworkSettings,
     pub(crate) trace_flags: TraceFlags,
@@ -116,6 +114,7 @@ pub(crate) struct VehicleSettings {
     pub(crate) storage: f32,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
+    pub(crate) linker: DeviceLinkers,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -124,6 +123,7 @@ pub(crate) struct RSUSettings {
     pub(crate) storage: f32,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
+    pub(crate) linker: DeviceLinkers,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -131,6 +131,8 @@ pub(crate) struct BaseStationSettings {
     pub(crate) ratio: f32,
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
+    pub(crate) responder: ResponderSettings,
+    pub(crate) linker: InfraLinkers,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -138,25 +140,8 @@ pub(crate) struct ControllerSettings {
     pub(crate) ratio: f32,
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct AllocatorStrategy {
-    pub(crate) strategy: HashMap<String, String>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct MeshLinkSettings {
-    pub(crate) v2v_allocator: AllocatorStrategy,
-    pub(crate) v2r_allocator: AllocatorStrategy,
-    pub(crate) r2r_allocator: AllocatorStrategy,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct InfraLinkSettings {
-    pub(crate) v2b_allocator: AllocatorStrategy,
-    pub(crate) r2b_allocator: AllocatorStrategy,
-    pub(crate) b2c_allocator: AllocatorStrategy,
+    pub(crate) responder: ResponderSettings,
+    pub(crate) linker: InfraLinkers,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -174,3 +159,21 @@ pub(crate) struct TraceFlags {
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct NetworkSettings {}
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct ResponderSettings {
+    pub(crate) name: String,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+pub(crate) struct DeviceLinkers {
+    pub(crate) name: String,
+    pub(crate) mesh_range: f32,
+    pub(crate) bs_range: f32,
+    pub(crate) rsu_range: f32,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+pub(crate) struct InfraLinkers {
+    pub(crate) name: String,
+}
