@@ -1,5 +1,6 @@
 use crate::device::base_station::BSInfo;
 use crate::models::composer::DevicePayload;
+use crate::reader::activation::DeviceId;
 use krabmaga::hashbrown::HashMap;
 
 #[derive(Clone, Debug, Copy)]
@@ -11,19 +12,42 @@ pub(crate) enum AggregatorType {
 pub(crate) struct BasicAggregator;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct BSPayload {
-    pub(crate) id: u32,
+pub(crate) struct InfraPayload {
+    pub(crate) id: DeviceId,
     pub(crate) bs_info: BSInfo,
-    pub(crate) v2bs_data: HashMap<u64, DevicePayload>,
-    pub(crate) rsu2bs_data: HashMap<u64, DevicePayload>,
+    pub(crate) vehicle_count: usize,
+    pub(crate) rsu_count: usize,
+    pub(crate) vehicle_ids: Vec<DeviceId>,
+    pub(crate) rsu_ids: Vec<DeviceId>,
+    pub(crate) vehicle_data_size: f32,
+    pub(crate) rsu_data_size: f32,
+    pub(crate) vehicle_data_counts: u32,
+    pub(crate) rsu_data_counts: u32,
 }
 
-trait DataAggregator {
-    fn aggregate_vehicle_data(&self);
-}
+impl BasicAggregator {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
+    pub(crate) fn aggregate(
+        &self,
+        v2bs_data: Vec<DevicePayload>,
+        rsu2bs_data: Vec<DevicePayload>,
+    ) -> InfraPayload {
+        let mut bs_payload = InfraPayload::default();
+        bs_payload.vehicle_count = v2bs_data.len();
+        bs_payload.rsu_count = rsu2bs_data.len();
 
-impl DataAggregator for BasicAggregator {
-    fn aggregate_vehicle_data(&self) {
-        ()
+        for payload in v2bs_data.iter() {
+            bs_payload.vehicle_data_size += payload.total_data_size;
+            bs_payload.vehicle_data_counts += payload.total_data_count;
+            bs_payload.vehicle_ids.push(payload.id);
+        }
+        for payload in rsu2bs_data.iter() {
+            bs_payload.rsu_data_size += payload.total_data_size;
+            bs_payload.rsu_data_counts += payload.total_data_count;
+            bs_payload.rsu_ids.push(payload.id);
+        }
+        return bs_payload;
     }
 }
