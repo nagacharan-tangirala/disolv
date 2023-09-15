@@ -4,6 +4,7 @@ use std::hash::{Hash, Hasher};
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::aggregator::{AggregatorType, BasicAggregator};
 use crate::models::composer::DevicePayload;
+use crate::models::responder::{ResponderType, StatsResponder};
 use crate::reader::activation::{DeviceId, TimeStamp};
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
@@ -25,6 +26,7 @@ pub(crate) struct BaseStation {
     pub(crate) bs_info: BSInfo,
     pub(crate) timing: Timing,
     pub(crate) aggregator: AggregatorType,
+    pub(crate) responder: ResponderType,
     pub(crate) status: DeviceState,
     step: TimeStamp,
 }
@@ -38,9 +40,11 @@ pub(crate) struct BSInfo {
 
 impl BaseStation {
     pub(crate) fn new(id: u64, timing_info: Timing, bs_settings: &BaseStationSettings) -> Self {
-        let data_sources: [Option<DataSourceSettings>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         let aggregator: AggregatorType = match bs_settings.aggregator.name.as_str() {
-            _ => AggregatorType::Basic(BasicAggregator {}),
+            _ => AggregatorType::Basic(BasicAggregator::new()),
+        };
+        let responder: ResponderType = match bs_settings.responder.name.as_str() {
+            _ => ResponderType::Stats(StatsResponder::new()),
         };
         Self {
             id,
@@ -49,6 +53,7 @@ impl BaseStation {
             timing: timing_info,
             bs_info: BSInfo::default(),
             aggregator,
+            responder,
             status: DeviceState::Inactive,
             step: 0,
         }
@@ -129,6 +134,7 @@ impl Agent for BaseStation {
         self.step = core_state.step;
 
         self.update_geo_data(core_state);
+        self.send_data_to_controller(core_state);
 
         // Initiate deactivation if it is time
         if self.step == self.timing.peek_deactivation_time() {
