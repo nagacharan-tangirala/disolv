@@ -9,9 +9,6 @@ use crate::reader::activation::{DeviceId, TimeStamp};
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
 use crate::utils::{config, ds_config};
-use itertools::izip;
-use krabmaga::engine::fields::field::Field;
-use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::hashbrown::HashMap;
 use krabmaga::*;
 use krabmaga::{
@@ -248,6 +245,7 @@ impl State for Core {
             info!("Streaming data at step {}", self.step);
             self.vanet.refresh_links_data(self.step);
             self.device_field.refresh_position_data(self.step);
+            info!("Streaming data at step {} done", self.step);
         }
 
         self.devices_to_add.clear();

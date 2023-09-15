@@ -33,7 +33,7 @@ pub(crate) struct AllDataSources {
 #[derive(Deserialize, Default, Debug, Clone, Copy)]
 pub(crate) struct DataSourceSettings {
     pub(crate) data_type: SensorType,
-    pub(crate) data_counts: u16,
+    pub(crate) data_counts: u32,
     pub(crate) unit_size: f32,
     pub(crate) target_type: DeviceType,
 }

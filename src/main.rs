@@ -1,7 +1,7 @@
 // Global imports (needed for the simulation to run)
-mod reader;
 mod device;
 mod models;
+mod reader;
 mod sim;
 mod utils;
 use crate::sim::builder::PavenetBuilder;

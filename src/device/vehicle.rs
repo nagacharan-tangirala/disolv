@@ -1,7 +1,5 @@
 use crate::device::device_state::{DeviceState, Timing};
-use crate::models::composer::{
-    BasicComposer, ComposerType, DevicePayload, RandomComposer, SensorData,
-};
+use crate::models::composer::{BasicComposer, ComposerType, RandomComposer, SensorData};
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
 use crate::reader::activation::{DeviceId, TimeStamp};
 use core::fmt;
@@ -105,7 +103,7 @@ impl Vehicle {
         };
     }
 
-    pub(crate) fn deactivate(&mut self, core_state: &mut Core) {
+    fn deactivate(&mut self, core_state: &mut Core) {
         self.status = DeviceState::Inactive;
         self.timing.increment_timing_index();
         core_state.devices_to_pop.vehicles.push(self.id);
@@ -119,9 +117,9 @@ impl Vehicle {
         }
     }
 
-    pub(crate) fn transfer_data_to_vehicles(&mut self, core_state: &mut Core) {
+    fn transfer_data_to_vehicles(&mut self, core_state: &mut Core) {
         let mut v2v_payload = match self.composer {
-            ComposerType::Basic(ref composer) => composer.compose_payload(DataTargetType::Vehicle),
+            ComposerType::Basic(ref composer) => composer.compose_payload(DeviceType::Vehicle),
             ComposerType::Random(ref composer) => composer.compose_payload(),
         };
 

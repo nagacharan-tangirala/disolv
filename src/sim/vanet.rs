@@ -94,9 +94,7 @@ impl Vanet {
         self.refresh_rsu2bs_cache();
     }
 
-    pub(crate) fn after_step(&mut self) {
-        // Generate responses for the data transfers.
-    }
+    pub(crate) fn after_step(&mut self) {}
 
     pub(crate) fn refresh_links_data(&mut self, step: u64) {
         info! {"Refreshing links data from files at step {}", step}
