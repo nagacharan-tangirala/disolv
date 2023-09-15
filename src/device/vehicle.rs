@@ -105,13 +105,35 @@ impl Vehicle {
 
         v2v_payload.id = self.id;
         v2v_payload.sensor_data = self.sensor_data;
+
+        self.veh_data_stats.generated_data_size += v2v_payload.total_data_size;
+
+        let v2v_links_opt = core_state.vanet.mesh_links.v2v_link_cache.remove(&self.id);
+        let v2v_links = match self.linker {
+            VehLinkerType::Simple(ref linker) => linker.find_vehicle_mesh_links(v2v_links_opt),
+        };
+
+        self.veh_data_stats.outgoing_v2v_data_size = 0.0;
+        match v2v_links {
+            Some(v2v_links) => {
+                for neighbour_device_id in v2v_links {
+                    core_state
+                        .vanet
+                        .payloads
+                        .v2v_data
+                        .entry(neighbour_device_id)
+                        .and_modify(|payload| payload.push(v2v_payload.clone()))
+                        .or_insert(vec![v2v_payload.clone()]);
+                    self.veh_data_stats.outgoing_v2v_data_size += v2v_payload.total_data_size;
+                }
+            }
+            None => {}
+        }
     }
 
-    pub(crate) fn transfer_data_to_bs(&mut self, core_state: &mut Core) {
+    fn transfer_data_to_bs(&mut self, core_state: &mut Core) {
         let mut v2bs_payload = match self.composer {
-            ComposerType::Basic(ref composer) => {
-                composer.compose_payload(DataTargetType::BaseStation)
-            }
+            ComposerType::Basic(ref composer) => composer.compose_payload(DeviceType::BaseStation),
             ComposerType::Random(ref composer) => composer.compose_payload(),
         };
         v2bs_payload = match self.simplifier {
@@ -120,11 +142,38 @@ impl Vehicle {
         };
         v2bs_payload.id = self.id;
         v2bs_payload.sensor_data = self.sensor_data;
+
+        self.veh_data_stats.generated_data_size += v2bs_payload.total_data_size;
+
+        let v2bs_links_opt = core_state
+            .vanet
+            .infra_links
+            .v2bs_link_cache
+            .remove(&self.id);
+        let selected_bs_id = match self.linker {
+            VehLinkerType::Simple(ref linker) => linker.find_bs_link(v2bs_links_opt),
+        };
+        self.veh_data_stats.assigned_bs_id = selected_bs_id;
+
+        self.veh_data_stats.outgoing_v2bs_data_size = 0.0;
+        match selected_bs_id {
+            Some(bs_id) => {
+                core_state
+                    .vanet
+                    .payloads
+                    .v2bs_data
+                    .entry(bs_id)
+                    .and_modify(|payload| payload.push(v2bs_payload.clone()))
+                    .or_insert(vec![v2bs_payload.clone()]);
+                self.veh_data_stats.outgoing_v2bs_data_size += v2bs_payload.total_data_size;
+            }
+            None => {}
+        }
     }
 
-    pub(crate) fn transfer_data_to_rsu(&mut self, core_state: &mut Core) {
+    fn transfer_data_to_rsu(&mut self, core_state: &mut Core) {
         let mut v2rsu_payload = match self.composer {
-            ComposerType::Basic(ref composer) => composer.compose_payload(DataTargetType::RSU),
+            ComposerType::Basic(ref composer) => composer.compose_payload(DeviceType::RSU),
             ComposerType::Random(ref composer) => composer.compose_payload(),
         };
         v2rsu_payload = match self.simplifier {
@@ -133,7 +182,48 @@ impl Vehicle {
         };
         v2rsu_payload.id = self.id;
         v2rsu_payload.sensor_data = self.sensor_data;
+
+        self.veh_data_stats.generated_data_size += v2rsu_payload.total_data_size;
+
+        let v2rsu_links_opt = core_state
+            .vanet
+            .mesh_links
+            .v2rsu_link_cache
+            .remove(&self.id);
+
+        let selected_rsu_id = match self.linker {
+            VehLinkerType::Simple(ref linker) => linker.find_rsu_link(v2rsu_links_opt),
+        };
+        self.veh_data_stats.assigned_rsu_id = selected_rsu_id;
+
+        self.veh_data_stats.outgoing_v2rsu_data_size = 0.0;
+        match selected_rsu_id {
+            Some(rsu_id) => {
+                core_state
+                    .vanet
+                    .mesh_links
+                    .rsu2v_link_cache
+                    .entry(rsu_id)
+                    .and_modify(|links| {
+                        links.push(self.id);
+                    })
+                    .or_insert(vec![self.id]);
+                core_state
+                    .vanet
+                    .payloads
+                    .v2rsu_data
+                    .entry(rsu_id)
+                    .and_modify(|payload| {
+                        payload.push(v2rsu_payload.clone());
+                    })
+                    .or_insert(vec![v2rsu_payload.clone()]);
+                self.veh_data_stats.outgoing_v2rsu_data_size += v2rsu_payload.total_data_size;
+            }
+            None => {}
+        }
     }
+
+    fn collect_data(&mut self, core_state: &mut Core) {}
 
     pub fn as_agent(self) -> Box<dyn Agent> {
         Box::new(self)
@@ -142,14 +232,17 @@ impl Vehicle {
 
 impl Agent for Vehicle {
     fn step(&mut self, state: &mut dyn State) {
+        debug!("{} is active", self.id);
         self.status = DeviceState::Active;
         let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
         self.step = core_state.step;
 
         self.update_geo_data(core_state);
-        self.transfer_data_to_rsu(core_state);
+        self.veh_data_stats.generated_data_size = 0.0;
         self.transfer_data_to_bs(core_state);
+        self.transfer_data_to_rsu(core_state);
         self.transfer_data_to_vehicles(core_state);
+        self.storage += self.veh_data_stats.generated_data_size;
 
         // Initiate deactivation if it is time
         if self.step == self.timing.peek_deactivation_time() {
