@@ -80,6 +80,45 @@ impl BaseStation {
                 .push((self.id, time_stamp));
         }
     }
+
+    pub(crate) fn send_data_to_controller(&mut self, core_state: &mut Core) {
+        let vehicles_data = match core_state.vanet.payloads.v2bs_data.remove(&self.id) {
+            Some(bs_data) => bs_data,
+            None => vec![],
+        };
+        let rsu_data = match core_state.vanet.payloads.rsu2bs_data.remove(&self.id) {
+            Some(rsu_data) => rsu_data,
+            None => vec![],
+        };
+
+        let mut bs_responses = match self.responder {
+            ResponderType::Stats(responder) => {
+                responder.respond_to_vehicles(&vehicles_data, rsu_data.len())
+            }
+        };
+        core_state
+            .vanet
+            .responses
+            .vehicle_responses
+            .extend(bs_responses.drain());
+
+        let mut bs_payload = match self.aggregator {
+            AggregatorType::Basic(aggregator) => aggregator.aggregate(vehicles_data, rsu_data),
+        };
+        bs_payload.id = self.id;
+        bs_payload.bs_info = self.bs_info;
+
+        let controller_id = match core_state.vanet.infra_links.bs2c_links.get(&self.id) {
+            Some(controller_id) => *controller_id,
+            None => return,
+        };
+
+        core_state
+            .vanet
+            .payloads
+            .bs2c_data
+            .insert(controller_id, bs_payload);
+    }
 }
 
 impl Agent for BaseStation {
