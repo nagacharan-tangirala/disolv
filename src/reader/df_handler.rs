@@ -35,7 +35,7 @@ pub(crate) fn prepare_geo_data(
     let time_stamps: Vec<TimeStamp> =
         convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
 
-    let mut time_stamp_traces: GeoMap = HashMap::new();
+    let mut time_stamp_traces: GeoMap = HashMap::with_capacity(time_stamps.len());
     for time_stamp in time_stamps.iter() {
         let ts_df = filtered_df
             .clone()
@@ -44,7 +44,7 @@ pub(crate) fn prepare_geo_data(
             .collect()?;
 
         if ts_df.height() == 0 {
-            time_stamp_traces.insert(*time_stamp, None);
+            time_stamp_traces.entry(*time_stamp).or_insert(None);
             continue;
         }
         let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
@@ -53,7 +53,7 @@ pub(crate) fn prepare_geo_data(
         let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_VELOCITY)?;
 
         let trace: GeoData = (device_ids, x_positions, y_positions, velocities);
-        time_stamp_traces.insert(*time_stamp, Some(trace));
+        time_stamp_traces.entry(*time_stamp).or_insert(Some(trace));
     }
     return Ok(time_stamp_traces);
 }
@@ -74,7 +74,9 @@ pub(crate) fn prepare_device_activations(
 
     let device_ids_vec: Vec<u64> = convert_series_to_integer_vector(&filtered_df, COL_DEVICE_ID)?;
 
-    let mut activation_data_map: HashMap<DeviceId, Activation> = HashMap::new();
+    let mut activation_data_map: HashMap<DeviceId, Activation> =
+        HashMap::with_capacity(device_ids_vec.len());
+
     for device_id in device_ids_vec.iter() {
         let device_df = filtered_df
             .clone()
@@ -137,7 +139,7 @@ pub(crate) fn prepare_static_links(
     let mut static_links: HashMap<TimeStamp, MultiLinkMap> = HashMap::new();
     let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&links_df, device_id_column)?;
 
-    let mut device_map: MultiLinkMap = HashMap::new();
+    let mut device_map: MultiLinkMap = HashMap::with_capacity(device_ids.len());
     for device_id in device_ids.iter() {
         let device_df = links_df
             .clone()
@@ -169,7 +171,6 @@ pub(crate) fn prepare_dynamic_links(
     device_id_column: &str,
     neighbour_column: &str,
 ) -> Result<HashMap<TimeStamp, MultiLinkMap>, Box<dyn std::error::Error>> {
-    let mut dynamic_links: HashMap<TimeStamp, MultiLinkMap> = HashMap::new();
     debug!("Converting {} links to map...", links_df.height());
     let filtered_df: DataFrame = links_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
@@ -189,6 +190,9 @@ pub(crate) fn prepare_dynamic_links(
     let time_stamps: Vec<TimeStamp> =
         convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
 
+    let mut dynamic_links: HashMap<TimeStamp, MultiLinkMap> =
+        HashMap::with_capacity(time_stamps.len());
+
     for time_stamp in time_stamps.iter() {
         let ts_df = links_df
             .clone()
@@ -196,8 +200,8 @@ pub(crate) fn prepare_dynamic_links(
             .filter(col(COL_TIME_STEP).eq(lit(*time_stamp)))
             .collect()?;
 
-        let mut device_map: MultiLinkMap = HashMap::new();
         let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
+        let mut device_map: MultiLinkMap = HashMap::with_capacity(device_ids.len());
 
         let neighbour_list: &ListChunked = match ts_df.columns([neighbour_column])?.get(0) {
             Some(series) => series.list()?,
@@ -208,8 +212,9 @@ pub(crate) fn prepare_dynamic_links(
             None => return Err("Error in reading distance column".into()),
         };
 
-        let mut idx = 0;
-        for (neighbour, distance) in neighbour_list.into_iter().zip(distance_list) {
+        for (idx, (neighbour, distance)) in
+            neighbour_list.into_iter().zip(distance_list).enumerate()
+        {
             let neighbour_opt_vec: Vec<Option<i64>> = neighbour.unwrap().i64()?.to_vec();
             let neighbour_vec: Vec<DeviceId> = neighbour_opt_vec
                 .iter()
@@ -219,7 +224,6 @@ pub(crate) fn prepare_dynamic_links(
             let distance_vec: Vec<f32> =
                 distance_opt_vec.iter().map(|x| x.unwrap() as f32).collect();
             device_map.insert(device_ids[idx], (neighbour_vec, distance_vec));
-            idx += 1;
         }
         dynamic_links.insert(*time_stamp, device_map);
     }
