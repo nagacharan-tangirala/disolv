@@ -6,12 +6,11 @@ use krabmaga::hashbrown::HashMap;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DevicePayload {
     pub(crate) id: DeviceId,
-    pub(crate) target_id: DeviceId,
     pub(crate) sensor_data: SensorData,
     pub(crate) generated_data_size: HashMap<SensorType, f32>,
-    pub(crate) types_with_counts: HashMap<SensorType, u16>,
+    pub(crate) types_with_counts: HashMap<SensorType, u32>,
     pub(crate) total_data_size: f32,
-    pub(crate) total_data_count: u16,
+    pub(crate) total_data_count: u32,
 }
 
 #[derive(Clone, Debug, Copy, Default)]
@@ -45,7 +44,7 @@ impl BasicComposer {
     pub(crate) fn compose_payload(&self, target_type: DeviceType) -> DevicePayload {
         let mut payload = DevicePayload::default();
         let total_data_size = 0.0;
-        let total_data_count: u16 = 0;
+        let total_data_count: u32 = 0;
         for data_source in self.data_sources {
             let data_source: DataSourceSettings = match data_source {
                 Some(ds) => ds,
@@ -57,7 +56,7 @@ impl BasicComposer {
             }
 
             let data_type = data_source.data_type;
-            let data_counts: u16 = data_source.data_counts;
+            let data_counts: u32 = data_source.data_counts;
             let data_size = data_source.unit_size * data_source.data_counts as f32;
 
             payload.generated_data_size.insert(data_type, data_size);
