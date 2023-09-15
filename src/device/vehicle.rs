@@ -280,6 +280,23 @@ impl Agent for Vehicle {
     fn is_stopped(&mut self, _state: &mut dyn State) -> bool {
         self.status == DeviceState::Inactive
     }
+
+    fn before_step(
+        &mut self,
+        state: &mut dyn State,
+    ) -> Option<Vec<(Box<dyn Agent>, ScheduleOptions)>> {
+        debug!("Before step {}", self.step);
+        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
+        self.collect_data(core_state);
+        None
+    }
+
+    fn after_step(
+        &mut self,
+        _state: &mut dyn State,
+    ) -> Option<Vec<(Box<dyn Agent>, ScheduleOptions)>> {
+        None
+    }
 }
 
 impl Hash for Vehicle {
