@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::composer::{
-    BasicComposer, ComposerType, DevicePayload, RandomComposer, SensorData,
+    BasicComposer, ComposerType, DataSources, RandomComposer, SensorData,
 };
 use crate::models::links::rsu_linker::{RSULinkerType, SimpleRSULinker};
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
@@ -16,9 +16,9 @@ use krabmaga::hashbrown::HashMap;
 use log::debug;
 
 use crate::sim::core::Core;
+use crate::utils::config::DeviceType;
 use crate::utils::config::RSUSettings;
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, DeviceType, SensorType};
 
 #[derive(Debug, Clone, Copy)]
 pub struct RoadsideUnit {

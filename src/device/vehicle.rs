@@ -1,5 +1,7 @@
 use crate::device::device_state::{DeviceState, Timing};
-use crate::models::composer::{BasicComposer, ComposerType, RandomComposer, SensorData};
+use crate::models::composer::{
+    BasicComposer, ComposerType, DataSources, RandomComposer, SensorData,
+};
 use crate::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
 use crate::reader::activation::{DeviceId, TimeStamp};
 use core::fmt;
@@ -14,9 +16,9 @@ use std::hash::{Hash, Hasher};
 use crate::models::links::veh_linker::{SimpleVehLinker, VehLinkerType};
 
 use crate::sim::core::Core;
+use crate::utils::config::DeviceType;
 use crate::utils::config::VehicleSettings;
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, DeviceType};
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct Vehicle {

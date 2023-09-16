@@ -8,19 +8,14 @@ use crate::device::vehicle::Vehicle;
 use crate::reader::activation::{DeviceId, TimeStamp};
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
-use crate::utils::{config, ds_config};
+use crate::utils::config;
+use krabmaga::engine::{schedule::Schedule, state::State};
 use krabmaga::hashbrown::HashMap;
-use krabmaga::*;
-use krabmaga::{
-    addplot,
-    engine::{schedule::Schedule, state::State},
-    plot,
-};
+use krabmaga::{addplot, plot, PlotData, DATA};
 use log::{debug, error, info};
 
 pub(crate) struct Core {
     pub(crate) config: config::Config,
-    pub(crate) ds_config: ds_config::AllDataSources,
     pub(crate) step: TimeStamp,
     pub(crate) vehicles: HashMap<DeviceId, Vehicle>,
     pub(crate) roadside_units: HashMap<DeviceId, RoadsideUnit>,
