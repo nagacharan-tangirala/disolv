@@ -1,10 +1,10 @@
 use crate::reader::activation::DeviceId;
+use crate::utils::config::{DeviceType, SensorType};
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{DataSourceSettings, DeviceType, SensorType};
 use krabmaga::hashbrown::HashMap;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct DevicePayload {
+pub(crate) struct UplinkPayload {
     pub(crate) id: DeviceId,
     pub(crate) sensor_data: SensorData,
     pub(crate) generated_data_size: HashMap<SensorType, f32>,
@@ -21,6 +21,13 @@ pub(crate) struct SensorData {
 }
 
 #[derive(Clone, Debug, Copy)]
+pub(crate) struct DataSources {
+    pub(crate) data_type: SensorType,
+    pub(crate) unit_size: f32,
+    pub(crate) data_counts: u32,
+}
+
+#[derive(Clone, Debug, Copy)]
 pub(crate) enum ComposerType {
     Basic(BasicComposer),
     Random(RandomComposer),
@@ -28,32 +35,28 @@ pub(crate) enum ComposerType {
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct BasicComposer {
-    pub(crate) data_sources: [Option<DataSourceSettings>; ARRAY_SIZE],
+    pub(crate) data_sources: [Option<DataSources>; ARRAY_SIZE],
 }
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct RandomComposer {
-    pub(crate) data_sources: [Option<DataSourceSettings>; ARRAY_SIZE],
+    pub(crate) data_sources: [Option<DataSources>; ARRAY_SIZE],
 }
 
 impl BasicComposer {
-    pub(crate) fn new(data_sources: [Option<DataSourceSettings>; ARRAY_SIZE]) -> Self {
+    pub(crate) fn new(data_sources: [Option<DataSources>; ARRAY_SIZE]) -> Self {
         Self { data_sources }
     }
 
-    pub(crate) fn compose_payload(&self, target_type: DeviceType) -> DevicePayload {
-        let mut payload = DevicePayload::default();
+    pub(crate) fn compose_payload(&self, _target_type: DeviceType) -> UplinkPayload {
+        let mut payload = UplinkPayload::default();
         let total_data_size = 0.0;
         let total_data_count: u32 = 0;
         for data_source in self.data_sources {
-            let data_source: DataSourceSettings = match data_source {
+            let data_source: DataSources = match data_source {
                 Some(ds) => ds,
                 None => continue,
             };
-
-            if data_source.target_type != target_type {
-                continue;
-            }
 
             let data_type = data_source.data_type;
             let data_counts: u32 = data_source.data_counts;
@@ -69,12 +72,12 @@ impl BasicComposer {
 }
 
 impl RandomComposer {
-    pub(crate) fn new(data_sources: [Option<DataSourceSettings>; ARRAY_SIZE]) -> Self {
+    pub(crate) fn new(data_sources: [Option<DataSources>; ARRAY_SIZE]) -> Self {
         Self { data_sources }
     }
 
-    pub(crate) fn compose_payload(&self) -> DevicePayload {
-        let payload = DevicePayload::default();
+    pub(crate) fn compose_payload(&self) -> UplinkPayload {
+        let payload = UplinkPayload::default();
         return payload;
     }
 }
