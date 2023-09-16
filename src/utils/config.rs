@@ -2,6 +2,28 @@ use serde_derive::Deserialize;
 use std::collections::HashMap; // krabmaga::hashbrown::HashMap cannot be deserialized.
 use std::path::PathBuf;
 
+#[derive(Deserialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum DeviceType {
+    #[default]
+    None = 0,
+    Vehicle,
+    RSU,
+    BaseStation,
+    Controller,
+}
+
+#[derive(Deserialize, Default, Debug, Hash, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum SensorType {
+    #[default]
+    None = 0,
+    Image,
+    Video,
+    Lidar2D,
+    Lidar3D,
+    Radar,
+    Status,
+}
+
 pub(crate) struct ConfigReader {
     file_path: PathBuf,
 }
@@ -157,28 +179,6 @@ pub(crate) struct TraceFlags {
     pub(crate) vehicle: bool,
     pub(crate) roadside_unit: bool,
     pub(crate) base_station: bool,
-}
-
-#[derive(Deserialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum DeviceType {
-    #[default]
-    None = 0,
-    Vehicle,
-    RSU,
-    BaseStation,
-    Controller,
-}
-
-#[derive(Deserialize, Default, Debug, Hash, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum SensorType {
-    #[default]
-    None = 0,
-    Image,
-    Video,
-    Lidar2D,
-    Lidar3D,
-    Radar,
-    Status,
 }
 
 #[derive(Deserialize, Default, Debug, Clone)]
