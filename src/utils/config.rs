@@ -114,7 +114,8 @@ pub(crate) struct VehicleSettings {
     pub(crate) storage: f32,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
-    pub(crate) linker: DeviceLinkers,
+    pub(crate) linker: VehicleLinker,
+    pub(crate) data_sources: DataSourceSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -123,7 +124,8 @@ pub(crate) struct RSUSettings {
     pub(crate) storage: f32,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
-    pub(crate) linker: DeviceLinkers,
+    pub(crate) linker: RSULinker,
+    pub(crate) data_sources: DataSourceSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -132,7 +134,7 @@ pub(crate) struct BaseStationSettings {
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
     pub(crate) responder: ResponderSettings,
-    pub(crate) linker: InfraLinkers,
+    pub(crate) linker: BSLinker,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -141,7 +143,7 @@ pub(crate) struct ControllerSettings {
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
     pub(crate) responder: ResponderSettings,
-    pub(crate) linker: InfraLinkers,
+    pub(crate) linker: ControllerLinker,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -157,6 +159,35 @@ pub(crate) struct TraceFlags {
     pub(crate) base_station: bool,
 }
 
+#[derive(Deserialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum DeviceType {
+    #[default]
+    None = 0,
+    Vehicle,
+    RSU,
+    BaseStation,
+    Controller,
+}
+
+#[derive(Deserialize, Default, Debug, Hash, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum SensorType {
+    #[default]
+    None = 0,
+    Image,
+    Video,
+    Lidar2D,
+    Lidar3D,
+    Radar,
+    Status,
+}
+
+#[derive(Deserialize, Default, Debug, Clone)]
+pub(crate) struct DataSourceSettings {
+    pub(crate) data_types: Vec<SensorType>,
+    pub(crate) data_counts: Vec<u32>,
+    pub(crate) unit_sizes: Vec<f32>,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct NetworkSettings {}
 
@@ -166,7 +197,7 @@ pub(crate) struct ResponderSettings {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub(crate) struct DeviceLinkers {
+pub(crate) struct VehicleLinker {
     pub(crate) name: String,
     pub(crate) mesh_range: f32,
     pub(crate) bs_range: f32,
@@ -174,6 +205,18 @@ pub(crate) struct DeviceLinkers {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub(crate) struct InfraLinkers {
+pub(crate) struct RSULinker {
+    pub(crate) name: String,
+    pub(crate) mesh_range: f32,
+    pub(crate) bs_range: f32,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+pub(crate) struct BSLinker {
+    pub(crate) name: String,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+pub(crate) struct ControllerLinker {
     pub(crate) name: String,
 }
