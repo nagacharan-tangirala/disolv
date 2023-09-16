@@ -3,15 +3,16 @@ use crate::device::controller::Controller;
 use crate::device::device_state::Timing;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
+use crate::models::composer::DataSources;
 use crate::reader::activation;
 use crate::reader::activation::{Activation, DeviceId, TimeStamp};
 use crate::sim::core::Core;
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
-use crate::utils::config::{BaseStationSettings, ControllerSettings};
+use crate::utils::config::{BaseStationSettings, ControllerSettings, RSUSettings};
+use crate::utils::config::{DataSourceSettings, VehicleSettings};
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::{AllDataSources, DataSourceSettings};
-use crate::utils::{config, ds_config, logger};
+use crate::utils::{config, logger};
 use krabmaga::hashbrown::HashMap;
 use log::{debug, info};
 use rand::distributions::WeightedIndex;
@@ -21,7 +22,6 @@ use std::path::{Path, PathBuf};
 
 pub(crate) struct PavenetBuilder {
     config: config::Config,
-    ds_config: AllDataSources,
     config_path: PathBuf,
 }
 
@@ -38,24 +38,13 @@ impl PavenetBuilder {
             .to_path_buf();
 
         let config_reader = config::ConfigReader::new(&config_file);
-        let config_data = match config_reader.parse() {
-            Ok(config_data) => config_data,
-            Err(e) => {
-                panic!("Error while parsing the configuration file: {}", e);
-            }
-        };
-
-        let data_source_file =
-            Path::new(&config_path).join(&config_data.data_source_config_file.config_file);
-        let ds_config_reader = ds_config::DSConfigReader::new(&data_source_file);
-        match ds_config_reader.parse() {
-            Ok(ds_config) => Self {
+        match config_reader.parse() {
+            Ok(config_data) => Self {
                 config: config_data,
-                ds_config,
                 config_path,
             },
             Err(e) => {
-                panic!("Error while parsing the data source config file: {}", e);
+                panic!("Error while parsing the configuration file: {}", e);
             }
         }
     }
@@ -74,7 +63,6 @@ impl PavenetBuilder {
         info!("Building the network...");
         return Core::new(
             self.config.clone(),
-            self.ds_config.clone(),
             vehicles,
             roadside_units,
             base_stations,
@@ -135,7 +123,7 @@ impl PavenetBuilder {
         );
     }
 
-    fn build_vehicles(&mut self) -> HashMap<u64, Vehicle> {
+    fn build_vehicles(&mut self) -> HashMap<DeviceId, Vehicle> {
         info!("Building vehicles...");
         let activation_file =
             Path::new(&self.config_path).join(&self.config.activation_files.vehicle_activations);
@@ -145,50 +133,36 @@ impl PavenetBuilder {
         let vehicle_activations: HashMap<DeviceId, Activation> =
             activation::read_activation_data(activation_file);
 
-        let mut vehicles: HashMap<u64, Vehicle> = HashMap::new();
-        let all_vehicle_setting_ids: Vec<&String> = self.config.vehicles.keys().collect();
-        let ratios: Vec<f32> = self.config.vehicles.values().map(|v| v.ratio).collect();
-
-        debug!("Vehicle ratios: {:?}", ratios);
+        let all_vehicle_settings: Vec<&VehicleSettings> = self.config.vehicles.values().collect();
+        let ratios: Vec<f32> = all_vehicle_settings.iter().map(|vs| vs.ratio).collect();
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
 
+        let mut vehicles: HashMap<DeviceId, Vehicle> =
+            HashMap::with_capacity(vehicle_activations.len());
         for (vehicle_id, activation_data) in vehicle_activations.iter() {
-            let setting_id = match all_vehicle_setting_ids.get(dist.sample(&mut rng)) {
-                Some(setting_id) => setting_id,
+            let vehicle_setting = match all_vehicle_settings.get(dist.sample(&mut rng)) {
+                Some(vehicle_setting) => *vehicle_setting,
                 None => {
-                    panic!("Error while selecting Vehicle setting ID.");
-                }
-            };
-            let vehicle_setting = match self.config.vehicles.get(*setting_id) {
-                Some(vehicle_setting) => vehicle_setting,
-                None => {
-                    panic!("Error while reading vehicle settings from map.");
-                }
-            };
-            let vehicle_sources = match self.ds_config.vehicle_sources.get(*setting_id) {
-                Some(data_sources) => self.convert_data_sources_to_array(data_sources),
-                None => {
-                    panic!("Error while selecting vehicle data sources.");
+                    panic!("Error while selecting vehicle settings.");
                 }
             };
 
             let vehicle_timing = Self::convert_activation_to_timing(&activation_data);
+            let vehicle_sources = self.convert_data_sources_to_array(&vehicle_setting.data_sources);
             let new_vehicle = Vehicle::new(
                 *vehicle_id,
                 vehicle_timing,
                 vehicle_setting,
                 vehicle_sources,
             );
-            if let Some(value) = vehicles.insert(*vehicle_id, new_vehicle) {
-                panic!("Duplicate Vehicle id: {}", value.id);
-            }
+            vehicles.entry(*vehicle_id).or_insert(new_vehicle);
         }
         info!("Done! Number of vehicles: {}", vehicles.len());
         return vehicles;
     }
 
-    fn build_roadside_units(&self) -> HashMap<u64, RoadsideUnit> {
+    fn build_roadside_units(&self) -> HashMap<DeviceId, RoadsideUnit> {
         info!("Building roadside units...");
         let activation_file =
             Path::new(&self.config_path).join(&self.config.activation_files.rsu_activations);
@@ -198,44 +172,25 @@ impl PavenetBuilder {
         let rsu_activations: HashMap<DeviceId, Activation> =
             activation::read_activation_data(activation_file);
 
-        let mut roadside_units: HashMap<u64, RoadsideUnit> = HashMap::new();
-        let all_rsu_setting_ids: Vec<&String> = self.config.roadside_units.keys().collect();
-        let ratios: Vec<f32> = self
-            .config
-            .roadside_units
-            .values()
-            .map(|r| r.ratio)
-            .collect();
-
-        debug!("RSU ratios: {:?}", ratios);
+        let all_rsu_settings: Vec<&RSUSettings> = self.config.roadside_units.values().collect();
+        let ratios: Vec<f32> = all_rsu_settings.iter().map(|rs| rs.ratio).collect();
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
 
+        let mut roadside_units: HashMap<DeviceId, RoadsideUnit> =
+            HashMap::with_capacity(rsu_activations.len());
         for (rsu_id, activation_data) in rsu_activations.iter() {
-            let setting_id = match all_rsu_setting_ids.get(dist.sample(&mut rng)) {
-                Some(setting_id) => setting_id,
+            let rsu_settings = match all_rsu_settings.get(dist.sample(&mut rng)) {
+                Some(vehicle_setting) => *vehicle_setting,
                 None => {
-                    panic!("Error while selecting RSU setting ID.");
-                }
-            };
-            let rsu_settings = match self.config.roadside_units.get(*setting_id) {
-                Some(rsu_setting) => rsu_setting,
-                None => {
-                    panic!("Error while reading RSU settings from map.");
-                }
-            };
-            let rsu_sources = match self.ds_config.rsu_sources.get(*setting_id) {
-                Some(data_sources) => self.convert_data_sources_to_array(data_sources),
-                None => {
-                    panic!("Error while selecting RSU data sources.");
+                    panic!("Error while selecting RSU settings.");
                 }
             };
 
             let rsu_timing = Self::convert_activation_to_timing(&activation_data);
+            let rsu_sources = self.convert_data_sources_to_array(&rsu_settings.data_sources);
             let new_rsu = RoadsideUnit::new(*rsu_id, rsu_timing, rsu_settings, rsu_sources);
-            if let Some(value) = roadside_units.insert(*rsu_id, new_rsu) {
-                panic!("Duplicate RSU id: {}", value.id);
-            }
+            roadside_units.entry(*rsu_id).or_insert(new_rsu);
         }
         info!("Done! Number of Roadside Units: {}", roadside_units.len());
         return roadside_units;
@@ -327,12 +282,17 @@ impl PavenetBuilder {
 
     fn convert_data_sources_to_array(
         &self,
-        data_sources: &std::collections::HashMap<String, DataSourceSettings>,
-    ) -> [Option<DataSourceSettings>; ARRAY_SIZE] {
-        let mut data_sources_array: [Option<DataSourceSettings>; ARRAY_SIZE] = [None; ARRAY_SIZE];
+        data_sources: &DataSourceSettings,
+    ) -> [Option<DataSources>; ARRAY_SIZE] {
+        let mut data_sources_array: [Option<DataSources>; ARRAY_SIZE] = [None; ARRAY_SIZE];
         let mut index = 0;
-        for (_, data_source) in data_sources.iter() {
-            data_sources_array[index] = Some(data_source.clone());
+        for idx in 0..data_sources.data_types.len() {
+            let data_source = DataSources {
+                data_type: data_sources.data_types[idx],
+                unit_size: data_sources.unit_sizes[idx],
+                data_counts: data_sources.data_counts[idx],
+            };
+            data_sources_array[index] = Some(data_source);
             index += 1;
         }
         return data_sources_array;
