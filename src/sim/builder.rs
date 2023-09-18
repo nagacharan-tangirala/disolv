@@ -145,8 +145,7 @@ impl PavenetBuilder {
         let vehicle_activations: HashMap<DeviceId, Activation> =
             activation::read_activation_data(activation_file);
 
-        let all_vehicle_settings: Vec<&VehicleSettings> =
-            self.base_config.vehicles.values().collect();
+        let all_vehicle_settings: &Vec<VehicleSettings> = &self.base_config.vehicles;
         let ratios: Vec<f32> = all_vehicle_settings.iter().map(|vs| vs.ratio).collect();
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
@@ -155,20 +154,14 @@ impl PavenetBuilder {
             HashMap::with_capacity(vehicle_activations.len());
         for (vehicle_id, activation_data) in vehicle_activations.iter() {
             let vehicle_setting = match all_vehicle_settings.get(dist.sample(&mut rng)) {
-                Some(vehicle_setting) => *vehicle_setting,
+                Some(vehicle_setting) => vehicle_setting,
                 None => {
                     panic!("Error while selecting vehicle settings.");
                 }
             };
 
             let vehicle_timing = Self::convert_activation_to_timing(&activation_data);
-            let vehicle_sources = self.convert_data_sources_to_array(&vehicle_setting.data_sources);
-            let new_vehicle = Vehicle::new(
-                *vehicle_id,
-                vehicle_timing,
-                vehicle_setting,
-                vehicle_sources,
-            );
+            let new_vehicle = Vehicle::new(*vehicle_id, vehicle_timing, vehicle_setting);
             vehicles.entry(*vehicle_id).or_insert(new_vehicle);
         }
         info!("Done! Number of vehicles: {}", vehicles.len());
@@ -185,8 +178,7 @@ impl PavenetBuilder {
         let rsu_activations: HashMap<DeviceId, Activation> =
             activation::read_activation_data(activation_file);
 
-        let all_rsu_settings: Vec<&RSUSettings> =
-            self.base_config.roadside_units.values().collect();
+        let all_rsu_settings: &Vec<RSUSettings> = &self.base_config.roadside_units;
         let ratios: Vec<f32> = all_rsu_settings.iter().map(|rs| rs.ratio).collect();
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
@@ -195,15 +187,14 @@ impl PavenetBuilder {
             HashMap::with_capacity(rsu_activations.len());
         for (rsu_id, activation_data) in rsu_activations.iter() {
             let rsu_settings = match all_rsu_settings.get(dist.sample(&mut rng)) {
-                Some(vehicle_setting) => *vehicle_setting,
+                Some(rsu_setting) => rsu_setting,
                 None => {
                     panic!("Error while selecting RSU settings.");
                 }
             };
 
             let rsu_timing = Self::convert_activation_to_timing(&activation_data);
-            let rsu_sources = self.convert_data_sources_to_array(&rsu_settings.data_sources);
-            let new_rsu = RoadsideUnit::new(*rsu_id, rsu_timing, rsu_settings, rsu_sources);
+            let new_rsu = RoadsideUnit::new(*rsu_id, rsu_timing, rsu_settings);
             roadside_units.entry(*rsu_id).or_insert(new_rsu);
         }
         info!("Done! Number of Roadside Units: {}", roadside_units.len());
@@ -222,8 +213,7 @@ impl PavenetBuilder {
             activation::read_activation_data(activation_file);
 
         let mut base_stations: HashMap<u64, BaseStation> = HashMap::new();
-        let all_bs_settings: Vec<&BaseStationSettings> =
-            self.base_config.base_stations.values().collect();
+        let all_bs_settings: &Vec<BaseStationSettings> = &self.base_config.base_stations;
 
         let ratios: Vec<f32> = all_bs_settings
             .iter()
@@ -237,7 +227,7 @@ impl PavenetBuilder {
         for (bs_id, activation_data) in bs_activations.iter() {
             let bs_timing = Self::convert_activation_to_timing(&activation_data);
             let bs_settings = match all_bs_settings.get(dist.sample(&mut rng)) {
-                Some(bs_setting) => *bs_setting,
+                Some(bs_setting) => bs_setting,
                 None => {
                     panic!("Error while selecting Base station settings.");
                 }
@@ -264,8 +254,7 @@ impl PavenetBuilder {
             activation::read_activation_data(activation_file);
 
         let mut controllers: HashMap<u64, Controller> = HashMap::new();
-        let all_controller_settings: Vec<&ControllerSettings> =
-            self.base_config.controllers.values().collect();
+        let all_controller_settings: &Vec<ControllerSettings> = &self.base_config.controllers;
 
         let ratios: Vec<f32> = all_controller_settings
             .iter()
@@ -279,7 +268,7 @@ impl PavenetBuilder {
         for (controller_id, activation_data) in controller_activations.iter() {
             let controller_timing = Self::convert_activation_to_timing(&activation_data);
             let controller_settings = match all_controller_settings.get(dist.sample(&mut rng)) {
-                Some(controller_setting) => *controller_setting,
+                Some(controller_setting) => controller_setting,
                 None => {
                     panic!("Error while selecting controller settings.");
                 }
