@@ -67,7 +67,7 @@ impl PavenetBuilder {
         let controllers = self.build_controllers();
 
         debug! {"Building empty device field and VANET..."}
-        let device_field = self.build_empty_device_field();
+        let device_field: DeviceField = self.build_empty_device_field();
         let vanet: Vanet = self.build_empty_vanet();
 
         info!("Building the network...");
