@@ -8,14 +8,15 @@ use crate::device::vehicle::Vehicle;
 use crate::reader::activation::{DeviceId, TimeStamp};
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
-use crate::utils::config;
+use crate::utils::{config, dyn_config};
 use krabmaga::engine::{schedule::Schedule, state::State};
 use krabmaga::hashbrown::HashMap;
 use krabmaga::{addplot, plot, PlotData, DATA};
 use log::{debug, error, info};
 
 pub(crate) struct Core {
-    pub(crate) config: config::Config,
+    pub(crate) base_config: config::BaseConfig,
+    pub(crate) dyn_config: dyn_config::DynamicConfig,
     pub(crate) step: TimeStamp,
     pub(crate) vehicles: HashMap<DeviceId, Vehicle>,
     pub(crate) roadside_units: HashMap<DeviceId, RoadsideUnit>,
@@ -45,8 +46,8 @@ pub(crate) struct DevicesToRemove {
 
 impl Core {
     pub(crate) fn new(
-        config: config::Config,
-        ds_config: ds_config::AllDataSources,
+        config: config::BaseConfig,
+        dyn_config: dyn_config::DynamicConfig,
         vehicles: HashMap<u64, Vehicle>,
         roadside_units: HashMap<u64, RoadsideUnit>,
         base_stations: HashMap<u64, BaseStation>,
@@ -55,8 +56,8 @@ impl Core {
         vanet: Vanet,
     ) -> Self {
         Self {
-            config,
-            ds_config,
+            base_config: config,
+            dyn_config,
             step: 0,
             vehicles,
             roadside_units,
