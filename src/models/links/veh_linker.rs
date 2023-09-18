@@ -1,6 +1,6 @@
 use crate::reader::activation::DeviceId;
 use crate::sim::vanet::Link;
-use crate::utils::config::DeviceLinkers;
+use crate::utils::config::VehicleLinker;
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) enum VehLinkerType {
@@ -15,7 +15,7 @@ pub(crate) struct SimpleVehLinker {
 }
 
 impl SimpleVehLinker {
-    pub(crate) fn new(linker_settings: DeviceLinkers) -> Self {
+    pub(crate) fn new(linker_settings: VehicleLinker) -> Self {
         Self {
             mesh_range: linker_settings.mesh_range,
             bs_range: linker_settings.bs_range,

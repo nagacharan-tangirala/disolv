@@ -1,6 +1,6 @@
 use crate::reader::activation::DeviceId;
 use crate::sim::vanet::Link;
-use crate::utils::config::DeviceLinkers;
+use crate::utils::config::RSULinker;
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) enum RSULinkerType {
@@ -14,7 +14,7 @@ pub(crate) struct SimpleRSULinker {
 }
 
 impl SimpleRSULinker {
-    pub(crate) fn new(linker_settings: DeviceLinkers) -> Self {
+    pub(crate) fn new(linker_settings: RSULinker) -> Self {
         Self {
             mesh_range: linker_settings.mesh_range,
             bs_range: linker_settings.bs_range,
