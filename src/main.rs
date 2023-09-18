@@ -6,38 +6,32 @@ mod sim;
 mod utils;
 use crate::sim::builder::PavenetBuilder;
 use crate::sim::core::Core;
-use std::env;
+use clap::Parser;
 
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 use krabmaga::*;
 
 pub static DISCRETIZATION: f32 = 100.0;
 
+#[derive(Parser, Debug)]
+#[command(author, version, long_about = None)]
+struct CliArgs {
+    #[arg(short = 'b', long, value_name = "BASE_CONFIG_FILE")]
+    base: String,
+    #[arg(short = 'd', long, value_name = "DYNAMIC_CONFIG_FILE")]
+    dynamic: String,
+}
+
 /*
 Main used when only the simulation should run, without any visualization.
 */
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    match args.len() {
-        2 => {
-            let config_file = &args[1];
-            let simulation_core: Core = PavenetBuilder::new(config_file).build();
-            let duration = simulation_core.get_duration();
-            println!("Running the simulation for {} steps", duration);
-            simulate!(simulation_core, duration, 1);
-        }
-        _ => {
-            println!("Invalid number of arguments. Usage: pavenet config_file");
-            std::process::exit(1);
-        }
-    }
-
-    if let Some(config_file) = args.get(1) {
-    } else {
-        println!("Invalid number of arguments. Usage: pavenet config_file");
-        std::process::exit(1);
-    }
+    let args = CliArgs::parse();
+    let simulation_core: Core = PavenetBuilder::new(&args.base, &args.dynamic).build();
+    let duration = simulation_core.get_duration();
+    println!("Running the simulation for {} steps", duration);
+    simulate!(simulation_core, duration, 1);
 }
 
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
