@@ -21,30 +21,40 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub(crate) struct PavenetBuilder {
-    config: config::Config,
+    base_config: config::BaseConfig,
+    dyn_config: dyn_config::DynamicConfig,
     config_path: PathBuf,
 }
 
 impl PavenetBuilder {
-    pub(crate) fn new(config_file: &str) -> Self {
-        if !Path::new(config_file).exists() {
+    pub(crate) fn new(base_config_file: &str, dyn_config_file: &str) -> Self {
+        if !Path::new(base_config_file).exists() {
             panic!("Configuration file is not found.");
         }
-        let config_path = Path::new(config_file)
+        let config_path = Path::new(base_config_file)
             .parent()
             .unwrap_or_else(|| {
                 panic!("Invalid directory for the configuration file");
             })
             .to_path_buf();
 
-        let config_reader = config::ConfigReader::new(&config_file);
+        let dyn_config_reader = dyn_config::DynamicConfigReader::new(&dyn_config_file);
+        let dyn_config = match dyn_config_reader.parse() {
+            Ok(dyn_config) => dyn_config,
+            Err(e) => {
+                panic!("Error while parsing the dynamic configuration file: {}", e);
+            }
+        };
+
+        let config_reader = config::BaseConfigReader::new(&base_config_file);
         match config_reader.parse() {
-            Ok(config_data) => Self {
-                config: config_data,
+            Ok(base_config) => Self {
+                base_config,
+                dyn_config,
                 config_path,
             },
             Err(e) => {
-                panic!("Error while parsing the configuration file: {}", e);
+                panic!("Error while parsing the base configuration file: {}", e);
             }
         }
     }
