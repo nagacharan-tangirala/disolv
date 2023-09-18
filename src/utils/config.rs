@@ -170,7 +170,7 @@ pub(crate) struct TraceFlags {
 
 #[derive(Deserialize, Default, Debug, Clone)]
 pub(crate) struct DataSourceSettings {
-    pub(crate) data_types: Vec<SensorType>,
+    pub(crate) data_types: Vec<DataType>,
     pub(crate) data_counts: Vec<u32>,
     pub(crate) unit_sizes: Vec<f32>,
 }
