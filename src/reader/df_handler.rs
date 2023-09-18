@@ -19,7 +19,7 @@ pub(crate) fn prepare_geo_data(
     let filtered_df: DataFrame = geo_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
-        .groupby([col(COL_TIME_STEP)])
+        .group_by([col(COL_TIME_STEP)])
         .agg(
             vec![
                 col(device_id_column),
@@ -64,7 +64,7 @@ pub(crate) fn prepare_device_activations(
     let filtered_df = activation_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
-        .groupby([col(COL_DEVICE_ID)])
+        .group_by([col(COL_DEVICE_ID)])
         .agg(
             vec![col(COL_START_TIME), col(COL_END_TIME)]
                 .into_iter()
@@ -175,7 +175,7 @@ pub(crate) fn prepare_dynamic_links(
     let filtered_df: DataFrame = links_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
-        .groupby([col(COL_TIME_STEP)])
+        .group_by([col(COL_TIME_STEP)])
         .agg(
             vec![
                 col(device_id_column),
