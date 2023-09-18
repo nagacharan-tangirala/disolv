@@ -1,48 +1,35 @@
+use crate::utils::dyn_config::DataType;
 use serde_derive::Deserialize;
 use std::collections::HashMap; // krabmaga::hashbrown::HashMap cannot be deserialized.
 use std::path::PathBuf;
 
-#[derive(Deserialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum DeviceType {
-    #[default]
-    None = 0,
     Vehicle,
     RSU,
     BaseStation,
     Controller,
 }
 
-#[derive(Deserialize, Default, Debug, Hash, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum SensorType {
-    #[default]
-    None = 0,
-    Image,
-    Video,
-    Lidar2D,
-    Lidar3D,
-    Radar,
-    Status,
-}
-
-pub(crate) struct ConfigReader {
+pub(crate) struct BaseConfigReader {
     file_path: PathBuf,
 }
 
-impl ConfigReader {
+impl BaseConfigReader {
     pub(crate) fn new(file_name: &str) -> Self {
         let file_path = PathBuf::from(file_name);
         Self { file_path }
     }
 
-    pub(crate) fn parse(&self) -> Result<Config, Box<dyn std::error::Error>> {
+    pub(crate) fn parse(&self) -> Result<BaseConfig, Box<dyn std::error::Error>> {
         let parsing_result = std::fs::read_to_string(&self.file_path)?;
-        let config: Config = toml::from_str(&parsing_result)?;
+        let config: BaseConfig = toml::from_str(&parsing_result)?;
         Ok(config)
     }
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct Config {
+pub(crate) struct BaseConfig {
     pub(crate) geo_data_files: GeoDataFiles,
     pub(crate) activation_files: ActivationFiles,
     pub(crate) link_files: LinkFiles,
