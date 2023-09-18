@@ -8,22 +8,21 @@ edition = "2021"
 license = "MIT"
 readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-krabmaga = "0.4.*"
-toml = ">0.7.0"
-serde = ">1.0.136"
-serde_derive = ">1.0.136"
-polars-core = "0.32.1"
-polars-io = "0.32.1"
+krabmaga = "0.4.1"
+toml = "0.8.0"
+serde = "1.0.188"
+serde_derive = "1.0.188"
+polars-core = "0.33.1"
+polars-io = "0.33.1"
 rand = "0.8.4"
 log4rs = "1.2.0"
 log = "0.4.20"
 itertools = "0.11.0"
+serde_with = "3.3.0"
 
 [dependencies.polars]
-version = "0.32.1"
+version = "0.33.0"
 features = ["parquet", "lazy", "performant"]
 
 [features]
