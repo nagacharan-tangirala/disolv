@@ -3,14 +3,13 @@ use crate::device::controller::Controller;
 use crate::device::device_state::Timing;
 use crate::device::roadside_unit::RoadsideUnit;
 use crate::device::vehicle::Vehicle;
-use crate::models::composer::DataSources;
 use crate::reader::activation;
 use crate::reader::activation::{Activation, DeviceId, TimeStamp};
 use crate::sim::core::Core;
 use crate::sim::field::DeviceField;
 use crate::sim::vanet::Vanet;
+use crate::utils::config::VehicleSettings;
 use crate::utils::config::{BaseStationSettings, ControllerSettings, RSUSettings};
-use crate::utils::config::{DataSourceSettings, VehicleSettings};
 use crate::utils::constants::ARRAY_SIZE;
 use crate::utils::{config, dyn_config, logger};
 use krabmaga::hashbrown::HashMap;
@@ -293,24 +292,6 @@ impl PavenetBuilder {
         }
         info!("Done! Number of Controllers: {}", controllers.len());
         return controllers;
-    }
-
-    fn convert_data_sources_to_array(
-        &self,
-        data_sources: &DataSourceSettings,
-    ) -> [Option<DataSources>; ARRAY_SIZE] {
-        let mut data_sources_array: [Option<DataSources>; ARRAY_SIZE] = [None; ARRAY_SIZE];
-        let mut index = 0;
-        for idx in 0..data_sources.data_types.len() {
-            let data_source = DataSources {
-                data_type: data_sources.data_types[idx],
-                unit_size: data_sources.unit_sizes[idx],
-                data_counts: data_sources.data_counts[idx],
-            };
-            data_sources_array[index] = Some(data_source);
-            index += 1;
-        }
-        return data_sources_array;
     }
 
     pub(crate) fn convert_activation_to_timing(activation: &Activation) -> Timing {
