@@ -11,7 +11,7 @@ use krabmaga::engine::state::State;
 use log::debug;
 
 use crate::sim::core::Core;
-use crate::utils::config::ControllerSettings;
+use crate::utils::config::{ControllerSettings, DeviceType};
 
 #[derive(Clone, Copy)]
 pub(crate) struct Controller {
@@ -20,6 +20,8 @@ pub(crate) struct Controller {
     pub(crate) timing: Timing,
     pub(crate) aggregator: AggregatorType,
     pub(crate) status: DeviceState,
+    pub(crate) device_type: DeviceType,
+    pub(crate) device_class: u32,
     step: TimeStamp,
 }
 
@@ -40,6 +42,8 @@ impl Controller {
             aggregator,
             status: DeviceState::Inactive,
             step: 0,
+            device_type: DeviceType::Controller,
+            device_class: controller_settings.device_class,
         }
     }
 

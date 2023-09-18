@@ -119,6 +119,8 @@ pub(crate) struct SimplifierSettings {
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct VehicleSettings {
     pub(crate) ratio: f32,
+    pub(crate) device_type: DeviceType,
+    pub(crate) device_class: u32,
     pub(crate) storage: f32,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
@@ -129,6 +131,8 @@ pub(crate) struct VehicleSettings {
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct RSUSettings {
     pub(crate) ratio: f32,
+    pub(crate) device_type: DeviceType,
+    pub(crate) device_class: u32,
     pub(crate) storage: f32,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
@@ -139,6 +143,8 @@ pub(crate) struct RSUSettings {
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct BaseStationSettings {
     pub(crate) ratio: f32,
+    pub(crate) device_type: DeviceType,
+    pub(crate) device_class: u32,
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
     pub(crate) responder: ResponderSettings,
@@ -148,6 +154,8 @@ pub(crate) struct BaseStationSettings {
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ControllerSettings {
     pub(crate) ratio: f32,
+    pub(crate) device_type: DeviceType,
+    pub(crate) device_class: u32,
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
     pub(crate) responder: ResponderSettings,

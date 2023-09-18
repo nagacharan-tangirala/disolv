@@ -14,7 +14,7 @@ use krabmaga::hashbrown::HashMap;
 use log::debug;
 
 use crate::sim::core::Core;
-use crate::utils::config::BaseStationSettings;
+use crate::utils::config::{BaseStationSettings, DeviceType};
 
 #[derive(Clone, Copy)]
 pub(crate) struct BaseStation {
@@ -26,6 +26,8 @@ pub(crate) struct BaseStation {
     pub(crate) aggregator: AggregatorType,
     pub(crate) responder: ResponderType,
     pub(crate) status: DeviceState,
+    pub(crate) device_type: DeviceType,
+    pub(crate) device_class: u32,
     step: TimeStamp,
 }
 
@@ -54,6 +56,8 @@ impl BaseStation {
             responder,
             status: DeviceState::Inactive,
             step: 0,
+            device_type: DeviceType::BaseStation,
+            device_class: bs_settings.device_class,
         }
     }
 

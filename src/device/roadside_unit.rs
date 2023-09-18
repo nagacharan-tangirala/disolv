@@ -32,6 +32,8 @@ pub struct RoadsideUnit {
     pub(crate) linker: RSULinkerType,
     pub(crate) status: DeviceState,
     pub(crate) rsu_data_stats: RSUDataStats,
+    pub(crate) device_type: DeviceType,
+    pub(crate) device_class: u32,
     step: TimeStamp,
 }
 
@@ -82,10 +84,12 @@ impl RoadsideUnit {
             sensor_data: SensorData::default(),
             composer,
             simplifier,
-            linker: linker,
+            linker,
             status: DeviceState::Inactive,
             rsu_data_stats: RSUDataStats::default(),
             step: 0,
+            device_type: DeviceType::Vehicle,
+            device_class: rsu_settings.device_class,
         }
     }
 

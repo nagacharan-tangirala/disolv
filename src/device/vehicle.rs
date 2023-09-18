@@ -31,6 +31,8 @@ pub(crate) struct Vehicle {
     pub(crate) linker: VehLinkerType,
     pub(crate) status: DeviceState,
     pub(crate) veh_data_stats: VDataStats,
+    pub(crate) device_type: DeviceType,
+    pub(crate) device_class: u32,
     storage: f32,
     step: TimeStamp,
 }
@@ -85,6 +87,8 @@ impl Vehicle {
             status: DeviceState::Inactive,
             veh_data_stats: VDataStats::default(),
             step: 0,
+            device_type: DeviceType::Vehicle,
+            device_class: vehicle_settings.device_class,
         }
     }
 
