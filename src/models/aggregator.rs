@@ -20,10 +20,10 @@ pub(crate) struct InfraPayload {
     pub(crate) rsu_count: usize,
     pub(crate) vehicle_ids: Vec<DeviceId>,
     pub(crate) rsu_ids: Vec<DeviceId>,
-    pub(crate) vehicle_data_size: HashMap<SensorType, f32>,
-    pub(crate) rsu_data_size: HashMap<SensorType, f32>,
-    pub(crate) vehicle_data_counts: HashMap<SensorType, u32>,
-    pub(crate) rsu_data_counts: HashMap<SensorType, u32>,
+    pub(crate) vehicle_data_size: HashMap<DataType, f32>,
+    pub(crate) rsu_data_size: HashMap<DataType, f32>,
+    pub(crate) vehicle_data_counts: HashMap<DataType, u32>,
+    pub(crate) rsu_data_counts: HashMap<DataType, u32>,
 }
 
 impl BasicAggregator {

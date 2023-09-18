@@ -70,7 +70,7 @@ impl Core {
     }
 
     pub(crate) fn get_duration(&self) -> u64 {
-        return self.config.simulation_settings.sim_duration;
+        return self.base_config.simulation_settings.sim_duration;
     }
 
     fn init_devices_to_activate(&mut self) {
@@ -236,7 +236,8 @@ impl State for Core {
         self.vanet.before_step(self.step);
         self.schedule_activation(schedule);
 
-        if self.step > 0 && self.step % self.config.simulation_settings.sim_streaming_step == 0 {
+        if self.step > 0 && self.step % self.base_config.simulation_settings.sim_streaming_step == 0
+        {
             info!("Streaming data at step {}", self.step);
             self.vanet.refresh_links_data(self.step);
             self.device_field.refresh_position_data(self.step);

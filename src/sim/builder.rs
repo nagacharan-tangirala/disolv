@@ -12,7 +12,7 @@ use crate::sim::vanet::Vanet;
 use crate::utils::config::{BaseStationSettings, ControllerSettings, RSUSettings};
 use crate::utils::config::{DataSourceSettings, VehicleSettings};
 use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::{config, logger};
+use crate::utils::{config, dyn_config, logger};
 use krabmaga::hashbrown::HashMap;
 use log::{debug, info};
 use rand::distributions::WeightedIndex;
@@ -72,7 +72,8 @@ impl PavenetBuilder {
 
         info!("Building the network...");
         return Core::new(
-            self.config.clone(),
+            self.base_config.clone(),
+            self.dyn_config.clone(),
             vehicles,
             roadside_units,
             base_stations,
@@ -83,15 +84,17 @@ impl PavenetBuilder {
     }
 
     pub(crate) fn initiate_logger(&self) {
-        let log_level = &self.config.log_settings.log_level;
-        let log_path = self.config_path.join(&self.config.log_settings.log_path);
+        let log_level = &self.base_config.log_settings.log_level;
+        let log_path = self
+            .config_path
+            .join(&self.base_config.log_settings.log_path);
 
         if log_path.exists() == false {
             fs::create_dir(&log_path)
                 .unwrap_or_else(|_| panic!("Error while creating the log directory"));
         }
 
-        let log_file_path = log_path.join(&self.config.log_settings.log_file_name);
+        let log_file_path = log_path.join(&self.base_config.log_settings.log_file_name);
         if log_file_path.exists() == true {
             // Clear the log file
             fs::remove_file(&log_file_path)
@@ -115,35 +118,36 @@ impl PavenetBuilder {
 
     fn build_empty_device_field(&self) -> DeviceField {
         return DeviceField::new(
-            &self.config.field_settings,
-            &self.config.trace_flags,
+            &self.base_config.field_settings,
+            &self.base_config.trace_flags,
             &self.config_path,
-            &self.config.geo_data_files,
-            self.config.simulation_settings.sim_streaming_step,
+            &self.base_config.geo_data_files,
+            self.base_config.simulation_settings.sim_streaming_step,
         );
     }
 
     fn build_empty_vanet(&self) -> Vanet {
         return Vanet::new(
             &self.config_path,
-            &self.config.link_files,
-            &self.config.network_settings,
-            &self.config.trace_flags,
-            self.config.simulation_settings.sim_streaming_step,
+            &self.base_config.link_files,
+            &self.base_config.network_settings,
+            &self.base_config.trace_flags,
+            self.base_config.simulation_settings.sim_streaming_step,
         );
     }
 
     fn build_vehicles(&mut self) -> HashMap<DeviceId, Vehicle> {
         info!("Building vehicles...");
-        let activation_file =
-            Path::new(&self.config_path).join(&self.config.activation_files.vehicle_activations);
+        let activation_file = Path::new(&self.config_path)
+            .join(&self.base_config.activation_files.vehicle_activations);
         if activation_file.exists() == false {
             panic!("Vehicle activation file is not found.");
         }
         let vehicle_activations: HashMap<DeviceId, Activation> =
             activation::read_activation_data(activation_file);
 
-        let all_vehicle_settings: Vec<&VehicleSettings> = self.config.vehicles.values().collect();
+        let all_vehicle_settings: Vec<&VehicleSettings> =
+            self.base_config.vehicles.values().collect();
         let ratios: Vec<f32> = all_vehicle_settings.iter().map(|vs| vs.ratio).collect();
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
@@ -175,14 +179,15 @@ impl PavenetBuilder {
     fn build_roadside_units(&self) -> HashMap<DeviceId, RoadsideUnit> {
         info!("Building roadside units...");
         let activation_file =
-            Path::new(&self.config_path).join(&self.config.activation_files.rsu_activations);
+            Path::new(&self.config_path).join(&self.base_config.activation_files.rsu_activations);
         if activation_file.exists() == false {
             panic!("RSU activation file is not found.");
         }
         let rsu_activations: HashMap<DeviceId, Activation> =
             activation::read_activation_data(activation_file);
 
-        let all_rsu_settings: Vec<&RSUSettings> = self.config.roadside_units.values().collect();
+        let all_rsu_settings: Vec<&RSUSettings> =
+            self.base_config.roadside_units.values().collect();
         let ratios: Vec<f32> = all_rsu_settings.iter().map(|rs| rs.ratio).collect();
         let dist = WeightedIndex::new(&ratios).unwrap();
         let mut rng = thread_rng();
@@ -209,7 +214,7 @@ impl PavenetBuilder {
     fn build_base_stations(&self) -> HashMap<u64, BaseStation> {
         info!("Building base stations...");
         let activation_file = Path::new(&self.config_path)
-            .join(&self.config.activation_files.base_station_activations);
+            .join(&self.base_config.activation_files.base_station_activations);
 
         if activation_file.exists() == false {
             panic!("Base station activation file is not found.");
@@ -219,7 +224,7 @@ impl PavenetBuilder {
 
         let mut base_stations: HashMap<u64, BaseStation> = HashMap::new();
         let all_bs_settings: Vec<&BaseStationSettings> =
-            self.config.base_stations.values().collect();
+            self.base_config.base_stations.values().collect();
 
         let ratios: Vec<f32> = all_bs_settings
             .iter()
@@ -249,8 +254,8 @@ impl PavenetBuilder {
 
     fn build_controllers(&self) -> HashMap<u64, Controller> {
         info!("Building controllers...");
-        let activation_file =
-            Path::new(&self.config_path).join(&self.config.activation_files.controller_activations);
+        let activation_file = Path::new(&self.config_path)
+            .join(&self.base_config.activation_files.controller_activations);
 
         if activation_file.exists() == false {
             panic!("Controller activation file is not found.");
@@ -261,7 +266,7 @@ impl PavenetBuilder {
 
         let mut controllers: HashMap<u64, Controller> = HashMap::new();
         let all_controller_settings: Vec<&ControllerSettings> =
-            self.config.controllers.values().collect();
+            self.base_config.controllers.values().collect();
 
         let ratios: Vec<f32> = all_controller_settings
             .iter()
@@ -326,6 +331,6 @@ impl PavenetBuilder {
     }
 
     pub(crate) fn get_duration(&self) -> u64 {
-        return self.config.simulation_settings.sim_duration;
+        return self.base_config.simulation_settings.sim_duration;
     }
 }
