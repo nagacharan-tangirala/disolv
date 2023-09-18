@@ -1,7 +1,7 @@
 use crate::device::base_station::BSInfo;
-use crate::models::composer::DevicePayload;
+use crate::models::composer::UplinkPayload;
 use crate::reader::activation::DeviceId;
-use crate::utils::ds_config::SensorType;
+use crate::utils::dyn_config::DataType;
 use krabmaga::hashbrown::HashMap;
 
 #[derive(Clone, Debug, Copy)]
@@ -32,8 +32,8 @@ impl BasicAggregator {
     }
     pub(crate) fn aggregate(
         &self,
-        v2bs_data: Vec<DevicePayload>,
-        rsu2bs_data: Vec<DevicePayload>,
+        v2bs_data: Vec<UplinkPayload>,
+        rsu2bs_data: Vec<UplinkPayload>,
     ) -> InfraPayload {
         let mut bs_payload = InfraPayload::default();
         bs_payload.vehicle_count = v2bs_data.len();

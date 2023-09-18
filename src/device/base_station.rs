@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::device::device_state::{DeviceState, Timing};
 use crate::models::aggregator::{AggregatorType, BasicAggregator};
-use crate::models::composer::DevicePayload;
+use crate::models::composer::UplinkPayload;
 use crate::models::responder::{ResponderType, StatsResponder};
 use crate::reader::activation::{DeviceId, TimeStamp};
 use krabmaga::engine::agent::Agent;
@@ -15,8 +15,6 @@ use log::debug;
 
 use crate::sim::core::Core;
 use crate::utils::config::BaseStationSettings;
-use crate::utils::constants::ARRAY_SIZE;
-use crate::utils::ds_config::DataSourceSettings;
 
 #[derive(Clone, Copy)]
 pub(crate) struct BaseStation {
@@ -86,16 +84,18 @@ impl BaseStation {
         }
     }
 
-    pub(crate) fn send_data_to_controller(&mut self, core_state: &mut Core) {
-        let vehicles_data = match core_state.vanet.payloads.v2bs_data.remove(&self.id) {
+    pub(crate) fn forward_device_data_to_controller(&mut self, core_state: &mut Core) {
+        // Collect vehicle and RSU data
+        let vehicles_data = match core_state.vanet.uplink.v2bs_data.remove(&self.id) {
             Some(bs_data) => bs_data,
             None => vec![],
         };
-        let rsu_data = match core_state.vanet.payloads.rsu2bs_data.remove(&self.id) {
+        let rsu_data = match core_state.vanet.uplink.rsu2bs_data.remove(&self.id) {
             Some(rsu_data) => rsu_data,
             None => vec![],
         };
 
+        // Send responses to vehicles
         let mut bs_responses = match self.responder {
             ResponderType::Stats(responder) => {
                 responder.respond_to_vehicles(&vehicles_data, rsu_data.len())
@@ -103,10 +103,11 @@ impl BaseStation {
         };
         core_state
             .vanet
-            .responses
-            .vehicle_responses
+            .downlink
+            .bs2v_responses
             .extend(bs_responses.drain());
 
+        // Aggregate and forward data to controller
         let mut bs_payload = match self.aggregator {
             AggregatorType::Basic(aggregator) => aggregator.aggregate(vehicles_data, rsu_data),
         };
@@ -120,7 +121,7 @@ impl BaseStation {
 
         core_state
             .vanet
-            .payloads
+            .uplink
             .bs2c_data
             .insert(controller_id, bs_payload);
     }
@@ -134,7 +135,7 @@ impl Agent for BaseStation {
         self.step = core_state.step;
 
         self.update_geo_data(core_state);
-        self.send_data_to_controller(core_state);
+        self.forward_device_data_to_controller(core_state);
 
         // Initiate deactivation if it is time
         if self.step == self.timing.peek_deactivation_time() {

@@ -1,4 +1,4 @@
-use crate::models::composer::DevicePayload;
+use crate::models::composer::UplinkPayload;
 use crate::utils::config::SimplifierSettings;
 
 #[derive(Clone, Debug, Copy)]
@@ -23,8 +23,8 @@ impl BasicSimplifier {
             sampling_factor: simplifier_settings.sampling_factor,
         }
     }
-    pub(crate) fn simplify_payload(&self, payload: DevicePayload) -> DevicePayload {
-        let mut simplified_payload = DevicePayload::default();
+    pub(crate) fn simplify_payload(&self, payload: UplinkPayload) -> UplinkPayload {
+        let mut simplified_payload = UplinkPayload::default();
         return simplified_payload;
     }
 }
@@ -34,7 +34,7 @@ impl RandomSimplifier {
         Self {}
     }
 
-    pub(crate) fn simplify_payload(&self, payload: DevicePayload) -> DevicePayload {
+    pub(crate) fn simplify_payload(&self, payload: UplinkPayload) -> UplinkPayload {
         return payload;
     }
 }

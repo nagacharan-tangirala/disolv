@@ -1,14 +1,15 @@
 use crate::reader::activation::DeviceId;
-use crate::utils::config::{DeviceType, SensorType};
+use crate::utils::config::DeviceType;
 use crate::utils::constants::ARRAY_SIZE;
+use crate::utils::dyn_config::DataType;
 use krabmaga::hashbrown::HashMap;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct UplinkPayload {
     pub(crate) id: DeviceId,
     pub(crate) sensor_data: SensorData,
-    pub(crate) generated_data_size: HashMap<SensorType, f32>,
-    pub(crate) types_with_counts: HashMap<SensorType, u32>,
+    pub(crate) generated_data_size: HashMap<DataType, f32>,
+    pub(crate) types_with_counts: HashMap<DataType, u32>,
     pub(crate) total_data_size: f32,
     pub(crate) total_data_count: u32,
 }
@@ -22,7 +23,7 @@ pub(crate) struct SensorData {
 
 #[derive(Clone, Debug, Copy)]
 pub(crate) struct DataSources {
-    pub(crate) data_type: SensorType,
+    pub(crate) data_type: DataType,
     pub(crate) unit_size: f32,
     pub(crate) data_counts: u32,
 }

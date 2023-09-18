@@ -56,7 +56,7 @@ impl Vehicle {
         id: u64,
         timing_info: Timing,
         vehicle_settings: &VehicleSettings,
-        data_sources: [Option<DataSourceSettings>; ARRAY_SIZE],
+        data_sources: [Option<DataSources>; ARRAY_SIZE],
     ) -> Self {
         let composer: ComposerType = match vehicle_settings.composer.name.as_str() {
             "random" => ComposerType::Random(RandomComposer::new(data_sources.clone())),
@@ -146,7 +146,7 @@ impl Vehicle {
                 for neighbour_device_id in v2v_links {
                     core_state
                         .vanet
-                        .payloads
+                        .uplink
                         .v2v_data
                         .entry(neighbour_device_id)
                         .and_modify(|payload| payload.push(v2v_payload.clone()))
@@ -187,7 +187,7 @@ impl Vehicle {
             Some(bs_id) => {
                 core_state
                     .vanet
-                    .payloads
+                    .uplink
                     .v2bs_data
                     .entry(bs_id)
                     .and_modify(|payload| payload.push(v2bs_payload.clone()))
@@ -237,7 +237,7 @@ impl Vehicle {
                     .or_insert(vec![self.id]);
                 core_state
                     .vanet
-                    .payloads
+                    .uplink
                     .v2rsu_data
                     .entry(rsu_id)
                     .and_modify(|payload| {

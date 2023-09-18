@@ -55,7 +55,7 @@ impl RoadsideUnit {
         id: u64,
         timing_info: Timing,
         rsu_settings: &RSUSettings,
-        data_sources: [Option<DataSourceSettings>; ARRAY_SIZE],
+        data_sources: [Option<DataSources>; ARRAY_SIZE],
     ) -> Self {
         let composer: ComposerType = match rsu_settings.composer.name.as_str() {
             "random" => ComposerType::Random(RandomComposer {
@@ -82,7 +82,7 @@ impl RoadsideUnit {
             sensor_data: SensorData::default(),
             composer,
             simplifier,
-            linker,
+            linker: linker,
             status: DeviceState::Inactive,
             rsu_data_stats: RSUDataStats::default(),
             step: 0,
@@ -147,7 +147,7 @@ impl RoadsideUnit {
         for vehicle_id in rsu2v_links {
             core_state
                 .vanet
-                .payloads
+                .uplink
                 .rsu2v_data
                 .entry(vehicle_id)
                 .and_modify(|payload| payload.push(rsu2v_payload.clone()))
@@ -182,7 +182,7 @@ impl RoadsideUnit {
             Some(bs_id) => {
                 core_state
                     .vanet
-                    .payloads
+                    .uplink
                     .rsu2bs_data
                     .entry(bs_id)
                     .and_modify(|payload| payload.push(rsu2bs_payload.clone()))
@@ -217,7 +217,7 @@ impl RoadsideUnit {
         for rsu_id in selected_rsu_ids.unwrap_or(Vec::new()) {
             core_state
                 .vanet
-                .payloads
+                .uplink
                 .rsu2rsu_data
                 .entry(rsu_id)
                 .and_modify(|payload| payload.push(rsu2rsu_payload.clone()))
