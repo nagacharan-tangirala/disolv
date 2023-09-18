@@ -258,13 +258,13 @@ impl State for Core {
         let mut num_vehicles: f32 = 0.;
         let mut num_bs: f32 = 0.;
 
-        for n in agents {
-            if let Some(v) = n.downcast_ref::<Vehicle>() {
+        for agent in agents {
+            if let Some(v) = agent.downcast_ref::<Vehicle>() {
                 if v.status == DeviceState::Active {
                     num_vehicles += 1.;
                 }
             }
-            if let Some(_w) = n.downcast_ref::<BaseStation>() {
+            if let Some(_w) = agent.downcast_ref::<BaseStation>() {
                 num_bs += 1.;
             }
         }
