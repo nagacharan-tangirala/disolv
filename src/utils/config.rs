@@ -1,6 +1,5 @@
 use crate::utils::dyn_config::DataType;
 use serde_derive::Deserialize;
-use std::collections::HashMap; // krabmaga::hashbrown::HashMap cannot be deserialized.
 use std::path::PathBuf;
 
 #[derive(Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
@@ -124,7 +123,7 @@ pub(crate) struct VehicleSettings {
     pub(crate) storage: f32,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
-    pub(crate) linker: VehicleLinker,
+    pub(crate) linker: VehicleLinkerSettings,
     pub(crate) data_sources: DataSourceSettings,
 }
 
@@ -136,7 +135,7 @@ pub(crate) struct RSUSettings {
     pub(crate) storage: f32,
     pub(crate) composer: ComposerSettings,
     pub(crate) simplifier: SimplifierSettings,
-    pub(crate) linker: RSULinker,
+    pub(crate) linker: RSULinkerSettings,
     pub(crate) data_sources: DataSourceSettings,
 }
 
@@ -148,7 +147,7 @@ pub(crate) struct BaseStationSettings {
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
     pub(crate) responder: ResponderSettings,
-    pub(crate) linker: BSLinker,
+    pub(crate) linker: BSLinkerSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -159,7 +158,7 @@ pub(crate) struct ControllerSettings {
     pub(crate) storage: f32,
     pub(crate) aggregator: AggregatorSettings,
     pub(crate) responder: ResponderSettings,
-    pub(crate) linker: ControllerLinker,
+    pub(crate) linker: ControllerLinkerSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -191,7 +190,7 @@ pub(crate) struct ResponderSettings {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub(crate) struct VehicleLinker {
+pub(crate) struct VehicleLinkerSettings {
     pub(crate) name: String,
     pub(crate) mesh_range: f32,
     pub(crate) bs_range: f32,
@@ -199,18 +198,18 @@ pub(crate) struct VehicleLinker {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub(crate) struct RSULinker {
+pub(crate) struct RSULinkerSettings {
     pub(crate) name: String,
     pub(crate) mesh_range: f32,
     pub(crate) bs_range: f32,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub(crate) struct BSLinker {
+pub(crate) struct BSLinkerSettings {
     pub(crate) name: String,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub(crate) struct ControllerLinker {
+pub(crate) struct ControllerLinkerSettings {
     pub(crate) name: String,
 }
