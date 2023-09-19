@@ -1,4 +1,9 @@
 use crate::reader::activation::{DeviceId, TimeStamp};
+use crate::utils::config::{
+    AggregatorSettings, BSLinkerSettings, ComposerSettings, ControllerLinkerSettings,
+    DataSourceSettings, DeviceType, RSULinkerSettings, ResponderSettings, SimplifierSettings,
+    VehicleLinkerSettings,
+};
 use serde_derive::Deserialize;
 use std::path::PathBuf;
 
@@ -18,27 +23,44 @@ pub(crate) struct Location {
     pub(crate) y: f32,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) enum ActionType {
-    ModifyData,
-    ModifyDevice,
+#[derive(Deserialize, Debug, Clone, Default)]
+pub(crate) enum EpisodeType {
+    #[default]
+    Persistent,
+    Temporary,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct DynamicConfig {
-    pub(crate) parameter_set: Vec<ParameterSet>,
+    pub(crate) episodes: Vec<EpisodeInfo>,
 }
 
 #[serde_with::skip_serializing_none]
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct ParameterSet {
+#[derive(Deserialize, Debug, Clone, Default)]
+pub(crate) struct EpisodeInfo {
     pub(crate) time_stamp: TimeStamp,
-    pub(crate) action_type: ActionType,
-    pub(crate) data_types: Option<Vec<DataType>>,
-    pub(crate) device_id: Option<Vec<DeviceId>>,
-    pub(crate) location: Option<Vec<Location>>,
+    pub(crate) episode_type: EpisodeType,
     pub(crate) duration: Option<TimeStamp>,
-    pub(crate) frequency: Option<TimeStamp>,
+    pub(crate) device_type: Option<DeviceType>,
+    pub(crate) device_class: Option<u32>,
+    pub(crate) device_list: Option<Vec<DeviceId>>,
+    pub(crate) data_sources: Option<DataSourceSettings>,
+    pub(crate) veh_linker: Option<VehicleLinkerSettings>,
+    pub(crate) rsu_linker: Option<RSULinkerSettings>,
+    pub(crate) bs_linker: Option<BSLinkerSettings>,
+    pub(crate) controller_linker: Option<ControllerLinkerSettings>,
+    pub(crate) composer: Option<ComposerSettings>,
+    pub(crate) simplifier: Option<SimplifierSettings>,
+    pub(crate) responder: Option<ResponderSettings>,
+    pub(crate) aggregator: Option<AggregatorSettings>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct ResetEpisodeInfo {
+    time_stamp: TimeStamp,
+    device_type: Option<DeviceType>,
+    device_class: Option<u32>,
+    device_list: Option<Vec<DeviceId>>,
 }
 
 pub(crate) struct DynamicConfigReader {
