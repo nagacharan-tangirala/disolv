@@ -1,5 +1,5 @@
-use crate::columns::COL_TIME_STEP;
-use crate::traffic::TimeStamp;
+use crate::common::columns::COL_TIME_STEP;
+use crate::input::traffic::TimeStamp;
 use polars::prelude::{col, lit, LazyFrame, PolarsError, PolarsResult, ScanArgsParquet};
 use polars_core::error::ErrString;
 use polars_core::prelude::DataFrame;

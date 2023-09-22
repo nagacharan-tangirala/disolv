@@ -1,11 +1,11 @@
-use crate::{dfs, files};
+use crate::input::{dfs, files};
 use hashbrown::HashMap;
 use std::path::PathBuf;
 
-pub(crate) type DeviceId = u64;
-pub(crate) type TimeStamp = u64;
-pub(crate) type Trace = (Vec<DeviceId>, Vec<f32>, Vec<f32>, Vec<f32>); // (device_id, x, y, velocity)
-pub(crate) type TraceMap = HashMap<TimeStamp, Option<Trace>>;
+pub type DeviceId = u64;
+pub type TimeStamp = u64;
+pub type Trace = (Vec<DeviceId>, Vec<f32>, Vec<f32>, Vec<f32>); // (device_id, x, y, velocity)
+pub type TraceMap = HashMap<TimeStamp, Option<Trace>>;
 
 pub struct TrafficReader {
     trace_file: PathBuf,

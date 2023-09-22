@@ -1,7 +1,7 @@
-use crate::activation::{Activation, DeviceId, TimeStamp};
-use crate::columns::*;
-use crate::links::{LinkMap, MultiLinkMap};
-use crate::traffic::{Trace, TraceMap};
+use crate::common::columns::*;
+use crate::input::activation::Activation;
+use crate::input::links::{LinkMap, MultiLinkMap};
+use crate::input::traffic::{DeviceId, TimeStamp, Trace, TraceMap};
 use hashbrown::HashMap;
 use polars::prelude::{col, lit, IntoLazy};
 use polars_core::frame::DataFrame;

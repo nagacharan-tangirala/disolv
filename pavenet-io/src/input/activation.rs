@@ -1,5 +1,5 @@
-use crate::traffic::{DeviceId, TimeStamp};
-use crate::{dfs, files};
+use crate::input::traffic::{DeviceId, TimeStamp};
+use crate::input::{dfs, files};
 use hashbrown::HashMap;
 use std::path::PathBuf;
 
