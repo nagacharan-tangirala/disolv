@@ -1,21 +1,16 @@
-use crate::reader::activation::{Activation, DeviceId, TimeStamp};
-use crate::sim::field::{GeoData, GeoMap};
-use crate::sim::vanet::{MultiLinkMap, SingleLinkMap};
-use crate::utils::constants::{
-    COL_BASE_STATION_ID, COL_CONTROLLERS, COL_CONTROLLER_ID, COL_COORD_X, COL_COORD_Y,
-    COL_DEVICE_ID, COL_DISTANCES, COL_END_TIME, COL_START_TIME, COL_TIME_STEP, COL_VELOCITY,
-};
-use crate::utils::dfs::*;
-use krabmaga::hashbrown::HashMap;
-use log::{debug, info};
+use crate::activation::{Activation, DeviceId, TimeStamp};
+use crate::columns::*;
+use crate::links::{LinkMap, MultiLinkMap};
+use crate::traffic::{Trace, TraceMap};
+use hashbrown::HashMap;
 use polars::prelude::{col, lit, IntoLazy};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::*;
 
-pub(crate) fn prepare_geo_data(
+pub(crate) fn extract_traffic_data(
     geo_df: &DataFrame,
     device_id_column: &str,
-) -> Result<GeoMap, Box<dyn std::error::Error>> {
+) -> Result<TraceMap, Box<dyn std::error::Error>> {
     let filtered_df: DataFrame = geo_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
@@ -35,7 +30,7 @@ pub(crate) fn prepare_geo_data(
     let time_stamps: Vec<TimeStamp> =
         convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
 
-    let mut time_stamp_traces: GeoMap = HashMap::with_capacity(time_stamps.len());
+    let mut time_stamp_traces: TraceMap = HashMap::with_capacity(time_stamps.len());
     for time_stamp in time_stamps.iter() {
         let ts_df = filtered_df
             .clone()
@@ -52,13 +47,13 @@ pub(crate) fn prepare_geo_data(
         let y_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_COORD_Y)?;
         let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_VELOCITY)?;
 
-        let trace: GeoData = (device_ids, x_positions, y_positions, velocities);
+        let trace: Trace = (device_ids, x_positions, y_positions, velocities);
         time_stamp_traces.entry(*time_stamp).or_insert(Some(trace));
     }
     return Ok(time_stamp_traces);
 }
 
-pub(crate) fn prepare_device_activations(
+pub(crate) fn extract_activations(
     activation_df: &DataFrame,
 ) -> Result<HashMap<DeviceId, Activation>, Box<dyn std::error::Error>> {
     let filtered_df = activation_df
@@ -101,45 +96,31 @@ pub(crate) fn prepare_device_activations(
     return Ok(activation_data_map);
 }
 
-pub(crate) fn prepare_b2c_links(
-    b2c_links_df: &DataFrame,
-) -> Result<SingleLinkMap, Box<dyn std::error::Error>> {
-    let base_stations: Vec<DeviceId> =
-        convert_series_to_integer_vector(&b2c_links_df, COL_BASE_STATION_ID)?;
-    let controller_ids: Vec<DeviceId> =
-        convert_series_to_integer_vector(&b2c_links_df, COL_CONTROLLER_ID)?;
-
-    let mut b2c_links: SingleLinkMap = HashMap::new();
-    for i in 0..base_stations.len() {
-        b2c_links.insert(base_stations[i], controller_ids[i]);
-    }
-    return Ok(b2c_links);
-}
-
-pub(crate) fn prepare_c2c_links(
-    c2c_links_df: &DataFrame,
-) -> Result<SingleLinkMap, Box<dyn std::error::Error>> {
-    let source_controller_ids: Vec<DeviceId> =
-        convert_series_to_integer_vector(&c2c_links_df, COL_CONTROLLER_ID)?;
-    let dest_controller_ids: Vec<DeviceId> =
-        convert_series_to_integer_vector(&c2c_links_df, COL_CONTROLLERS)?;
-
-    let mut b2c_links: SingleLinkMap = HashMap::new();
-    for i in 0..source_controller_ids.len() {
-        b2c_links.insert(source_controller_ids[i], dest_controller_ids[i]);
-    }
-    return Ok(b2c_links);
-}
-
-pub(crate) fn prepare_static_links(
+pub(crate) fn extract_single_links(
     links_df: &DataFrame,
     device_id_column: &str,
     neighbour_column: &str,
-) -> Result<HashMap<TimeStamp, MultiLinkMap>, Box<dyn std::error::Error>> {
-    let mut static_links: HashMap<TimeStamp, MultiLinkMap> = HashMap::new();
-    let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&links_df, device_id_column)?;
+) -> Result<LinkMap, Box<dyn std::error::Error>> {
+    let base_stations: Vec<DeviceId> =
+        convert_series_to_integer_vector(&links_df, device_id_column)?;
+    let controller_ids: Vec<DeviceId> =
+        convert_series_to_integer_vector(&links_df, neighbour_column)?;
 
-    let mut device_map: MultiLinkMap = HashMap::with_capacity(device_ids.len());
+    let mut link_map: LinkMap = HashMap::new();
+    link_map.reserve(base_stations.len());
+    for i in 0..base_stations.len() {
+        link_map.insert(base_stations[i], controller_ids[i]);
+    }
+    return Ok(link_map);
+}
+
+pub(crate) fn extract_multiple_links(
+    links_df: &DataFrame,
+    device_id_column: &str,
+    neighbour_column: &str,
+) -> Result<MultiLinkMap, Box<dyn std::error::Error>> {
+    let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&links_df, device_id_column)?;
+    let mut multi_link_map: MultiLinkMap = HashMap::with_capacity(device_ids.len());
     for device_id in device_ids.iter() {
         let device_df = links_df
             .clone()
@@ -160,18 +141,16 @@ pub(crate) fn prepare_static_links(
         let neighbour_ids: Vec<u64> = convert_string_to_integer_vector(neighbour_string.as_str())?;
         let distances: Vec<f32> = convert_string_to_floating_vector(distance_string.as_str())?;
 
-        device_map.insert(*device_id, (neighbour_ids, distances));
+        multi_link_map.insert(*device_id, (neighbour_ids, distances));
     }
-    static_links.insert(0, device_map);
-    return Ok(static_links);
+    return Ok(multi_link_map);
 }
 
-pub(crate) fn prepare_dynamic_links(
+pub(crate) fn extract_link_traces(
     links_df: &DataFrame,
     device_id_column: &str,
     neighbour_column: &str,
 ) -> Result<HashMap<TimeStamp, MultiLinkMap>, Box<dyn std::error::Error>> {
-    debug!("Converting {} links to map...", links_df.height());
     let filtered_df: DataFrame = links_df
         .clone() // Clones of DataFrames are cheap. Don't bother optimizing this.
         .lazy()
@@ -228,4 +207,62 @@ pub(crate) fn prepare_dynamic_links(
         dynamic_links.insert(*time_stamp, device_map);
     }
     return Ok(dynamic_links);
+}
+
+pub(crate) fn convert_series_to_integer_vector(
+    df: &DataFrame,
+    column_name: &str,
+) -> Result<Vec<u64>, Box<dyn std::error::Error>> {
+    let column_as_series: &Series = match df.columns([column_name])?.get(0) {
+        Some(series) => *series,
+        None => return Err("Error in the column name".into()),
+    };
+    let list_to_series: Series = column_as_series.explode()?;
+    let series_to_option_vec: Vec<Option<i64>> = list_to_series.i64()?.to_vec();
+    let option_vec_to_vec: Vec<u64> = series_to_option_vec
+        .iter()
+        .map(|x| x.unwrap() as u64) // todo! unsafe casting but fine for the value range we have.
+        .collect::<Vec<u64>>();
+    return Ok(option_vec_to_vec);
+}
+
+pub(crate) fn convert_series_to_floating_vector(
+    df: &DataFrame,
+    column_name: &str,
+) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    let column_as_series: &Series = match df.columns([column_name])?.get(0) {
+        Some(series) => *series,
+        None => return Err("Error in the column name".into()),
+    };
+    let list_to_series: Series = column_as_series.explode()?;
+    let series_to_option_vec: Vec<Option<f64>> = list_to_series.f64()?.to_vec();
+    let option_vec_to_vec: Vec<f32> = series_to_option_vec
+        .iter()
+        .map(|x| x.unwrap() as f32) // todo! lossy casting but fine for the value range we have.
+        .collect::<Vec<f32>>();
+    return Ok(option_vec_to_vec);
+}
+
+pub(crate) fn convert_string_to_integer_vector(
+    input_str: &str,
+) -> Result<Vec<u64>, Box<dyn std::error::Error>> {
+    let input_str = input_str.replace("\"", "");
+    let mut output_vec: Vec<u64> = Vec::new();
+    let split_str: Vec<&str> = input_str.split(" ").collect();
+    for s in split_str.iter() {
+        output_vec.push(s.parse::<u64>()?);
+    }
+    return Ok(output_vec);
+}
+
+pub(crate) fn convert_string_to_floating_vector(
+    input_str: &str,
+) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    let input_str = input_str.replace("\"", "");
+    let mut output_vec: Vec<f32> = Vec::new();
+    let split_str: Vec<&str> = input_str.split(" ").collect();
+    for s in split_str.iter() {
+        output_vec.push(s.parse::<f32>()?);
+    }
+    return Ok(output_vec);
 }
