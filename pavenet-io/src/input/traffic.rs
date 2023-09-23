@@ -1,11 +1,6 @@
 use crate::input::{dfs, files};
-use hashbrown::HashMap;
+use pavenet_config::config::base::{TimeStamp, TraceMap};
 use std::path::PathBuf;
-
-pub type DeviceId = u64;
-pub type TimeStamp = u64;
-pub type Trace = (Vec<DeviceId>, Vec<f32>, Vec<f32>, Vec<f32>); // (device_id, x, y, velocity)
-pub type TraceMap = HashMap<TimeStamp, Option<Trace>>;
 
 pub struct TrafficReader {
     trace_file: PathBuf,

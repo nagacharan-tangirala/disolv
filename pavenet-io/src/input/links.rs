@@ -1,26 +1,13 @@
-use crate::input::traffic::{DeviceId, TimeStamp};
 use crate::input::{dfs, files};
-use hashbrown::HashMap;
+use pavenet_config::config::base::{LinkMap, LinkType, MultiLinkMap, TimeStamp, TraceLinkMap};
 use polars_core::prelude::DataFrame;
 use std::error::Error;
 use std::path::PathBuf;
-
-pub(crate) type MultiLink = (Vec<DeviceId>, Vec<f32>); // (neighbour_device_ids, distances)
-pub(crate) type MultiLinkMap = HashMap<DeviceId, MultiLink>;
-pub(crate) type LinkMap = HashMap<DeviceId, DeviceId>;
-pub(crate) type TraceLinkMap = HashMap<TimeStamp, MultiLinkMap>;
 
 pub enum LinkMapType {
     Single(LinkMap),
     Multiple(MultiLinkMap),
     LinkTraceMap(TraceLinkMap),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub enum LinkType {
-    #[default]
-    Single,
-    Multiple,
 }
 
 pub struct LinksReader {

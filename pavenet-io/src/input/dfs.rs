@@ -1,8 +1,8 @@
 use crate::common::columns::*;
-use crate::input::activation::Activation;
-use crate::input::links::{LinkMap, MultiLinkMap};
-use crate::input::traffic::{DeviceId, TimeStamp, Trace, TraceMap};
 use hashbrown::HashMap;
+use pavenet_config::config::base::{
+    Activation, DeviceId, LinkMap, MultiLinkMap, TimeStamp, Trace, TraceMap,
+};
 use polars::prelude::{col, lit, IntoLazy};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::*;

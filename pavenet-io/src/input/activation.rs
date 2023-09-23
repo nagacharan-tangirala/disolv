@@ -1,9 +1,7 @@
-use crate::input::traffic::{DeviceId, TimeStamp};
 use crate::input::{dfs, files};
 use hashbrown::HashMap;
+use pavenet_config::config::base::{Activation, DeviceId};
 use std::path::PathBuf;
-
-pub(crate) type Activation = (Vec<TimeStamp>, Vec<TimeStamp>); // (start_time, end_time)
 
 pub(crate) fn read_activation_data(
     activations_file: &PathBuf,
