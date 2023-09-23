@@ -5,10 +5,7 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use std::path::PathBuf;
 
-pub(crate) fn setup_logging(
-    log_level: &str,
-    log_file_path: PathBuf,
-) -> Result<Config, ConfigErrors> {
+pub fn setup_logging(log_level: &str, log_file_path: PathBuf) -> Result<Config, ConfigErrors> {
     let log_level = get_logging_level(log_level);
 
     let log_file = FileAppender::builder()
