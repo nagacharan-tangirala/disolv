@@ -27,8 +27,7 @@ pub(crate) fn extract_traffic_data(
         )
         .collect()?;
 
-    let time_stamps: Vec<TimeStamp> =
-        convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
+    let time_stamps: Vec<TimeStamp> = convert_series_to_timestamps(&filtered_df, COL_TIME_STEP)?;
 
     let mut time_stamp_traces: TraceMap = HashMap::with_capacity(time_stamps.len());
     for time_stamp in time_stamps.iter() {
@@ -42,7 +41,7 @@ pub(crate) fn extract_traffic_data(
             time_stamp_traces.entry(*time_stamp).or_insert(None);
             continue;
         }
-        let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
+        let device_ids: Vec<DeviceId> = convert_series_to_device_ids(&ts_df, device_id_column)?;
         let x_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_COORD_X)?;
         let y_positions: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_COORD_Y)?;
         let velocities: Vec<f32> = convert_series_to_floating_vector(&ts_df, COL_VELOCITY)?;
@@ -67,7 +66,7 @@ pub(crate) fn extract_activations(
         )
         .collect()?;
 
-    let device_ids_vec: Vec<u64> = convert_series_to_integer_vector(&filtered_df, COL_DEVICE_ID)?;
+    let device_ids_vec: Vec<DeviceId> = convert_series_to_device_ids(&filtered_df, COL_DEVICE_ID)?;
 
     let mut activation_data_map: HashMap<DeviceId, Activation> =
         HashMap::with_capacity(device_ids_vec.len());
@@ -80,13 +79,11 @@ pub(crate) fn extract_activations(
             .collect()
             .unwrap();
 
-        let activation_timings = match convert_series_to_integer_vector(&device_df, COL_START_TIME)
-        {
+        let activation_timings = match convert_series_to_timestamps(&device_df, COL_START_TIME) {
             Ok(timings) => timings,
             Err(e) => return Err(e.into()),
         };
-        let deactivation_timings = match convert_series_to_integer_vector(&device_df, COL_END_TIME)
-        {
+        let deactivation_timings = match convert_series_to_timestamps(&device_df, COL_END_TIME) {
             Ok(timings) => timings,
             Err(e) => return Err(e.into()),
         };
@@ -101,10 +98,8 @@ pub(crate) fn extract_single_links(
     device_id_column: &str,
     neighbour_column: &str,
 ) -> Result<LinkMap, Box<dyn std::error::Error>> {
-    let base_stations: Vec<DeviceId> =
-        convert_series_to_integer_vector(&links_df, device_id_column)?;
-    let controller_ids: Vec<DeviceId> =
-        convert_series_to_integer_vector(&links_df, neighbour_column)?;
+    let base_stations: Vec<DeviceId> = convert_series_to_device_ids(&links_df, device_id_column)?;
+    let controller_ids: Vec<DeviceId> = convert_series_to_device_ids(&links_df, neighbour_column)?;
 
     let mut link_map: LinkMap = HashMap::new();
     link_map.reserve(base_stations.len());
@@ -119,7 +114,7 @@ pub(crate) fn extract_multiple_links(
     device_id_column: &str,
     neighbour_column: &str,
 ) -> Result<MultiLinkMap, Box<dyn std::error::Error>> {
-    let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&links_df, device_id_column)?;
+    let device_ids: Vec<DeviceId> = convert_series_to_device_ids(&links_df, device_id_column)?;
     let mut multi_link_map: MultiLinkMap = HashMap::with_capacity(device_ids.len());
     for device_id in device_ids.iter() {
         let device_df = links_df
@@ -138,7 +133,8 @@ pub(crate) fn extract_multiple_links(
             None => return Err("Error in reading distance column".into()),
         };
 
-        let neighbour_ids: Vec<u64> = convert_string_to_integer_vector(neighbour_string.as_str())?;
+        let neighbour_ids: Vec<DeviceId> =
+            convert_string_to_integer_vector(neighbour_string.as_str())?;
         let distances: Vec<f32> = convert_string_to_floating_vector(distance_string.as_str())?;
 
         multi_link_map.insert(*device_id, (neighbour_ids, distances));
@@ -166,8 +162,7 @@ pub(crate) fn extract_link_traces(
         )
         .collect()?;
 
-    let time_stamps: Vec<TimeStamp> =
-        convert_series_to_integer_vector(&filtered_df, COL_TIME_STEP)?;
+    let time_stamps: Vec<TimeStamp> = convert_series_to_timestamps(&filtered_df, COL_TIME_STEP)?;
 
     let mut dynamic_links: HashMap<TimeStamp, MultiLinkMap> =
         HashMap::with_capacity(time_stamps.len());
@@ -179,7 +174,7 @@ pub(crate) fn extract_link_traces(
             .filter(col(COL_TIME_STEP).eq(lit(*time_stamp)))
             .collect()?;
 
-        let device_ids: Vec<DeviceId> = convert_series_to_integer_vector(&ts_df, device_id_column)?;
+        let device_ids: Vec<DeviceId> = convert_series_to_device_ids(&ts_df, device_id_column)?;
         let mut device_map: MultiLinkMap = HashMap::with_capacity(device_ids.len());
 
         let neighbour_list: &ListChunked = match ts_df.columns([neighbour_column])?.get(0) {
@@ -209,20 +204,37 @@ pub(crate) fn extract_link_traces(
     return Ok(dynamic_links);
 }
 
-pub(crate) fn convert_series_to_integer_vector(
+pub(crate) fn convert_series_to_device_ids(
     df: &DataFrame,
     column_name: &str,
-) -> Result<Vec<u64>, Box<dyn std::error::Error>> {
+) -> Result<Vec<DeviceId>, Box<dyn std::error::Error>> {
     let column_as_series: &Series = match df.columns([column_name])?.get(0) {
         Some(series) => *series,
         None => return Err("Error in the column name".into()),
     };
     let list_to_series: Series = column_as_series.explode()?;
     let series_to_option_vec: Vec<Option<i64>> = list_to_series.i64()?.to_vec();
-    let option_vec_to_vec: Vec<u64> = series_to_option_vec
+    let option_vec_to_vec: Vec<DeviceId> = series_to_option_vec
         .iter()
-        .map(|x| x.unwrap() as u64) // todo! unsafe casting but fine for the value range we have.
-        .collect::<Vec<u64>>();
+        .map(|x| x.unwrap() as DeviceId) // todo! unsafe casting but fine for the value range we have.
+        .collect::<Vec<DeviceId>>();
+    return Ok(option_vec_to_vec);
+}
+
+pub(crate) fn convert_series_to_timestamps(
+    df: &DataFrame,
+    column_name: &str,
+) -> Result<Vec<TimeStamp>, Box<dyn std::error::Error>> {
+    let column_as_series: &Series = match df.columns([column_name])?.get(0) {
+        Some(series) => *series,
+        None => return Err("Error in the column name".into()),
+    };
+    let list_to_series: Series = column_as_series.explode()?;
+    let series_to_option_vec: Vec<Option<i64>> = list_to_series.i64()?.to_vec();
+    let option_vec_to_vec: Vec<TimeStamp> = series_to_option_vec
+        .iter()
+        .map(|x| x.unwrap() as TimeStamp) // todo! unsafe casting but fine for the value range we have.
+        .collect::<Vec<TimeStamp>>();
     return Ok(option_vec_to_vec);
 }
 
@@ -245,12 +257,12 @@ pub(crate) fn convert_series_to_floating_vector(
 
 pub(crate) fn convert_string_to_integer_vector(
     input_str: &str,
-) -> Result<Vec<u64>, Box<dyn std::error::Error>> {
+) -> Result<Vec<DeviceId>, Box<dyn std::error::Error>> {
     let input_str = input_str.replace("\"", "");
-    let mut output_vec: Vec<u64> = Vec::new();
+    let mut output_vec: Vec<DeviceId> = Vec::new();
     let split_str: Vec<&str> = input_str.split(" ").collect();
     for s in split_str.iter() {
-        output_vec.push(s.parse::<u64>()?);
+        output_vec.push(s.parse::<DeviceId>()?);
     }
     return Ok(output_vec);
 }
