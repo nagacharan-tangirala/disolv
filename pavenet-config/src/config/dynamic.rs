@@ -1,7 +1,9 @@
 use crate::config::base::{
-    ComposerSettings, DeviceId, DeviceType, LinkerSettings, ResponderSettings, SimplifierSettings,
-    SourceSettings, TimeStamp,
+    ComposerSettings, DeviceType, LinkerSettings, ResponderSettings, SimplifierSettings,
+    SourceSettings,
 };
+
+use crate::config::types::{DeviceId, TimeStamp};
 use serde_derive::Deserialize;
 use std::path::PathBuf;
 
@@ -31,14 +33,6 @@ pub struct EpisodeInfo {
     pub composer: Option<ComposerSettings>,
     pub simplifier: Option<SimplifierSettings>,
     pub responder: Option<ResponderSettings>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ResetEpisodeInfo {
-    time_stamp: TimeStamp,
-    device_type: Option<DeviceType>,
-    device_class: Option<u32>,
-    device_list: Option<Vec<DeviceId>>,
 }
 
 pub struct DynamicConfigReader {

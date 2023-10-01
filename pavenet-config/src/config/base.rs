@@ -1,9 +1,8 @@
+use crate::config::types::{DeviceId, TimeStamp};
 use hashbrown::HashMap;
 use serde_derive::Deserialize;
 use std::path::PathBuf;
 
-pub type DeviceId = u64;
-pub type TimeStamp = u64;
 pub type Trace = (Vec<DeviceId>, Vec<f32>, Vec<f32>, Vec<f32>); // (device_id, x, y, velocity)
 pub type TraceMap = HashMap<TimeStamp, Option<Trace>>;
 pub type Activation = (Vec<TimeStamp>, Vec<TimeStamp>); // (start_time, end_time)
@@ -119,11 +118,12 @@ pub struct ComposerSettings {
     pub source_settings: Vec<SourceSettings>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Copy)]
 pub struct SourceSettings {
     pub data_type: DataType,
     pub data_count: u32,
     pub unit_size: f32,
+    pub frequency: u32,
 }
 
 #[serde_with::skip_serializing_none]
