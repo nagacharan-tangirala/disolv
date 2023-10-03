@@ -1,9 +1,10 @@
 use crate::config::base::{
-    ComposerSettings, DeviceType, LinkerSettings, ResponderSettings, SimplifierSettings,
+    ComposerSettings, LinkerSettings, NodeType, ResponderSettings, SimplifierSettings,
     SourceSettings,
 };
 
-use crate::config::types::{DeviceId, TimeStamp};
+use crate::types::ids::node::NodeId;
+use crate::types::ts::TimeStamp;
 use serde_derive::Deserialize;
 use std::path::PathBuf;
 
@@ -25,9 +26,9 @@ pub struct EpisodeInfo {
     pub time_stamp: TimeStamp,
     pub episode_type: EpisodeType,
     pub duration: Option<TimeStamp>,
-    pub device_type: Option<DeviceType>,
+    pub device_type: Option<NodeType>,
     pub device_class: Option<u32>,
-    pub device_list: Option<Vec<DeviceId>>,
+    pub device_list: Option<Vec<NodeId>>,
     pub data_sources: Option<SourceSettings>,
     pub linker_settings: Option<LinkerSettings>,
     pub composer: Option<ComposerSettings>,
