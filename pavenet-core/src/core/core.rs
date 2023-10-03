@@ -1,31 +1,33 @@
 use crate::core::node_group::NodeGroup;
 use crate::core::nodes::Nodes;
+use hashbrown::HashMap;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use pavenet_config::config::base::BaseConfig;
 use pavenet_config::config::dynamic::DynamicConfig;
 use pavenet_config::types::ts::TimeStamp;
-use std::any::Any;
+use std::any::{Any, TypeId};
 
 pub struct Core {
     pub base_config: BaseConfig,
     pub dyn_config: DynamicConfig,
     pub step: TimeStamp,
     pub nodes: Nodes,
-    pub node_collections: Vec<Box<dyn NodeGroup>>,
+    pub node_collections: HashMap<TypeId, Box<dyn NodeGroup>>,
 }
 
 impl Core {
     pub fn new(
         base_config: BaseConfig,
         dyn_config: DynamicConfig,
-        node_type_map: HashMap,
-        node_collections: Vec<Box<dyn NodeGroup>>,
+        nodes: Nodes,
+        node_collections: HashMap<TypeId, Box<dyn NodeGroup>>,
     ) -> Self {
         Self {
             base_config,
             dyn_config,
-            step: TimeStamp::default(),
+            nodes,
             node_collections,
+            step: TimeStamp::default(),
         }
     }
 }
