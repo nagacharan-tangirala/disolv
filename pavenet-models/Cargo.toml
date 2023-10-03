@@ -1,0 +1,22 @@
+[package]
+name = "pavenet-models"
+version = "0.0.1"
+authors = [
+    "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
+]
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+pavenet-io = { version = "0.0.1", path= "../pavenet-io" }
+pavenet-config = { version = "0.0.1", path= "../pavenet-config" }
+krabmaga = { version = "0.4.1", path= "../../krABMaga" }
+rand = "0.8.5"
+log4rs = "1.2.0"
+log = "0.4.20"
+hashbrown = "0.14.1"
+
+[features]
+visualization = ["krabmaga/visualization"]
+visualization_wasm = ["krabmaga/visualization_wasm"]
