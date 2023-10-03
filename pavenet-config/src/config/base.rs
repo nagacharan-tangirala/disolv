@@ -1,14 +1,13 @@
-use crate::config::types::{DeviceId, TimeStamp};
+use crate::types::ids::node::NodeId;
+use crate::types::ts::TimeStamp;
 use hashbrown::HashMap;
 use serde_derive::Deserialize;
 use std::path::PathBuf;
 
-pub type Trace = (Vec<DeviceId>, Vec<f32>, Vec<f32>, Vec<f32>); // (device_id, x, y, velocity)
-pub type TraceMap = HashMap<TimeStamp, Option<Trace>>;
-pub type Activation = (Vec<TimeStamp>, Vec<TimeStamp>); // (start_time, end_time)
-pub type MultiLink = (Vec<DeviceId>, Vec<f32>); // (neighbour_device_ids, distances)
-pub type MultiLinkMap = HashMap<DeviceId, MultiLink>;
-pub type LinkMap = HashMap<DeviceId, DeviceId>; // (source_id, target_id)
+pub type Activation = (Vec<TimeStamp>, Vec<TimeStamp>); // (start_times, end_times)
+pub type MultiLink = (Vec<NodeId>, Vec<f32>); // (neighbour_device_ids, distances)
+pub type MultiLinkMap = HashMap<NodeId, MultiLink>;
+pub type LinkMap = HashMap<NodeId, NodeId>; // (source_id, target_id)
 pub type TraceLinkMap = HashMap<TimeStamp, MultiLinkMap>;
 
 #[derive(Deserialize, Clone, Debug, Default, PartialEq)]
@@ -20,7 +19,7 @@ pub enum LinkType {
 
 #[derive(Deserialize, Debug, Clone)]
 pub enum MobilityType {
-    Stationary,
+    Stationery,
     Mobile,
 }
 
@@ -41,7 +40,7 @@ pub enum DataType {
 }
 
 #[derive(Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DeviceType {
+pub enum NodeType {
     Vehicle = 0,
     RSU,
     BaseStation,
@@ -79,11 +78,11 @@ pub struct BaseConfig {
 #[derive(Deserialize, Debug, Clone)]
 pub struct DeviceSettings {
     pub ratio: f32,
-    pub device_type: DeviceType,
+    pub device_type: NodeType,
     pub device_class: u32,
     pub hierarchy: u32,
     pub activation_file: String,
-    pub mobility_settings: MobilitySettings,
+    pub mobility_settings: MapStateSettings,
     pub linker: LinkerSettings,
     pub composer: Option<ComposerSettings>,
     pub simplifier: Option<SimplifierSettings>,
@@ -135,8 +134,9 @@ pub struct SimplifierSettings {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct MobilitySettings {
+pub struct MapStateSettings {
     pub mobility_type: MobilityType,
+    pub is_streaming: bool,
     pub geo_data_file: String,
 }
 
@@ -144,6 +144,7 @@ pub struct MobilitySettings {
 pub struct FieldSettings {
     pub width: f32,
     pub height: f32,
+    pub cell_size: f32,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -164,7 +165,8 @@ pub struct LinkerSettings {
 pub struct LinkConfig {
     pub link_type: LinkType,
     pub transfer_mode: TransferMode,
-    pub target_device: DeviceType,
-    pub range: f32,
+    pub target_device: NodeType,
     pub links_file: String,
+    pub range: f32,
+    pub is_streaming: bool,
 }
