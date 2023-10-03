@@ -9,12 +9,11 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-pavenet-config = { path = "../pavenet-config" }
-krabmaga = "0.4.1"
+pavenet-config = { version = "0.0.1", path= "../pavenet-config" }
+krabmaga = { version = "0.4.1", path= "../../krABMaga" }
 rand = "0.8.5"
-log4rs = "1.2.0"
-log = "0.4.20"
-hashbrown = "0.14.0"
+hashbrown = "0.14.1"
+typed-builder = "0.16.2"
 
 [features]
 visualization = ["krabmaga/visualization"]
