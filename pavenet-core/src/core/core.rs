@@ -45,21 +45,21 @@ impl State for Core {
     fn update(&mut self, step: u64) {
         self.step = TimeStamp::from(step);
         self.node_collections
-            .iter_mut()
+            .values_mut()
             .for_each(|c| c.update(self.step));
     }
 
     fn before_step(&mut self, schedule: &mut Schedule) {
         self.nodes.power_on(schedule);
         self.node_collections
-            .iter_mut()
+            .values_mut()
             .for_each(|c| c.before_step(self.step));
 
         if self.step > TimeStamp::default()
-            && self.step % self.base_config.simulation_settings.sim_streaming_step == 0
+            && self.step.as_u64() % self.base_config.simulation_settings.sim_streaming_step == 0
         {
             self.node_collections
-                .iter_mut()
+                .values_mut()
                 .for_each(|c| c.streaming_step(self.step));
         }
     }
@@ -67,7 +67,7 @@ impl State for Core {
     fn after_step(&mut self, schedule: &mut Schedule) {
         self.nodes.power_off(schedule);
         self.node_collections
-            .iter_mut()
+            .values_mut()
             .for_each(|c| c.after_step(schedule));
     }
 
