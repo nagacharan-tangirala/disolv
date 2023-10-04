@@ -1,20 +1,26 @@
+use crate::core::nodeimpl::NodeImpl;
 use crate::node::node::Node;
-use crate::node::power::PowerState;
+use crate::node::power::{PowerSchedule, PowerState};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
 use pavenet_config::types::ids::node::NodeId;
 
+#[derive(Default)]
 pub struct Nodes {
-    nodes_by_id: HashMap<NodeId, Box<dyn Node>>,
-    pub(crate) to_add: Vec<NodeId>,
-    pub(crate) to_pop: Vec<NodeId>,
+    nodes_by_id: HashMap<NodeId, NodeImpl>,
+    pub to_add: Vec<NodeId>,
+    pub to_pop: Vec<NodeId>,
 }
 
 impl Nodes {
-    pub fn new(nodes: Vec<Box<dyn Node>>) -> Self {
-        let mut by_id: HashMap<NodeId, Box<dyn Node>> = HashMap::new();
+    pub fn new(
+        nodes: Vec<Box<dyn Node>>,
+        power_schedule_map: HashMap<NodeId, PowerSchedule>,
+    ) -> Self {
+        let mut by_id: HashMap<NodeId, NodeImpl> = HashMap::new();
         for node in nodes.into_iter() {
             let d_info = node.node_info();
+            let node = NodeImpl::new(d_info.id, power_schedule_map[&d_info.id], node);
             by_id.insert(d_info.id, node);
         }
         Self {
@@ -24,14 +30,16 @@ impl Nodes {
     }
 
     pub(crate) fn power_on(&mut self, schedule: &mut Schedule) {
-        for node_id in self.to_add.into_iter() {
-            match self.nodes_by_id.get_mut(&node_id) {
-                Some(node) => schedule.schedule_repeating(
-                    node.as_agent(),
-                    node.node_info().id.into(),
-                    node.node_info().power_on_time(),
-                    node.node_info().hierarchy.into(),
-                ),
+        for node_id in self.to_add.iter() {
+            match self.nodes_by_id.get_mut(node_id) {
+                Some(node) => {
+                    schedule.schedule_repeating(
+                        node.as_agent(),
+                        node.node_impl.node_info().id.into(),
+                        node.power_schedule.pop_time_to_on().as_f32(),
+                        node.node_impl.node_info().hierarchy.into(),
+                    );
+                }
                 None => {
                     panic!("Could not find node {}", node_id);
                 }
@@ -40,11 +48,11 @@ impl Nodes {
     }
 
     pub(crate) fn power_off(&mut self, schedule: &mut Schedule) {
-        for node_id in self.to_pop.into_iter() {
-            match self.nodes_by_id.get_mut(&node_id) {
+        for node_id in self.to_pop.iter() {
+            match self.nodes_by_id.get_mut(node_id) {
                 Some(node) => {
-                    node.set_power(PowerState::Off);
-                    schedule.dequeue(node.as_agent(), node_id.into());
+                    node.node_impl.set_power_state(PowerState::Off);
+                    schedule.dequeue(node.clone().as_agent(), (*node_id).into());
                 }
                 None => {
                     panic!("Could not find node {}", node_id);
