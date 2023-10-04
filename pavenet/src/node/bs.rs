@@ -1,63 +1,83 @@
 use core::fmt;
 use std::hash::{Hash, Hasher};
 
-use crate::device::device_state::{DeviceState, Timing};
-use crate::models::aggregator::{AggregatorType, BasicAggregator};
-use crate::models::composer::UplinkPayload;
-use crate::models::responder::{ResponderType, StatsResponder};
+use pavenet_device::device::common::{Status, Timing};
+use crate::models::composer::bs::{BSComposer, BasicBSComposer};
+use pavenet::models::composer::{BasicComposer, ComposerType, StatusComposer};
+use pavenet::models::responder::{ResponderType, StatsResponder};
+use pavenet::models::simplifier::{BasicSimplifier, RandomSimplifier, SimplifierType};
 use crate::reader::activation::{DeviceId, TimeStamp};
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::state::State;
-use krabmaga::hashbrown::HashMap;
 use log::debug;
 
+use pavenet_core::::config::{BaseStationSettings, DeviceSettings, DeviceType};
+use pavenet_core::::dyn_config::{EpisodeInfo, EpisodeType};
 use crate::sim::core::Core;
-use crate::utils::config::{BaseStationSettings, DeviceType};
 
 #[derive(Clone, Copy)]
-pub(crate) struct BaseStation {
-    pub(crate) id: DeviceId,
+pub struct BaseStation {
+    pub id: DeviceId,
     storage: f32,
-    pub(crate) location: Real2D,
-    pub(crate) bs_info: BSInfo,
-    pub(crate) timing: Timing,
-    pub(crate) aggregator: AggregatorType,
-    pub(crate) responder: ResponderType,
-    pub(crate) status: DeviceState,
-    pub(crate) device_type: DeviceType,
-    pub(crate) device_class: u32,
+    pub location: Real2D,
+    pub bs_info: BSInfo,
+    pub timing: Timing,
+    pub composer: BSComposer,
+    pub responder: ResponderType,
+    pub status: Status,
+    pub device_type: DeviceType,
+    pub device_class: u32,
     step: TimeStamp,
 }
 
 #[derive(Clone, Debug, Copy, Default)]
-pub(crate) struct BSInfo {
-    pub(crate) location: Real2D,
-    pub(crate) temperature: f32,
-    pub(crate) storage: f32,
+pub struct BSInfo {
+    pub location: Real2D,
+    pub temperature: f32,
+    pub storage: f32,
 }
 
 impl BaseStation {
-    pub(crate) fn new(id: u64, timing_info: Timing, bs_settings: &BaseStationSettings) -> Self {
-        let aggregator: AggregatorType = match bs_settings.aggregator.name.as_str() {
-            _ => AggregatorType::Basic(BasicAggregator::new()),
+    pub fn new(id: u64, timing_info: Timing, bs_settings: &DeviceSettings) -> Self {
+        let composer: Option<ComposerType> = match bs_settings.composer {
+            Some(ref composer_settings) => match composer_settings.name.as_str() {
+                "basic" => Some(ComposerType::Basic(BasicComposer::new(composer_settings))),
+                "status" => Some(ComposerType::Status(StatusComposer::new(composer_settings))),
+                _ => panic!("Unknown composer type"),
+            },
+            None => None,
         };
+
+        let simplifier: Option<SimplifierType> = match bs_settings.simplifier {
+            Some(ref simplifier_settings) => match simplifier_settings.name.as_str() {
+                "basic" => Some(SimplifierType::Basic(BasicSimplifier::new(
+                    simplifier_settings,
+                ))),
+                "random" => Some(SimplifierType::Random(RandomSimplifier::new(
+                    simplifier_settings,
+                ))),
+                _ => panic!("Unknown simplifier type"),
+            },
+            None => None,
+        };
+
         let responder: ResponderType = match bs_settings.responder.name.as_str() {
             _ => ResponderType::Stats(StatsResponder::new()),
         };
         Self {
             id,
-            storage: bs_settings.storage,
-            location: Real2D::default(),
             timing: timing_info,
-            bs_info: BSInfo::default(),
-            aggregator,
-            responder,
-            status: DeviceState::Inactive,
-            step: 0,
-            device_type: DeviceType::BaseStation,
+            storage: bs_settings.storage,
             device_class: bs_settings.device_class,
+            composer,
+            responder,
+            location: Real2D::default(),
+            bs_info: BSInfo::default(),
+            step: TimeStamp::default(),
+            status: Status::Inactive,
+            device_type: DeviceType::BaseStation,
         }
     }
 
@@ -74,8 +94,8 @@ impl BaseStation {
         }
     }
 
-    pub(crate) fn deactivate(&mut self, core_state: &mut Core) {
-        self.status = DeviceState::Inactive;
+    pub fn deactivate(&mut self, core_state: &mut Core) {
+        self.status = Status::Inactive;
         self.timing.increment_timing_index();
         core_state.devices_to_pop.base_stations.push(self.id);
 
@@ -88,7 +108,7 @@ impl BaseStation {
         }
     }
 
-    pub(crate) fn forward_device_data_to_controller(&mut self, core_state: &mut Core) {
+    pub fn forward_device_data_to_controller(&mut self, core_state: &mut Core) {
         // Collect vehicle and RSU data
         let vehicles_data = match core_state.vanet.uplink.v2bs_data.remove(&self.id) {
             Some(bs_data) => bs_data,
@@ -100,7 +120,7 @@ impl BaseStation {
         };
 
         // Send responses to vehicles
-        let mut bs_responses = match self.responder {
+        let bs_responses = match self.responder {
             ResponderType::Stats(responder) => {
                 responder.respond_to_vehicles(&vehicles_data, rsu_data.len())
             }
@@ -109,11 +129,11 @@ impl BaseStation {
             .vanet
             .downlink
             .bs2v_responses
-            .extend(bs_responses.drain());
+            .extend(bs_responses.into_iter());
 
-        // Aggregate and forward data to controller
-        let mut bs_payload = match self.aggregator {
-            AggregatorType::Basic(aggregator) => aggregator.aggregate(vehicles_data, rsu_data),
+        // Compose BS payload and send to controller
+        let mut bs_payload = match self.composer {
+            BSComposer::Basic(composer) => composer.compose_bs2c_payload(vehicles_data, rsu_data),
         };
         bs_payload.id = self.id;
         bs_payload.bs_info = self.bs_info;
@@ -127,14 +147,31 @@ impl BaseStation {
             .vanet
             .uplink
             .bs2c_data
-            .insert(controller_id, bs_payload);
+            .entry(controller_id)
+            .and_modify(|v| v.push(bs_payload.clone()))
+            .or_insert(vec![bs_payload]);
     }
+
+    pub fn setup_episode(&mut self, episode: EpisodeInfo) {
+        match episode.episode_type {
+            EpisodeType::Temporary => {
+                let duration = match episode.duration {
+                    Some(duration) => duration,
+                    None => panic!("Duration must be specified for temporary episodes."),
+                };
+                self.update_models(&episode, self.step + duration);
+            }
+            EpisodeType::Persistent => self.update_models(&episode, 0),
+        }
+    }
+
+    fn update_models(&mut self, episode: &EpisodeInfo, reset_ts: TimeStamp) {}
 }
 
 impl Agent for BaseStation {
     fn step(&mut self, state: &mut dyn State) {
         debug!("{} is active", self.id);
-        self.status = DeviceState::Active;
+        self.status = Status::Active;
         let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
         self.step = core_state.step;
 

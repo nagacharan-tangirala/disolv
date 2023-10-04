@@ -1,11 +1,9 @@
-// Global imports (needed for the simulation to run)
-mod device;
-mod models;
-mod reader;
-mod sim;
-mod utils;
-use crate::sim::builder::PavenetBuilder;
-use crate::sim::core::Core;
+mod node;
+mod node_group;
+mod scenario;
+#[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
+pub mod vis;
+
 use clap::Parser;
 
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
@@ -33,9 +31,6 @@ fn main() {
     println!("Running the simulation for {} steps", duration);
     simulate!(simulation_core, duration, 1);
 }
-
-#[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
-mod visualization;
 
 // Visualization specific imports
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
