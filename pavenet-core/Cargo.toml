@@ -14,6 +14,8 @@ krabmaga = { version = "0.4.1", path= "../../krABMaga" }
 rand = "0.8.5"
 hashbrown = "0.14.1"
 typed-builder = "0.16.2"
+dyn-clone = "1.0.14"
+downcast-rs = "1.2.0"
 
 [features]
 visualization = ["krabmaga/visualization"]
