@@ -1,12 +1,14 @@
-use crate::core::node_group::NodeGroup;
 use crate::core::nodes::Nodes;
+use crate::node::group::NodeGroup;
 use hashbrown::HashMap;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use pavenet_config::config::base::BaseConfig;
 use pavenet_config::config::dynamic::DynamicConfig;
 use pavenet_config::types::ts::TimeStamp;
 use std::any::{Any, TypeId};
+use typed_builder::TypedBuilder;
 
+#[derive(TypedBuilder)]
 pub struct Core {
     pub base_config: BaseConfig,
     pub dyn_config: DynamicConfig,
@@ -15,27 +17,10 @@ pub struct Core {
     pub node_collections: HashMap<TypeId, Box<dyn NodeGroup>>,
 }
 
-impl Core {
-    pub fn new(
-        base_config: BaseConfig,
-        dyn_config: DynamicConfig,
-        nodes: Nodes,
-        node_collections: HashMap<TypeId, Box<dyn NodeGroup>>,
-    ) -> Self {
-        Self {
-            base_config,
-            dyn_config,
-            nodes,
-            node_collections,
-            step: TimeStamp::default(),
-        }
-    }
-}
-
 impl State for Core {
     fn init(&mut self, schedule: &mut Schedule) {
         self.node_collections
-            .iter_mut()
+            .values_mut()
             .for_each(|c| c.init(schedule));
     }
 
