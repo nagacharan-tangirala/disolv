@@ -1,7 +1,6 @@
-pub mod device;
+pub mod group;
 pub mod info;
-pub mod map;
+pub mod node;
 pub mod power;
 pub mod receive;
 pub mod transmit;
-pub mod node;

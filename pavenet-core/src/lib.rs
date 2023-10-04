@@ -1,4 +1,3 @@
-pub mod collections;
-mod core;
-pub mod devices;
+pub mod core;
 pub mod node;
+mod tests;
