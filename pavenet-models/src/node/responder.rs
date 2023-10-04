@@ -1,7 +1,7 @@
-use crate::models::composer::UplinkPayload;
+use crate::node::composer::Payload;
 use crate::reader::activation::DeviceId;
-use crate::utils::dyn_config::DataType;
 use krabmaga::hashbrown::HashMap;
+use pavenet_config::config::types::DeviceId;
 use rand::prelude::SliceRandom;
 
 #[derive(Clone, Debug, Copy)]
@@ -16,7 +16,6 @@ pub(crate) struct StatsResponder;
 pub(crate) struct DownlinkPayload {
     pub(crate) id: DeviceId,
     pub(crate) latency_factor: u32,
-    pub(crate) data_request: Vec<DataType>,
 }
 
 impl StatsResponder {
@@ -26,7 +25,7 @@ impl StatsResponder {
 
     pub(crate) fn respond_to_vehicles(
         &self,
-        veh_payloads: &Vec<UplinkPayload>,
+        veh_payloads: &Vec<Payload>,
         rsu_counts: usize,
     ) -> HashMap<DeviceId, DownlinkPayload> {
         let mut veh_ids: Vec<DeviceId> = veh_payloads.iter().map(|p| p.id).collect();
@@ -39,7 +38,6 @@ impl StatsResponder {
             let response = DownlinkPayload {
                 id: *veh_id,
                 latency_factor: (crowd_latency + idx) as u32,
-                data_request: Vec::new(),
             };
             responses.entry(*veh_id).or_insert(response);
         }

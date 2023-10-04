@@ -1,26 +1,24 @@
-use crate::reader::activation::DeviceId;
-use crate::sim::vanet::Link;
-use crate::utils::config::VehicleLinker;
+use pavenet_config::config::base::{LinkConfig, LinkerSettings};
+
+pub const LINKER_SIZE: usize = 5;
 
 #[derive(Clone, Debug, Copy)]
-pub(crate) enum VehLinkerType {
-    Simple(SimpleVehLinker),
+pub(crate) enum LinkerType {
+    Simple(BasicLinker),
 }
 
-#[derive(Clone, Debug, Copy, Default)]
-pub(crate) struct SimpleVehLinker {
-    pub(crate) mesh_range: f32,
-    pub(crate) bs_range: f32,
-    pub(crate) rsu_range: f32,
+#[derive(Clone, Debug, Copy)]
+pub(crate) struct BasicLinker {
+    pub(crate) link_config: [Option<LinkConfig>; LINKER_SIZE],
 }
 
-impl SimpleVehLinker {
-    pub(crate) fn new(linker_settings: VehicleLinker) -> Self {
-        Self {
-            mesh_range: linker_settings.mesh_range,
-            bs_range: linker_settings.bs_range,
-            rsu_range: linker_settings.rsu_range,
+impl BasicLinker {
+    pub(crate) fn new(linker_settings: LinkerSettings) -> Self {
+        let mut link_config = [None; LINKER_SIZE];
+        for idx in 0..linker_settings.len() {
+            link_config[idx] = Some(linker_settings[idx]);
         }
+        Self { link_config }
     }
 
     pub(crate) fn find_vehicle_mesh_links(
@@ -32,7 +30,7 @@ impl SimpleVehLinker {
                 let mut selected_vehicle_ids = Vec::with_capacity(v2v_links.0.len());
                 let (veh_ids, distances) = v2v_links;
                 for (veh_id, distance) in veh_ids.iter().zip(distances.iter()) {
-                    if *distance <= self.mesh_range {
+                    if *distance <= self.settings_handler.linker_in_use.mesh_range {
                         selected_vehicle_ids.push(*veh_id);
                     }
                 }
@@ -49,7 +47,7 @@ impl SimpleVehLinker {
                 let mut rsu_distance: f32 = 0.0;
                 let (rsu_ids, distances) = v2rsu_links;
                 for (rsu_id, distance) in rsu_ids.iter().zip(distances.iter()) {
-                    if *distance <= self.rsu_range {
+                    if *distance <= self.settings_handler.linker_in_use.rsu_range {
                         selected_rsu_id = *rsu_id;
                         rsu_distance = *distance;
                     }
@@ -67,7 +65,7 @@ impl SimpleVehLinker {
                 let mut bs_distance: f32 = 0.0;
                 let (bs_ids, distances) = v2bs_links;
                 for (bs_id, distance) in bs_ids.iter().zip(distances.iter()) {
-                    if *distance <= self.bs_range {
+                    if *distance <= self.settings_handler.linker_in_use.bs_range {
                         selected_bs_id = *bs_id;
                         bs_distance = *distance;
                     }
