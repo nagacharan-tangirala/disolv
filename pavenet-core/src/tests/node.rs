@@ -4,9 +4,6 @@ use crate::node::node::Node;
 use crate::node::power::PowerState;
 use crate::node::receive::Recipient;
 use crate::node::transmit::{Payload, Transmitter};
-use pavenet_config::config::base::NodeType::Vehicle;
-use pavenet_config::types::hierarchy::Hierarchy;
-use pavenet_config::types::ids::node::NodeId;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct TestNode {
