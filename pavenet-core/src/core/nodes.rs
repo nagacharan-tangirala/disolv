@@ -65,63 +65,30 @@ impl Nodes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::info::NodeInfo;
-    use crate::node::node::Node;
-    use pavenet_config::config::base::NodeType;
-    use pavenet_config::types::hierarchy::Hierarchy;
-
-    #[derive(Clone, Default, Copy, Debug, PartialEq)]
-    pub struct TestNode {
-        pub node_info: NodeInfo,
-        pub power_state: PowerState,
-    }
-
-    impl TestNode {
-        pub fn new(node_info: NodeInfo) -> Self {
-            Self {
-                node_info,
-                power_state: PowerState::Off,
-            }
-        }
-    }
-
-    fn make_test_nodes() -> Vec<Box<dyn Node>> {
-        let mut nodes: Vec<Box<dyn Node>> = Vec::new();
-        for i in 0..10 {
-            let node_info = NodeInfo::builder()
-                .node_type(NodeType::Vehicle)
-                .node_class(1)
-                .id(i.into())
-                .hierarchy(Hierarchy::from(1))
-                .build();
-            let node = TestNode::new(node_info);
-            nodes.push(Box::new(node));
-        }
-        nodes
-    }
+    use crate::tests::common::*;
 
     #[test]
-    fn nodes_new() {
-        let nodes = make_test_nodes();
-        let nodes = Nodes::new(nodes);
-        assert_eq!(nodes.nodes_by_id.len(), 10);
+    fn test_make_node_impls() {
+        let node_impls = make_node_impls();
+        assert_eq!(
+            node_impls.get(1).unwrap().node_impl.node_info().id,
+            1.into()
+        );
     }
 
     #[test]
     fn power_on() {
-        let nodes = make_test_nodes();
-        let mut nodes = Nodes::new(nodes);
+        let mut nodes = make_node_group();
         let mut schedule = Schedule::new();
         nodes.to_add.push(1.into());
         nodes.to_add.push(2.into());
         nodes.power_on(&mut schedule);
-        assert_eq!(schedule.events.len(), 1);
+        assert_eq!(schedule.events.len(), 2);
     }
 
     #[test]
     fn power_off() {
-        let nodes = make_test_nodes();
-        let mut nodes = Nodes::new(nodes);
+        let mut nodes = make_node_group();
         let mut schedule = Schedule::new();
         nodes.to_pop.push(1.into());
         nodes.power_off(&mut schedule);
