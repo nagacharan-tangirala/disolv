@@ -1,5 +1,5 @@
 use super::helper::*;
-use crate::common::columns::{DISTANCE, LOAD_FACTOR, TARGET_ID, TIME_STEP};
+use crate::common::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
 use crate::input::links::LinkMap;
 use hashbrown::HashMap;
 use pavenet_config::config::base::Link;
@@ -43,15 +43,15 @@ pub(crate) fn extract_link_traces(
             continue;
         }
 
-        let id_series: &Series = ts_df.column(TARGET_ID)?;
-        let device_ids: Vec<NodeId> = convert_series_to_node_ids(id_series)?;
+        let id_series: &Series = ts_df.column(NODE_ID)?;
+        let node_ids: Vec<NodeId> = convert_series_to_node_ids(id_series)?;
 
         let mut link_vec: Vec<Link> = extract_mandatory_data(&ts_df)?;
         add_optional_data(&ts_df, &mut link_vec)?;
 
-        let mut link_map: HashMap<NodeId, Link> = HashMap::with_capacity(device_ids.len());
+        let mut link_map: HashMap<NodeId, Link> = HashMap::with_capacity(node_ids.len());
         for (idx, node_link) in link_vec.into_iter().enumerate() {
-            link_map.insert(device_ids[idx], node_link);
+            link_map.insert(node_ids[idx], node_link);
         }
         links.entry(*time_stamp).or_insert(link_map);
     }

@@ -5,7 +5,7 @@ use pavenet_config::config::base::PowerTimes;
 use pavenet_config::types::ids::node::NodeId;
 use std::path::PathBuf;
 
-pub(crate) fn read_activation_data(
+pub(crate) fn read_power_schedule(
     activations_file: &PathBuf,
 ) -> Result<HashMap<NodeId, PowerTimes>, Box<dyn std::error::Error>> {
     let activation_df = files::read_file(&activations_file)?;

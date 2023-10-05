@@ -44,15 +44,15 @@ pub(crate) fn extract_map_states(
             continue;
         }
 
-        let device_id_series = ts_df.column(NODE_ID)?;
-        let device_ids: Vec<NodeId> = convert_series_to_node_ids(device_id_series)?;
+        let node_id_series = ts_df.column(NODE_ID)?;
+        let node_ids: Vec<NodeId> = convert_series_to_node_ids(node_id_series)?;
 
         let mut map_states: Vec<MapState> = extract_mandatory_data(&ts_df)?;
         add_optional_data(&ts_df, &mut map_states)?;
 
-        let mut trace: HashMap<NodeId, MapState> = HashMap::with_capacity(device_ids.len());
-        for (idx, device_id) in device_ids.iter().enumerate() {
-            trace.insert(*device_id, map_states[idx]);
+        let mut trace: HashMap<NodeId, MapState> = HashMap::with_capacity(node_ids.len());
+        for (idx, node_id) in node_ids.iter().enumerate() {
+            trace.insert(*node_id, map_states[idx]);
         }
         trace_map.entry(*time_stamp).or_insert(trace);
     }
