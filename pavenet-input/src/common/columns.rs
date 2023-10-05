@@ -6,8 +6,8 @@ pub(crate) const LOAD_FACTOR: &str = "load_factor";
 pub(crate) const VELOCITY: &str = "velocity";
 pub(crate) const ROAD_ID: &str = "road_id";
 
-pub(crate) const START_TIME: &str = "start_time";
-pub(crate) const END_TIME: &str = "end_time";
+pub(crate) const ON_TIMES: &str = "on_times";
+pub(crate) const OFF_TIMES: &str = "off_times";
 pub(crate) const TIME_STEP: &str = "time_step";
 
 pub(crate) const COORD_X: &str = "x";
