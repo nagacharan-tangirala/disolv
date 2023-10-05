@@ -1,26 +1,44 @@
 use crate::types::ids::node::NodeId;
 use crate::types::ts::TimeStamp;
-use hashbrown::HashMap;
 use serde_derive::Deserialize;
 use std::path::PathBuf;
+use typed_builder::TypedBuilder;
 
-pub type Activation = (Vec<TimeStamp>, Vec<TimeStamp>); // (start_times, end_times)
-pub type MultiLink = (Vec<NodeId>, Vec<f32>); // (neighbour_device_ids, distances)
-pub type MultiLinkMap = HashMap<NodeId, MultiLink>;
-pub type LinkMap = HashMap<NodeId, NodeId>; // (source_id, target_id)
-pub type TraceLinkMap = HashMap<TimeStamp, MultiLinkMap>;
-
-#[derive(Deserialize, Clone, Debug, Default, PartialEq)]
-pub enum LinkType {
-    #[default]
-    Single,
-    Multiple,
-}
+pub type PowerTimes = (Vec<TimeStamp>, Vec<TimeStamp>); // (on times, off times)
 
 #[derive(Deserialize, Debug, Clone)]
 pub enum MobilityType {
     Stationery,
     Mobile,
+}
+
+pub type RoadId = u32;
+pub type Velocity = f32;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Point2D {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
+pub struct MapState {
+    pub pos: Point2D,
+    #[builder(default = None)]
+    pub z: Option<f32>,
+    #[builder(default = None)]
+    pub velocity: Option<Velocity>,
+    #[builder(default = None)]
+    pub road_id: Option<RoadId>,
+}
+
+#[derive(Debug, Clone, Default, TypedBuilder)]
+pub struct Link {
+    pub target: Vec<NodeId>,
+    #[builder(default = None)]
+    pub distance: Option<Vec<f32>>,
+    #[builder(default = None)]
+    pub load_factor: Option<Vec<f32>>,
 }
 
 #[derive(Deserialize, Clone, Debug, Copy)]
@@ -163,7 +181,6 @@ pub struct LinkerSettings {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct LinkConfig {
-    pub link_type: LinkType,
     pub transfer_mode: TransferMode,
     pub target_device: NodeType,
     pub links_file: String,
