@@ -100,3 +100,33 @@ pub(crate) fn convert_list_series_to_vector_floats(
     }
     Ok(result_vec)
 }
+
+pub(crate) fn convert_list_series_to_vector_integers(
+    list_series: &Series,
+) -> Result<Vec<Vec<i64>>, Box<dyn std::error::Error>> {
+    let mut result_vec: Vec<Vec<i64>> = Vec::with_capacity(list_series.len());
+    for n in list_series.iter() {
+        let x = Series::from_any_values("a", slice::from_ref(&n), true)?;
+        let x_vec = x.explode()?.i64()?.to_vec();
+        let x_vec: Vec<i64> = x_vec.iter().filter_map(|x| *x).collect();
+        result_vec.push(x_vec);
+    }
+    Ok(result_vec)
+}
+
+pub(crate) fn convert_list_series_to_vector_timestamps(
+    list_series: &Series,
+) -> Result<Vec<Vec<TimeStamp>>, Box<dyn std::error::Error>> {
+    let mut result_vec: Vec<Vec<TimeStamp>> = Vec::with_capacity(list_series.len());
+    for n in list_series.iter() {
+        let x = Series::from_any_values("a", slice::from_ref(&n), true)?;
+        let x_vec = x.explode()?.i64()?.to_vec();
+        let x_vec: Vec<TimeStamp> = x_vec
+            .iter()
+            .filter_map(|x| *x)
+            .map(|x| TimeStamp::from(x))
+            .collect();
+        result_vec.push(x_vec);
+    }
+    Ok(result_vec)
+}
