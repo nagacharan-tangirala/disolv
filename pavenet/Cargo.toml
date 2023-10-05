@@ -9,7 +9,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-pavenet-io = { version = "0.0.1", path= "../pavenet-io" }
+pavenet-input = { version = "0.0.1", path= "../pavenet-input" }
 pavenet-core = { version = "0.0.1", path= "../pavenet-core" }
 pavenet-config = { version = "0.0.1", path= "../pavenet-config" }
 pavenet-models = { version = "0.0.1", path= "../pavenet-models" }

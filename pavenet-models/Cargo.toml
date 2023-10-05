@@ -9,7 +9,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-pavenet-io = { version = "0.0.1", path= "../pavenet-io" }
+pavenet-input = { version = "0.0.1", path= "../pavenet-input" }
 pavenet-config = { version = "0.0.1", path= "../pavenet-config" }
 krabmaga = { version = "0.4.1", path= "../../krABMaga" }
 rand = "0.8.5"
