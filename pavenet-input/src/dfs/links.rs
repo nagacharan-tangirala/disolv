@@ -1,5 +1,5 @@
 use super::helper::*;
-use crate::common::columns::{DISTANCE, TARGET_ID, TIME_STEP};
+use crate::common::columns::{DISTANCE, LOAD_FACTOR, TARGET_ID, TIME_STEP};
 use crate::input::links::LinkMap;
 use hashbrown::HashMap;
 use pavenet_config::config::base::Link;
@@ -123,16 +123,17 @@ fn add_optional_data(
                     links[idx].load_factor = Some(load_factor);
                 }
             }
+            _ => return Err("Invalid column name".into()),
         }
     }
     return Ok(());
 }
 
 fn get_optional_columns(df: &DataFrame) -> Vec<&str> {
-    let columns_in_df = df.get_column_names_owned();
-    return columns_in_df
-        .iter()
-        .filter(|col| optional::COLUMNS.contains(&col.as_str()))
-        .map(|col| col.as_str())
+    return df
+        .get_column_names()
+        .into_iter()
+        .filter(|col| optional::COLUMNS.contains(&col))
+        .map(|col| col)
         .collect();
 }

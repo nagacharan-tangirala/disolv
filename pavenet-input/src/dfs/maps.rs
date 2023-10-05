@@ -147,11 +147,11 @@ fn add_optional_data(
 }
 
 fn get_optional_columns(df: &DataFrame) -> Vec<&str> {
-    let columns_in_df = df.get_column_names_owned();
-    return columns_in_df
-        .iter()
-        .filter(|col| optional::COLUMNS.contains(&col.as_str()))
-        .map(|col| col.as_str())
+    return df
+        .get_column_names()
+        .into_iter()
+        .filter(|col| optional::COLUMNS.contains(&col))
+        .map(|col| col)
         .collect();
 }
 
