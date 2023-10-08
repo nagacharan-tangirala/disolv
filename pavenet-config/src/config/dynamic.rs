@@ -26,9 +26,14 @@ pub struct EpisodeInfo {
     pub time_stamp: TimeStamp,
     pub episode_type: EpisodeType,
     pub duration: Option<TimeStamp>,
-    pub device_type: Option<NodeType>,
-    pub device_class: Option<u32>,
-    pub device_list: Option<Vec<NodeId>>,
+    pub node_type: Option<NodeType>,
+    pub node_class: Option<u32>,
+    pub node_list: Option<Vec<NodeId>>,
+    pub model_settings: Option<ModelSettings>,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct ModelSettings {
     pub data_sources: Option<SourceSettings>,
     pub linker_settings: Option<LinkerSettings>,
     pub composer: Option<ComposerSettings>,
