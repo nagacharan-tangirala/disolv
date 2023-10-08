@@ -21,6 +21,10 @@ impl TestNode {
 }
 
 impl Transmitter for TestNode {
+    fn generate_data(&mut self, _core: &mut Core) {
+        todo!()
+    }
+
     fn transmit(&mut self, _payload: Box<dyn Payload>) {
         todo!()
     }
@@ -28,6 +32,10 @@ impl Transmitter for TestNode {
 
 impl Recipient for TestNode {
     fn receive(&mut self, _payloads: &mut Vec<Box<dyn Payload>>) {
+        todo!()
+    }
+
+    fn report_stats(&mut self, _core: &mut Core) {
         todo!()
     }
 }
