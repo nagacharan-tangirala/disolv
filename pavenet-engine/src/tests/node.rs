@@ -1,9 +1,9 @@
-use crate::core::core::Core;
+use crate::engine::core::Core;
 use crate::node::node::Node;
 use crate::node::power::PowerState;
 use crate::node::receive::Recipient;
 use crate::node::transmit::{Transferable, Transmitter};
-use pavenet_config::config::structs::NodeInfo;
+use pavenet_config::structs::NodeInfo;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct TestNode {

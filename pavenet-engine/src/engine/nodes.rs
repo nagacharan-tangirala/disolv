@@ -1,9 +1,9 @@
-use crate::core::nodeimpl::NodeImpl;
+use crate::engine::nodeimpl::NodeImpl;
 use crate::node::node::Node;
 use crate::node::power::{PowerSchedule, PowerState};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
-use pavenet_config::types::ids::node::NodeId;
+use pavenet_core::named::ids::node::NodeId;
 
 #[derive(Default)]
 pub struct Nodes {

@@ -1,18 +1,16 @@
-use crate::core::nodes::Nodes;
+use crate::engine::nodes::Nodes;
 use crate::node::pool::NodePool;
 use hashbrown::HashMap;
 use krabmaga::engine::{schedule::Schedule, state::State};
-use pavenet_config::config::base::BaseConfig;
-use pavenet_config::config::dynamic::DynamicConfig;
-use pavenet_config::types::ts::TimeStamp;
+use pavenet_core::types::TimeStamp;
 use std::any::{Any, TypeId};
 use typed_builder::TypedBuilder;
 
 #[derive(TypedBuilder)]
 pub struct Core {
-    pub base_config: BaseConfig,
-    pub dyn_config: DynamicConfig,
     pub step: TimeStamp,
+    pub streaming_step: TimeStamp,
+    pub end_step: TimeStamp,
     pub nodes: Nodes,
     pub node_collections: HashMap<TypeId, Box<dyn NodePool>>,
 }
@@ -56,7 +54,7 @@ impl State for Core {
             .for_each(|c| c.before_step(self.step));
 
         if self.step > TimeStamp::default()
-            && self.step.as_u64() % self.base_config.simulation_settings.sim_streaming_step == 0
+            && self.step.as_u64() % self.streaming_step.as_u64() == 0
         {
             self.node_collections
                 .values_mut()
@@ -72,6 +70,6 @@ impl State for Core {
     }
 
     fn end_condition(&mut self, _schedule: &mut Schedule) -> bool {
-        self.step == TimeStamp::from(self.base_config.simulation_settings.sim_duration)
+        self.step == self.end_step
     }
 }

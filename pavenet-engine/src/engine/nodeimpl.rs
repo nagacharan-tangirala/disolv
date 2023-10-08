@@ -1,10 +1,10 @@
-use crate::core::core::Core;
+use crate::engine::core::Core;
 use crate::node::node::Node;
 use crate::node::power::{PowerSchedule, PowerState};
 use downcast_rs::impl_downcast;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::state::State;
-use pavenet_config::types::ids::node::NodeId;
+use pavenet_core::named::ids::node::NodeId;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 

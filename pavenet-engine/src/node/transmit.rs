@@ -1,4 +1,4 @@
-use crate::core::core::Core;
+use crate::engine::core::Core;
 
 pub trait Transferable {
     fn sensor_data(&mut self, payload: &mut Box<dyn Transferable>);

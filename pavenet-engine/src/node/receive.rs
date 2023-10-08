@@ -1,4 +1,4 @@
-use crate::core::core::Core;
+use crate::engine::core::Core;
 use crate::node::transmit::Transferable;
 
 pub trait Recipient {

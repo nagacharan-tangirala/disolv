@@ -1,14 +1,14 @@
-use crate::core::nodeimpl::NodeImpl;
-use crate::core::nodes::Nodes;
+use crate::engine::nodeimpl::NodeImpl;
+use crate::engine::nodes::Nodes;
 use crate::node::node::Node;
 use crate::node::power::{PowerSchedule, SCHEDULE_SIZE};
 use crate::tests::node::TestNode;
 use hashbrown::HashMap;
-use pavenet_config::config::enums::NodeType;
-use pavenet_config::config::structs::NodeInfo;
-use pavenet_config::types::ids::node::NodeId;
-use pavenet_config::types::order::Order;
-use pavenet_config::types::ts::TimeStamp;
+use pavenet_config::enums::NodeType;
+use pavenet_config::named::ids::node::NodeId;
+use pavenet_config::named::order::Order;
+use pavenet_config::named::ts::TimeStamp;
+use pavenet_config::structs::NodeInfo;
 
 pub(crate) fn make_node_impls() -> Vec<NodeImpl> {
     let mut nodes: Vec<NodeImpl> = Vec::with_capacity(10);

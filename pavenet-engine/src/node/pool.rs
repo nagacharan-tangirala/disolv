@@ -1,5 +1,5 @@
 use krabmaga::engine::schedule::Schedule;
-use pavenet_config::types::ts::TimeStamp;
+use pavenet_core::named::ts::TimeStamp;
 
 pub trait NodePool: Send + Sync {
     fn init(&mut self, schedule: &mut Schedule);
