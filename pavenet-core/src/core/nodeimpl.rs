@@ -12,20 +12,20 @@ use std::hash::{Hash, Hasher};
 pub struct NodeImpl {
     pub(crate) node_id: NodeId,
     pub(crate) power_schedule: PowerSchedule,
-    pub(crate) node_impl: Box<dyn Node>,
+    pub(crate) node: Box<dyn Node>,
 }
 
 impl NodeImpl {
-    pub fn new(node_id: NodeId, power_schedule: PowerSchedule, node_impl: Box<dyn Node>) -> Self {
+    pub fn new(node_id: NodeId, power_schedule: PowerSchedule, dyn_node: Box<dyn Node>) -> Self {
         Self {
             node_id,
-            node_impl,
+            node: dyn_node,
             power_schedule,
         }
     }
 
     fn power_off(&mut self, core: &mut Core) {
-        self.node_impl.set_power_state(PowerState::Off);
+        self.node.set_power_state(PowerState::Off);
         self.power_schedule.pop_time_to_off();
         core.nodes.to_pop.push(self.node_id);
 
@@ -42,9 +42,9 @@ impl NodeImpl {
 
 impl Agent for NodeImpl {
     fn step(&mut self, state: &mut dyn State) {
-        self.node_impl.set_power_state(PowerState::On);
+        self.node.set_power_state(PowerState::On);
         let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
-        self.node_impl.step(core_state);
+        self.node.step(core_state);
         if core_state.step == self.power_schedule.peek_time_to_off() {
             self.power_off(core_state);
         }
@@ -52,11 +52,11 @@ impl Agent for NodeImpl {
 
     fn after_step(&mut self, state: &mut dyn State) {
         let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
-        self.node_impl.after_step(core_state);
+        self.node.after_step(core_state);
     }
 
     fn is_stopped(&self, _state: &mut dyn State) -> bool {
-        self.node_impl.power_state() == PowerState::Off
+        self.node.power_state() == PowerState::Off
     }
 }
 
