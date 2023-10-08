@@ -1,8 +1,8 @@
-use crate::config::enums::NodeType;
-use crate::types::ids::node::NodeId;
-use crate::types::ids::road::RoadId;
-use crate::types::order::Order;
-use crate::types::velocity::Velocity;
+use crate::enums::NodeType;
+use crate::named::ids::node::NodeId;
+use crate::named::ids::road::RoadId;
+use crate::named::order::Order;
+use crate::named::velocity::Velocity;
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Copy, Debug, Default)]

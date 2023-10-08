@@ -9,14 +9,9 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-pavenet-config = { version = "0.0.1", path= "../pavenet-config" }
-krabmaga = { version = "0.4.1", path= "../../krABMaga" }
-rand = "0.8.5"
+serde = "1.0.188"
+serde_derive = "1.0.188"
 hashbrown = "0.14.1"
+toml = "0.8.1"
+serde_with = "3.3.0"
 typed-builder = "0.16.2"
-dyn-clone = "1.0.14"
-downcast-rs = "1.2.0"
-
-[features]
-visualization = ["krabmaga/visualization"]
-visualization_wasm = ["krabmaga/visualization_wasm"]
