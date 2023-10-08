@@ -1,6 +1,6 @@
 use crate::common::columns::TIME_STEP;
 
-use pavenet_config::types::ts::TimeStamp;
+use pavenet_core::types::TimeStamp;
 use polars::prelude::{col, lit, LazyFrame, PolarsError, PolarsResult, ScanArgsParquet};
 use polars_core::error::ErrString;
 use polars_core::prelude::DataFrame;

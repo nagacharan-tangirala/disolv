@@ -9,9 +9,8 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-krabmaga = { version = "0.4.1", path= "../../krABMaga" }
 pavenet-core = { path = "../pavenet-core" }
-pavenet-config = { path = "../pavenet-config" }
+pavenet-engine = { path = "../pavenet-engine" }
 hashbrown = "0.14.1"
 log = "0.4.20"
 polars-core = "0.33.2"

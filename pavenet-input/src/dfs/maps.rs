@@ -4,11 +4,8 @@ use crate::convert::series::{
 };
 use crate::input::maps::TraceMap;
 use hashbrown::HashMap;
-use pavenet_config::config::structs::{MapState, Point2D};
-use pavenet_config::types::ids::node::NodeId;
-use pavenet_config::types::ids::road::RoadId;
-use pavenet_config::types::ts::TimeStamp;
-use pavenet_config::types::velocity::Velocity;
+use pavenet_core::structs::{MapState, Point2D};
+use pavenet_core::types::{NodeId, RoadId, TimeStamp, Velocity};
 use polars::prelude::{col, lit, IntoLazy};
 use polars_core::error::ErrString;
 use polars_core::frame::DataFrame;

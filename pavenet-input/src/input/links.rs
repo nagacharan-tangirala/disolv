@@ -1,9 +1,8 @@
 use crate::dfs::links;
 use crate::input::files;
 use hashbrown::HashMap;
-use pavenet_config::config::structs::Link;
-use pavenet_config::types::ids::node::NodeId;
-use pavenet_config::types::ts::TimeStamp;
+use pavenet_core::structs::Link;
+use pavenet_core::types::{NodeId, TimeStamp};
 use polars_core::prelude::DataFrame;
 use std::error::Error;
 use std::path::PathBuf;

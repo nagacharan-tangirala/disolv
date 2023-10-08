@@ -1,8 +1,7 @@
 use crate::dfs::power;
 use crate::input::files;
 use hashbrown::HashMap;
-use pavenet_config::config::base::PowerTimes;
-use pavenet_config::types::ids::node::NodeId;
+use pavenet_core::types::{NodeId, PowerTimes};
 use std::path::PathBuf;
 
 pub(crate) fn read_power_schedule(

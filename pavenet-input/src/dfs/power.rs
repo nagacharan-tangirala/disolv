@@ -2,8 +2,7 @@ use crate::common::columns::{NODE_ID, OFF_TIMES, ON_TIMES};
 use crate::convert::list_series::to_vec_of_timestamp_vec;
 use crate::convert::series::to_nodeid_vec;
 use hashbrown::HashMap;
-use pavenet_config::config::base::PowerTimes;
-use pavenet_config::types::ids::node::NodeId;
+use pavenet_core::types::{NodeId, PowerTimes};
 use polars::prelude::{col, IntoLazy};
 use polars_core::prelude::DataFrame;
 

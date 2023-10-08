@@ -1,5 +1,5 @@
-use pavenet_config::types::ids::node::NodeId;
-use pavenet_config::types::ts::TimeStamp;
+use pavenet_core::types::NodeId;
+use pavenet_core::types::TimeStamp;
 use polars_core::prelude::Series;
 use std::slice;
 

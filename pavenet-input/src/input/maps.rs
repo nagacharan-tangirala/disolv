@@ -1,9 +1,8 @@
 use crate::dfs::maps;
 use crate::input::files;
 use hashbrown::HashMap;
-use pavenet_config::config::structs::MapState;
-use pavenet_config::types::ids::node::NodeId;
-use pavenet_config::types::ts::TimeStamp;
+use pavenet_core::structs::MapState;
+use pavenet_core::types::{NodeId, TimeStamp};
 use std::path::PathBuf;
 use typed_builder::TypedBuilder;
 

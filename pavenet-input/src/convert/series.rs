@@ -1,7 +1,4 @@
-use pavenet_config::types::ids::node::NodeId;
-use pavenet_config::types::ids::road::RoadId;
-use pavenet_config::types::ts::TimeStamp;
-use pavenet_config::types::velocity::Velocity;
+use pavenet_core::types::{NodeId, RoadId, TimeStamp, Velocity};
 use polars_core::prelude::Series;
 
 pub(crate) fn to_i64_vec(series: &Series) -> Result<Vec<i64>, Box<dyn std::error::Error>> {
