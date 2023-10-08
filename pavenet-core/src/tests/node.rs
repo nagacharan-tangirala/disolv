@@ -1,9 +1,9 @@
 use crate::core::core::Core;
-use crate::node::info::NodeInfo;
 use crate::node::node::Node;
 use crate::node::power::PowerState;
 use crate::node::receive::Recipient;
 use crate::node::transmit::{Payload, Transmitter};
+use pavenet_config::config::structs::NodeInfo;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct TestNode {
@@ -45,8 +45,8 @@ impl Node for TestNode {
         self.power_state
     }
 
-    fn node_info(&self) -> NodeInfo {
-        self.node_info
+    fn node_order(&self) -> i32 {
+        self.node_info.order.as_i32()
     }
 
     fn set_power_state(&mut self, power_state: PowerState) {

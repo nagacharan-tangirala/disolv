@@ -1,11 +1,11 @@
 use crate::core::nodeimpl::NodeImpl;
 use crate::core::nodes::Nodes;
-use crate::node::info::NodeInfo;
 use crate::node::node::Node;
 use crate::node::power::{PowerSchedule, SCHEDULE_SIZE};
 use crate::tests::node::TestNode;
 use hashbrown::HashMap;
-use pavenet_config::config::base::NodeType;
+use pavenet_config::config::enums::NodeType;
+use pavenet_config::config::structs::NodeInfo;
 use pavenet_config::types::ids::node::NodeId;
 use pavenet_config::types::order::Order;
 use pavenet_config::types::ts::TimeStamp;
@@ -27,8 +27,8 @@ pub(crate) fn make_node_impls() -> Vec<NodeImpl> {
     nodes
 }
 
-pub(crate) fn make_dyn_nodes() -> Vec<Box<dyn Node>> {
-    let mut nodes: Vec<Box<dyn Node>> = Vec::with_capacity(10);
+pub(crate) fn make_dyn_nodes() -> HashMap<NodeId, Box<dyn Node>> {
+    let mut nodes: HashMap<NodeId, Box<dyn Node>> = HashMap::with_capacity(10);
     for i in 0..10 {
         let node_info = NodeInfo::builder()
             .node_type(NodeType::Vehicle)
@@ -37,7 +37,7 @@ pub(crate) fn make_dyn_nodes() -> Vec<Box<dyn Node>> {
             .order(Order::from(1))
             .build();
         let test_node = TestNode::new(node_info);
-        nodes.push(Box::new(test_node));
+        nodes.insert(NodeId::from(i), Box::new(test_node));
     }
     nodes
 }
@@ -52,7 +52,7 @@ fn make_power_schedule() -> PowerSchedule {
     PowerSchedule::new(on_times, off_times)
 }
 
-pub(crate) fn make_node_group() -> Nodes {
+pub(crate) fn make_node_pool() -> Nodes {
     let nodes = make_dyn_nodes();
     let mut power_schedule_map: HashMap<NodeId, PowerSchedule> = HashMap::new();
     for i in 0..10 {
