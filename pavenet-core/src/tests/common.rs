@@ -6,8 +6,8 @@ use crate::node::power::{PowerSchedule, SCHEDULE_SIZE};
 use crate::tests::node::TestNode;
 use hashbrown::HashMap;
 use pavenet_config::config::base::NodeType;
-use pavenet_config::types::hierarchy::Hierarchy;
 use pavenet_config::types::ids::node::NodeId;
+use pavenet_config::types::order::Order;
 use pavenet_config::types::ts::TimeStamp;
 
 pub(crate) fn make_node_impls() -> Vec<NodeImpl> {
@@ -17,7 +17,7 @@ pub(crate) fn make_node_impls() -> Vec<NodeImpl> {
             .node_type(NodeType::Vehicle)
             .node_class(1)
             .id(i.into())
-            .hierarchy(Hierarchy::from(1))
+            .order(Order::from(1))
             .build();
         let test_node = TestNode::new(node_info);
         let power_schedule = make_power_schedule();
@@ -34,7 +34,7 @@ pub(crate) fn make_dyn_nodes() -> Vec<Box<dyn Node>> {
             .node_type(NodeType::Vehicle)
             .node_class(1)
             .id(i.into())
-            .hierarchy(Hierarchy::from(1))
+            .order(Order::from(1))
             .build();
         let test_node = TestNode::new(node_info);
         nodes.push(Box::new(test_node));

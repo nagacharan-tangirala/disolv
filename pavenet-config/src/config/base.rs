@@ -88,17 +88,17 @@ pub struct BaseConfig {
     pub log_settings: LogSettings,
     pub output_settings: OutputSettings,
     pub field_settings: FieldSettings,
-    pub devices: Vec<DeviceSettings>,
+    pub node_settings: Vec<NodeSettings>,
     pub network_settings: NetworkSettings,
 }
 
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
-pub struct DeviceSettings {
+pub struct NodeSettings {
     pub ratio: f32,
-    pub device_type: NodeType,
-    pub device_class: u32,
-    pub hierarchy: u32,
+    pub node_type: NodeType,
+    pub node_class: u32,
+    pub node_order: i32,
     pub activation_file: String,
     pub mobility_settings: MapStateSettings,
     pub linker: LinkerSettings,

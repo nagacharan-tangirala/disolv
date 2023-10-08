@@ -1,5 +1,5 @@
 use crate::core::nodes::Nodes;
-use crate::node::group::NodeGroup;
+use crate::node::pool::NodePool;
 use hashbrown::HashMap;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use pavenet_config::config::base::BaseConfig;
@@ -14,7 +14,7 @@ pub struct Core {
     pub dyn_config: DynamicConfig,
     pub step: TimeStamp,
     pub nodes: Nodes,
-    pub node_collections: HashMap<TypeId, Box<dyn NodeGroup>>,
+    pub node_collections: HashMap<TypeId, Box<dyn NodePool>>,
 }
 
 impl State for Core {
