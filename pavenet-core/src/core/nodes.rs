@@ -35,14 +35,12 @@ impl Nodes {
                 Some(node) => {
                     schedule.schedule_repeating(
                         node.as_agent(),
-                        node.node_impl.node_info().id.into(),
+                        node.node_id.as_u32(),
                         node.power_schedule.pop_time_to_on().as_f32(),
-                        node.node_impl.node_info().hierarchy.into(),
+                        node.node_impl.node_info().order.as_i32(),
                     );
                 }
-                None => {
-                    panic!("Could not find node {}", node_id);
-                }
+                None => panic!("Could not find node {}", node_id),
             }
         }
     }
@@ -54,9 +52,7 @@ impl Nodes {
                     node.node_impl.set_power_state(PowerState::Off);
                     schedule.dequeue(node.clone().as_agent(), (*node_id).into());
                 }
-                None => {
-                    panic!("Could not find node {}", node_id);
-                }
+                None => panic!("Could not find node {}", node_id),
             }
         }
     }
@@ -70,10 +66,7 @@ mod tests {
     #[test]
     fn test_make_node_impls() {
         let node_impls = make_node_impls();
-        assert_eq!(
-            node_impls.get(1).unwrap().node_impl.node_info().id,
-            1.into()
-        );
+        assert_eq!(node_impls.get(1).unwrap().node_id, 1.into());
     }
 
     #[test]
