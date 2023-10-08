@@ -5,10 +5,12 @@ use downcast_rs::impl_downcast;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::state::State;
 use pavenet_config::types::ids::node::NodeId;
+use std::fmt;
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone)]
 pub struct NodeImpl {
-    node_id: NodeId,
+    pub(crate) node_id: NodeId,
     pub(crate) power_schedule: PowerSchedule,
     pub(crate) node_impl: Box<dyn Node>,
 }
@@ -55,6 +57,29 @@ impl Agent for NodeImpl {
 
     fn is_stopped(&self, _state: &mut dyn State) -> bool {
         self.node_impl.power_state() == PowerState::Off
+    }
+}
+
+impl Hash for NodeImpl {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        self.node_id.hash(state);
+    }
+}
+
+impl fmt::Display for NodeImpl {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.node_id)
+    }
+}
+
+impl Eq for NodeImpl {}
+
+impl PartialEq for NodeImpl {
+    fn eq(&self, other: &NodeImpl) -> bool {
+        self.node_id == other.node_id
     }
 }
 
