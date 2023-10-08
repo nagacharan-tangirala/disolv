@@ -2,7 +2,7 @@ use crate::core::core::Core;
 use crate::node::node::Node;
 use crate::node::power::PowerState;
 use crate::node::receive::Recipient;
-use crate::node::transmit::{Payload, Transmitter};
+use crate::node::transmit::{Transferable, Transmitter};
 use pavenet_config::config::structs::NodeInfo;
 
 #[derive(Clone, Copy, Debug)]
@@ -21,17 +21,17 @@ impl TestNode {
 }
 
 impl Transmitter for TestNode {
-    fn generate_data(&mut self, _core: &mut Core) {
+    fn generate_data(&mut self, _core: &mut Core) -> Box<dyn Transferable> {
         todo!()
     }
 
-    fn transmit(&mut self, _payload: Box<dyn Payload>) {
+    fn transmit(&mut self, _payload: Box<dyn Transferable>) {
         todo!()
     }
 }
 
 impl Recipient for TestNode {
-    fn receive(&mut self, _payloads: &mut Vec<Box<dyn Payload>>) {
+    fn receive(&mut self, _payloads: &mut Vec<Box<dyn Transferable>>) {
         todo!()
     }
 
