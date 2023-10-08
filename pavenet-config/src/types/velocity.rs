@@ -9,8 +9,8 @@ impl Display for Velocity {
     }
 }
 
-impl From<f32> for Velocity {
-    fn from(f: f32) -> Self {
+impl From<f64> for Velocity {
+    fn from(f: f64) -> Self {
         Self(f as f32)
     }
 }

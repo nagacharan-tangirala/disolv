@@ -19,8 +19,8 @@ impl FromStr for RoadId {
     }
 }
 
-impl From<f32> for RoadId {
-    fn from(f: f32) -> Self {
+impl From<i64> for RoadId {
+    fn from(f: i64) -> Self {
         Self(f as u32)
     }
 }
