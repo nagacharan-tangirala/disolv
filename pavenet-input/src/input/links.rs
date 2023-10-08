@@ -1,7 +1,7 @@
 use crate::dfs::links;
 use crate::input::files;
 use hashbrown::HashMap;
-use pavenet_config::config::base::Link;
+use pavenet_config::config::structs::Link;
 use pavenet_config::types::ids::node::NodeId;
 use pavenet_config::types::ts::TimeStamp;
 use polars_core::prelude::DataFrame;

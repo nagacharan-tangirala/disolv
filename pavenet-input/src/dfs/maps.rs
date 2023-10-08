@@ -1,10 +1,14 @@
 use crate::common::columns::*;
-use crate::dfs::helper::*;
+use crate::convert::series::{
+    to_f32_vec, to_nodeid_vec, to_roadid_vec, to_timestamp_vec, to_velocity_vec,
+};
 use crate::input::maps::TraceMap;
 use hashbrown::HashMap;
-use pavenet_config::config::base::{MapState, Point2D, RoadId, Velocity};
+use pavenet_config::config::structs::{MapState, Point2D};
 use pavenet_config::types::ids::node::NodeId;
+use pavenet_config::types::ids::road::RoadId;
 use pavenet_config::types::ts::TimeStamp;
+use pavenet_config::types::velocity::Velocity;
 use polars::prelude::{col, lit, IntoLazy};
 use polars_core::error::ErrString;
 use polars_core::frame::DataFrame;
@@ -29,7 +33,7 @@ pub(crate) fn extract_map_states(
     let filtered_df = group_by_time(&trace_df)?;
 
     let ts_series = filtered_df.column(TIME_STEP)?;
-    let time_stamps: Vec<TimeStamp> = convert_series_to_timestamps(ts_series)?;
+    let time_stamps: Vec<TimeStamp> = to_timestamp_vec(ts_series)?;
 
     let mut trace_map: TraceMap = HashMap::with_capacity(time_stamps.len());
     for time_stamp in time_stamps.iter() {
@@ -45,7 +49,7 @@ pub(crate) fn extract_map_states(
         }
 
         let node_id_series = ts_df.column(NODE_ID)?;
-        let node_ids: Vec<NodeId> = convert_series_to_node_ids(node_id_series)?;
+        let node_ids: Vec<NodeId> = to_nodeid_vec(node_id_series)?;
 
         let mut map_states: Vec<MapState> = extract_mandatory_data(&ts_df)?;
         add_optional_data(&ts_df, &mut map_states)?;
@@ -91,9 +95,9 @@ fn columns_to_aggregate(df: &DataFrame) -> Vec<polars::prelude::Expr> {
 
 fn extract_mandatory_data(df: &DataFrame) -> Result<Vec<MapState>, Box<dyn std::error::Error>> {
     let x_series = df.column(COORD_X)?;
-    let x_positions: Vec<f32> = convert_series_to_floating_vector(x_series)?;
+    let x_positions: Vec<f32> = to_f32_vec(x_series)?;
     let y_series = df.column(COORD_Y)?;
-    let y_positions: Vec<f32> = convert_series_to_floating_vector(y_series)?;
+    let y_positions: Vec<f32> = to_f32_vec(y_series)?;
 
     let map_states: Vec<MapState> = x_positions
         .iter()
@@ -112,7 +116,7 @@ fn add_optional_data(
         match optional_col {
             COORD_Z => {
                 let z_series = df.column(COORD_Z)?;
-                let z_positions: Vec<f32> = convert_series_to_floating_vector(z_series)?;
+                let z_positions: Vec<f32> = to_f32_vec(z_series)?;
                 map_states
                     .iter_mut()
                     .enumerate()
@@ -122,22 +126,22 @@ fn add_optional_data(
             }
             VELOCITY => {
                 let vel_series = df.column(VELOCITY)?;
-                let velocities: Vec<f32> = convert_series_to_floating_vector(vel_series)?;
+                let velocities: Vec<Velocity> = to_velocity_vec(vel_series)?;
                 map_states
                     .iter_mut()
                     .enumerate()
                     .for_each(|(idx, map_state)| {
-                        map_state.velocity = Some(Velocity::from(velocities[idx]));
+                        map_state.velocity = Some(velocities[idx]);
                     });
             }
             ROAD_ID => {
                 let road_id_series = df.column(ROAD_ID)?;
-                let road_ids: Vec<i64> = convert_series_to_integer_vector(road_id_series)?;
+                let road_ids: Vec<RoadId> = to_roadid_vec(road_id_series)?;
                 map_states
                     .iter_mut()
                     .enumerate()
                     .for_each(|(idx, map_state)| {
-                        map_state.road_id = Some(road_ids[idx] as RoadId);
+                        map_state.road_id = Some(road_ids[idx]);
                     });
             }
             _ => return Err("Invalid column name".into()),

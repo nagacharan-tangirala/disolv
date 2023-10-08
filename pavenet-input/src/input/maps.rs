@@ -1,7 +1,7 @@
 use crate::dfs::maps;
 use crate::input::files;
 use hashbrown::HashMap;
-use pavenet_config::config::base::MapState;
+use pavenet_config::config::structs::MapState;
 use pavenet_config::types::ids::node::NodeId;
 use pavenet_config::types::ts::TimeStamp;
 use std::path::PathBuf;

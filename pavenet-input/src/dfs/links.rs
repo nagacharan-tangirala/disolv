@@ -1,8 +1,9 @@
-use super::helper::*;
 use crate::common::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
+use crate::convert::list_series::{to_vec_of_f32_vec, to_vec_of_nodeid_vec};
+use crate::convert::series::{to_nodeid_vec, to_timestamp_vec};
 use crate::input::links::LinkMap;
 use hashbrown::HashMap;
-use pavenet_config::config::base::Link;
+use pavenet_config::config::structs::Link;
 use pavenet_config::types::ids::node::NodeId;
 use pavenet_config::types::ts::TimeStamp;
 use polars::prelude::{col, lit, IntoLazy, PolarsError};
@@ -28,7 +29,7 @@ pub(crate) fn extract_link_traces(
     let filtered_df = filter_links_df(links_df)?;
 
     let ts_series: &Series = filtered_df.column(TIME_STEP)?;
-    let time_stamps: Vec<TimeStamp> = convert_series_to_timestamps(ts_series)?;
+    let time_stamps: Vec<TimeStamp> = to_timestamp_vec(ts_series)?;
     let mut links: LinkMap = HashMap::with_capacity(time_stamps.len());
 
     for time_stamp in time_stamps.iter() {
@@ -44,7 +45,7 @@ pub(crate) fn extract_link_traces(
         }
 
         let id_series: &Series = ts_df.column(NODE_ID)?;
-        let node_ids: Vec<NodeId> = convert_series_to_node_ids(id_series)?;
+        let node_ids: Vec<NodeId> = to_nodeid_vec(id_series)?;
 
         let mut link_vec: Vec<Link> = extract_mandatory_data(&ts_df)?;
         add_optional_data(&ts_df, &mut link_vec)?;
@@ -92,7 +93,7 @@ fn filter_links_df(links_df: &DataFrame) -> PolarsResult<DataFrame> {
 
 fn extract_mandatory_data(df: &DataFrame) -> Result<Vec<Link>, Box<dyn std::error::Error>> {
     let target_id_series: &Series = df.column(TARGET_ID)?;
-    let target_ids: Vec<Vec<NodeId>> = convert_list_series_to_vector_node_ids(&target_id_series)?;
+    let target_ids: Vec<Vec<NodeId>> = to_vec_of_nodeid_vec(&target_id_series)?;
 
     let links: Vec<Link> = target_ids
         .into_iter()
@@ -110,15 +111,14 @@ fn add_optional_data(
         match optional_col {
             DISTANCE => {
                 let distance_series: &Series = df.column(DISTANCE)?;
-                let distances: Vec<Vec<f32>> =
-                    convert_list_series_to_vector_floats(&distance_series)?;
+                let distances: Vec<Vec<f32>> = to_vec_of_f32_vec(&distance_series)?;
                 for (idx, distance) in distances.into_iter().enumerate() {
                     links[idx].distance = Some(distance);
                 }
             }
             LOAD_FACTOR => {
                 let lf_series: &Series = df.column(LOAD_FACTOR)?;
-                let load_factors: Vec<Vec<f32>> = convert_list_series_to_vector_floats(&lf_series)?;
+                let load_factors: Vec<Vec<f32>> = to_vec_of_f32_vec(&lf_series)?;
                 for (idx, load_factor) in load_factors.into_iter().enumerate() {
                     links[idx].load_factor = Some(load_factor);
                 }
