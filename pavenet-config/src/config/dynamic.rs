@@ -1,8 +1,8 @@
 use crate::config::base::{
-    ComposerSettings, LinkerSettings, NodeType, ResponderSettings, SimplifierSettings,
-    SourceSettings,
+    ComposerSettings, LinkerSettings, ResponderSettings, SimplifierSettings, SourceSettings,
 };
 
+use crate::config::enums::NodeType;
 use crate::types::ids::node::NodeId;
 use crate::types::ts::TimeStamp;
 use serde_derive::Deserialize;

@@ -1,69 +1,9 @@
-use crate::types::ids::node::NodeId;
+use super::enums::{DataType, MobilityType, NodeType, TransferMode};
 use crate::types::ts::TimeStamp;
 use serde_derive::Deserialize;
 use std::path::PathBuf;
-use typed_builder::TypedBuilder;
 
 pub type PowerTimes = (Vec<TimeStamp>, Vec<TimeStamp>); // (on times, off times)
-
-#[derive(Deserialize, Debug, Clone)]
-pub enum MobilityType {
-    Stationery,
-    Mobile,
-}
-
-pub type RoadId = u32;
-pub type Velocity = f32;
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Point2D {
-    pub x: f32,
-    pub y: f32,
-}
-
-#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
-pub struct MapState {
-    pub pos: Point2D,
-    #[builder(default = None)]
-    pub z: Option<f32>,
-    #[builder(default = None)]
-    pub velocity: Option<Velocity>,
-    #[builder(default = None)]
-    pub road_id: Option<RoadId>,
-}
-
-#[derive(Debug, Clone, Default, TypedBuilder)]
-pub struct Link {
-    pub target: Vec<NodeId>,
-    #[builder(default = None)]
-    pub distance: Option<Vec<f32>>,
-    #[builder(default = None)]
-    pub load_factor: Option<Vec<f32>>,
-}
-
-#[derive(Deserialize, Clone, Debug, Copy)]
-pub enum TransferMode {
-    UDT,
-    BDT,
-}
-
-#[derive(Deserialize, Debug, Hash, Copy, Clone, PartialEq, Eq)]
-pub enum DataType {
-    Image,
-    Video,
-    Lidar2D,
-    Lidar3D,
-    Radar,
-    Status,
-}
-
-#[derive(Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub enum NodeType {
-    Vehicle = 0,
-    RSU,
-    BaseStation,
-    Controller,
-}
 
 pub struct BaseConfigReader {
     file_path: PathBuf,
