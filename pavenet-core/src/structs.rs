@@ -5,7 +5,7 @@ use crate::named::order::Order;
 use crate::named::velocity::Velocity;
 use typed_builder::TypedBuilder;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct Point2D {
     pub x: f32,
     pub y: f32,
@@ -31,7 +31,7 @@ pub struct Link {
     pub load_factor: Option<Vec<f32>>,
 }
 
-#[derive(Clone, Copy, Debug, TypedBuilder)]
+#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct NodeInfo {
     pub id: NodeId,
     pub node_type: NodeType,
