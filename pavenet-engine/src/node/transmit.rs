@@ -1,8 +1,8 @@
 use crate::engine::core::Core;
 
 pub trait Transferable {
-    fn sensor_data(&mut self, payload: &mut Box<dyn Transferable>);
-    fn collect_downstream(&mut self, payload: &mut Box<dyn Transferable>);
+    fn sensor_data(&mut self);
+    fn collect_downstream(&mut self);
     fn build_payload(&mut self) -> Box<dyn Transferable>;
 }
 
