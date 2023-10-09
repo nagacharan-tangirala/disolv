@@ -18,4 +18,3 @@ downcast-rs = "1.2.0"
 
 [features]
 visualization = ["krabmaga/visualization"]
-visualization_wasm = ["krabmaga/visualization_wasm"]
