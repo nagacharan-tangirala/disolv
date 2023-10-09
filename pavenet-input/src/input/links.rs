@@ -31,7 +31,7 @@ pub trait LinksFetcher {
 }
 
 impl LinksFetcher for ReadLinks {
-    fn fetch_links_data(&self, step: TimeStamp) -> Result<LinkMap, Box<dyn Error>> {
+    fn fetch_links_data(&self, _step: TimeStamp) -> Result<LinkMap, Box<dyn Error>> {
         let links_df = files::read_file(&self.links_file)?;
         links::extract_link_traces(&links_df)
     }
