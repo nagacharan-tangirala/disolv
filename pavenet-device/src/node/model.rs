@@ -1,9 +1,8 @@
-use pavenet_config::config::base::{ComposerSettings, SimplifierSettings};
-use pavenet_config::config::dynamic::EpisodeInfo;
+use pavenet_models::node::composer::ComposerType;
+use pavenet_models::node::simplifier::SimplifierType;
 
 #[derive(Debug, Copy, Clone)]
 pub struct DeviceModel {
-    pub power_schedule: PowerSchedule,
     pub composer: Option<ComposerType>,
     pub simplifier: Option<SimplifierType>,
     pub linker: Option<LinkerType>,

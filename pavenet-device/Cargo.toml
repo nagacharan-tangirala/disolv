@@ -1,0 +1,30 @@
+[package]
+name = "pavenet-device"
+version = "0.0.1"
+authors = [
+    "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
+]
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+pavenet-input = { version = "0.0.1", path= "../pavenet-input" }
+pavenet-core = { version = "0.0.1", path= "../pavenet-core" }
+pavenet-engine = { version = "0.0.1", path= "../pavenet-engine" }
+pavenet-models = { version = "0.0.1", path= "../pavenet-models" }
+krabmaga = { version = "0.4.1", path= "../../krABMaga" }
+toml = "0.8.2"
+serde = "1.0.188"
+serde_derive = "1.0.188"
+rand = "0.8.5"
+log4rs = "1.2.0"
+log = "0.4.20"
+itertools = "0.11.0"
+serde_with = "3.3.0"
+clap = {version = "4.4.6", features = ["derive"]}
+hashbrown = "0.14.1"
+
+[features]
+visualization = ["krabmaga/visualization"]
+visualization_wasm = ["krabmaga/visualization_wasm"]
