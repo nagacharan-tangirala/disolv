@@ -15,19 +15,13 @@ pub enum LinkReaderType {
     Stream(StreamLinks),
 }
 
+pub trait LinksFetcher {
+    fn fetch_links_data(&self, step: TimeStamp) -> Result<LinkMap, Box<dyn Error>>;
+}
+
 #[derive(TypedBuilder)]
 pub struct ReadLinks {
     links_file: PathBuf,
-}
-
-#[derive(TypedBuilder)]
-pub struct StreamLinks {
-    links_file: PathBuf,
-    streaming_interval: TimeStamp,
-}
-
-pub trait LinksFetcher {
-    fn fetch_links_data(&self, step: TimeStamp) -> Result<LinkMap, Box<dyn Error>>;
 }
 
 impl LinksFetcher for ReadLinks {
@@ -35,6 +29,12 @@ impl LinksFetcher for ReadLinks {
         let links_df = files::read_file(&self.links_file)?;
         links::extract_link_traces(&links_df)
     }
+}
+
+#[derive(TypedBuilder)]
+pub struct StreamLinks {
+    links_file: PathBuf,
+    streaming_interval: TimeStamp,
 }
 
 impl LinksFetcher for StreamLinks {
