@@ -11,10 +11,11 @@ readme = "README.md"
 [dependencies]
 pavenet-input = { version = "0.0.1", path= "../pavenet-input" }
 pavenet-core = { version = "0.0.1", path= "../pavenet-core" }
-pavenet-config = { version = "0.0.1", path= "../pavenet-config" }
+pavenet-engine = { version = "0.0.1", path= "../pavenet-engine" }
 pavenet-models = { version = "0.0.1", path= "../pavenet-models" }
+pavenet-output = { version = "0.0.1", path= "../pavenet-output" }
 krabmaga = { version = "0.4.1", path= "../../krABMaga" }
-toml = "0.8.0"
+toml = "0.8.2"
 serde = "1.0.188"
 serde_derive = "1.0.188"
 rand = "0.8.5"

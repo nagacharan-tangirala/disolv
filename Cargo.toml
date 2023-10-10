@@ -3,9 +3,11 @@ resolver = "2"
 
 members  = [
     "pavenet",
-    "pavenet-io",
     "pavenet-core",
-    "pavenet-config",
+    "pavenet-input",
+    "pavenet-engine",
+    "pavenet-models",
+    "pavenet-output",
 ]
 
 [profile.dev]

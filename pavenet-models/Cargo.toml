@@ -9,14 +9,13 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
+pavenet-core = { version = "0.0.1", path= "../pavenet-core" }
 pavenet-input = { version = "0.0.1", path= "../pavenet-input" }
-pavenet-config = { version = "0.0.1", path= "../pavenet-config" }
-krabmaga = { version = "0.4.1", path= "../../krABMaga" }
+pavenet-engine = { version = "0.0.1", path= "../pavenet-engine" }
 rand = "0.8.5"
 log4rs = "1.2.0"
 log = "0.4.20"
 hashbrown = "0.14.1"
-
-[features]
-visualization = ["krabmaga/visualization"]
-visualization_wasm = ["krabmaga/visualization_wasm"]
+serde = { version = "1.0.188", features = ["derive"] }
+serde_with = "3.3.0"
+typed-builder = "0.16.2"
