@@ -1,8 +1,9 @@
-use crate::pool::episode::{EpisodeInfo, ModelChanges};
-use pavenet_core::types::TimeStamp;
-use pavenet_models::node::composer::ComposerType;
+use crate::scenario::episode::ModelChanges;
+use pavenet_models::node::composer::{BasicComposer, Composer, ComposerType, StatusComposer};
 use pavenet_models::node::responder::ResponderType;
-use pavenet_models::node::simplifier::SimplifierType;
+use pavenet_models::node::simplifier::{
+    BasicSimplifier, RandomSimplifier, Simplifier, SimplifierType,
+};
 
 #[derive(Debug, Copy, Clone)]
 pub struct DeviceModel {
@@ -33,66 +34,26 @@ impl DeviceModel {
         return current_models;
     }
 
-    pub fn update_models(&mut self, models: &ModelChanges) {
-        if let Some(data_sources) = &models.data_sources {
-            match &mut self.composer {
-                Some(ComposerType::Basic(ref mut composer)) => {
-                    composer.update_settings(data_sources);
-                }
-                Some(ComposerType::Status(ref mut composer)) => {
-                    composer
-                        .settings_handler
-                        .update_settings(data_sources, reset_ts);
-                }
-                None => {}
-            }
-        }
-
-        if let Some(simplifier_settings) = &models.simplifier {
-            match &mut self.simplifier {
-                SimplifierType::Basic(ref mut simplifier) => {
-                    simplifier
-                        .settings
-                        .update_settings(simplifier_settings, reset_ts);
-                }
-            }
-        }
-
-        if let Some(linker_settings) = &models.veh_linker {
-            match &mut self.linker {
-                VehLinkerType::Simple(ref mut linker) => {
-                    linker
-                        .settings_handler
-                        .update_settings(linker_settings, reset_ts);
-                }
-            }
-        }
-    }
+    pub fn update_models(&mut self, models: &ModelChanges) {}
 }
 
+#[derive(Debug, Copy, Clone, Default)]
 pub struct ModelBuilder {
-    pub power_schedule: PowerSchedule,
     pub composer: Option<ComposerType>,
     pub simplifier: Option<SimplifierType>,
-    pub linker: Option<LinkerType>,
+    pub responder: Option<ResponderType>,
 }
 
 impl ModelBuilder {
     pub fn new() -> Self {
         Self {
-            power_schedule: PowerSchedule::default(),
             composer: None,
             simplifier: None,
-            linker: None,
+            responder: None,
         }
     }
 
-    pub fn with_power_schedule(mut self, power_schedule: PowerSchedule) -> Self {
-        self.power_schedule = power_schedule;
-        self
-    }
-
-    pub fn with_composer(mut self, composer_settings: &Option<ComposerSettings>) -> Self {
+    pub fn with_composer(mut self, composer_settings: &Option<Composer>) -> Self {
         self.composer = match composer_settings {
             Some(ref composer_settings) => match composer_settings.name.as_str() {
                 "basic" => Some(ComposerType::Basic(BasicComposer::new(composer_settings))),
@@ -104,7 +65,7 @@ impl ModelBuilder {
         self
     }
 
-    pub fn with_simplifier(mut self, simplifier: &Option<SimplifierSettings>) -> Self {
+    pub fn with_simplifier(mut self, simplifier: &Option<Simplifier>) -> Self {
         self.simplifier = match simplifier {
             Some(ref simplifier_settings) => match simplifier_settings.name.as_str() {
                 "basic" => Some(SimplifierType::Basic(BasicSimplifier::new(
@@ -120,17 +81,11 @@ impl ModelBuilder {
         self
     }
 
-    pub fn with_linker(mut self, linker: LinkerType) -> Self {
-        self.linker = Some(linker);
-        self
-    }
-
     pub fn build(self) -> DeviceModel {
         DeviceModel {
-            power_schedule: self.power_schedule,
             composer: self.composer,
             simplifier: self.simplifier,
-            linker: self.linker,
+            responder: self.responder,
         }
     }
 }
