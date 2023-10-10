@@ -1,8 +1,10 @@
 use pavenet_core::enums::{DataType, MobilityType, NodeType, TransferMode};
 use pavenet_core::types::TimeStamp;
+use pavenet_models::node_pool::space::FieldSettings;
 use serde_derive::Deserialize;
 use std::path::PathBuf;
 
+#[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct BaseConfig {
     pub simulation_settings: SimSettings,
@@ -10,6 +12,7 @@ pub struct BaseConfig {
     pub output_settings: OutputSettings,
     pub field_settings: FieldSettings,
     pub node_settings: Vec<NodeSettings>,
+    pub episode_settings: Option<EpisodeSettings>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -47,6 +50,11 @@ pub struct NodeSettings {
     pub composer: Option<ComposerSettings>,
     pub simplifier: Option<SimplifierSettings>,
     pub responder: Option<ResponderSettings>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct EpisodeSettings {
+    pub episode_file: String,
 }
 
 pub struct BaseConfigReader {
