@@ -1,3 +1,6 @@
 /target
 .idea
 /output
+/*/test/data/*
+/*/target
+```
