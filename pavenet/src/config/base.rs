@@ -1,6 +1,6 @@
 use pavenet_core::enums::{DataType, MobilityType, NodeType, TransferMode};
 use pavenet_core::types::TimeStamp;
-use pavenet_models::node_pool::space::FieldSettings;
+use pavenet_models::pool::space::FieldSettings;
 use serde_derive::Deserialize;
 use std::path::PathBuf;
 

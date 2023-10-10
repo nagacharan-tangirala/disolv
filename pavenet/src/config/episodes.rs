@@ -1,4 +1,4 @@
-use crate::pool::episode::EpisodeInfo;
+use crate::scenario::episode::EpisodeInfo;
 use serde::Deserialize;
 use std::path::PathBuf;
 

@@ -1,17 +1,13 @@
+use crate::scenario::device::Device;
+use crate::scenario::episode::{Episode, EpisodeInfo, EpisodeType, NodeChanges, NodeScope};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
 use log::error;
-use pavenet::device::device::Device;
-use pavenet::pool::episode::{
-    Episode, EpisodeInfo, EpisodeType, ModelChanges, NodeChanges, NodeConfig, NodeScope,
-};
-use pavenet_core::enums::NodeType;
-use pavenet_core::named::class::Class;
-use pavenet_core::types::{NodeId, Order, TimeStamp};
+use pavenet_core::types::{NodeId, TimeStamp};
 use pavenet_engine::node::pool::NodePool;
 use pavenet_models::model::PoolModel;
-use pavenet_models::node_pool::linker::Linker;
-use pavenet_models::node_pool::space::Space;
+use pavenet_models::pool::linker::Linker;
+use pavenet_models::pool::space::Space;
 use rand::Rng;
 
 pub struct Devices {

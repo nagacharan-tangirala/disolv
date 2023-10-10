@@ -1,5 +1,6 @@
-use crate::device::model::{DeviceModel, ModelBuilder};
+use crate::config::base::NodeSettings;
 use crate::pool::episode::NodeChanges;
+use crate::scenario::model::{DeviceModel, ModelBuilder};
 use pavenet_core::structs::{MapState, NodeInfo};
 use pavenet_core::types::{NodeId, TimeStamp};
 use pavenet_engine::engine::core::Core;

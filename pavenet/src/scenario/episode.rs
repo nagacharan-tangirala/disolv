@@ -1,5 +1,5 @@
+use crate::scenario::device::Device;
 use hashbrown::HashMap;
-use pavenet::device::device::Device;
 use pavenet_core::enums::NodeType;
 use pavenet_core::named::class::Class;
 use pavenet_core::structs::NodeInfo;
@@ -60,8 +60,6 @@ pub struct NodeChanges {
     pub new_node_class: Class,
     pub new_order: Order,
 }
-
-impl EpisodeInfo {}
 
 #[derive(Clone, Debug, Default)]
 pub struct Episode {

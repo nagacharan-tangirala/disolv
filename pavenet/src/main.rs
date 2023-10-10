@@ -1,7 +1,6 @@
 pub mod builder;
 mod config;
-mod device;
-mod pool;
+mod scenario;
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 pub mod vis;
 
