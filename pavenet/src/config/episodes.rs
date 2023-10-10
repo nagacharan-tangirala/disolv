@@ -1,25 +1,25 @@
-use pavenet_models::node_pool::episode::EpisodeInfo;
-use serde_derive::Deserialize;
+use crate::pool::episode::EpisodeInfo;
+use serde::Deserialize;
 use std::path::PathBuf;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct DynamicConfig {
+pub struct EpisodeList {
     pub episodes: Vec<EpisodeInfo>,
 }
 
-pub struct DynamicConfigReader {
+pub struct EpisodeReader {
     file_path: PathBuf,
 }
 
-impl DynamicConfigReader {
+impl EpisodeReader {
     pub fn new(file_name: &str) -> Self {
         let file_path = PathBuf::from(file_name);
         Self { file_path }
     }
 
-    pub fn parse(&self) -> Result<DynamicConfig, Box<dyn std::error::Error>> {
+    pub fn parse(&self) -> Result<EpisodeList, Box<dyn std::error::Error>> {
         let parsing_result = std::fs::read_to_string(&self.file_path)?;
-        let config: DynamicConfig = toml::from_str(&parsing_result)?;
+        let config: EpisodeList = toml::from_str(&parsing_result)?;
         Ok(config)
     }
 }
