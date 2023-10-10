@@ -36,16 +36,34 @@ pub struct Linker {
 
 impl PoolModel for Linker {
     fn init(&mut self, step: TimeStamp) {
-        match self.reader {
-            LinkReaderType::File(ref mut reader) => self.read_from_file(reader, step),
-            LinkReaderType::Stream(ref mut reader) => self.read_from_file(reader, step),
-        }
+        self.links = match self.reader {
+            LinkReaderType::File(ref mut reader) => match reader.fetch_links_data(step) {
+                Ok(map) => map,
+                Err(e) => {
+                    error!("Error reading map state: {}", e);
+                    HashMap::new()
+                }
+            },
+            LinkReaderType::Stream(ref mut reader) => match reader.fetch_links_data(step) {
+                Ok(map) => map,
+                Err(e) => {
+                    error!("Error reading map state: {}", e);
+                    HashMap::new()
+                }
+            },
+        };
     }
 
     fn stream_data(&mut self, step: TimeStamp) {
         match self.reader {
             LinkReaderType::Stream(ref mut reader) => {
-                self.read_from_file(reader, step);
+                self.links = match reader.fetch_links_data(step) {
+                    Ok(map) => map,
+                    Err(e) => {
+                        error!("Error reading map state: {}", e);
+                        HashMap::new()
+                    }
+                };
             }
             _ => {}
         }
@@ -55,18 +73,6 @@ impl PoolModel for Linker {
         self.link_cache = match self.links.remove(&step) {
             Some(traces) => traces,
             None => HashMap::new(),
-        };
-    }
-}
-
-impl Linker {
-    fn read_from_file(&mut self, reader: &mut dyn LinksFetcher, step: TimeStamp) {
-        self.links = match reader.fetch_links_data(step) {
-            Ok(map) => map,
-            Err(e) => {
-                error!("Error reading map state: {}", e);
-                HashMap::new()
-            }
         };
     }
 }

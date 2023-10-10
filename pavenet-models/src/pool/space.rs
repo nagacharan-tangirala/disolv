@@ -38,16 +38,34 @@ pub struct Space {
 
 impl PoolModel for Space {
     fn init(&mut self, step: TimeStamp) {
-        match self.reader {
-            MapReaderType::File(ref mut reader) => self.read_from_file(reader, step),
-            MapReaderType::Stream(ref mut reader) => self.read_from_file(reader, step),
-        }
+        self.map_states = match self.reader {
+            MapReaderType::File(ref mut reader) => match reader.fetch_traffic_data(step) {
+                Ok(map) => map,
+                Err(e) => {
+                    error!("Error reading map state: {}", e);
+                    HashMap::new()
+                }
+            },
+            MapReaderType::Stream(ref mut reader) => match reader.fetch_traffic_data(step) {
+                Ok(map) => map,
+                Err(e) => {
+                    error!("Error reading map state: {}", e);
+                    HashMap::new()
+                }
+            },
+        };
     }
 
     fn stream_data(&mut self, step: TimeStamp) {
         match self.reader {
             MapReaderType::Stream(ref mut reader) => {
-                self.read_from_file(reader, step);
+                self.map_states = match reader.fetch_traffic_data(step) {
+                    Ok(map) => map,
+                    Err(e) => {
+                        error!("Error reading map state: {}", e);
+                        HashMap::new()
+                    }
+                };
             }
             _ => {}
         }
@@ -70,7 +88,9 @@ impl Space {
         let cell_id = self.get_cell_id(location);
         let old_cell_id = self.node2cell.entry(node_id).or_default();
         if *old_cell_id != cell_id {
-            self.remove_node_from_cell(node_id, *old_cell_id);
+            if let Some(nodes) = self.cell2node.get_mut(&cell_id) {
+                nodes.remove(&node_id);
+            }
             self.add_node_to_cell(node_id, cell_id);
             self.node2cell.entry(node_id).and_modify(|e| *e = cell_id);
         }
@@ -82,23 +102,6 @@ impl Space {
 
     pub fn cell_id(&self, node_id: NodeId) -> Option<&CellId> {
         self.node2cell.get(&node_id)
-    }
-
-    fn read_from_file(&mut self, reader: &mut dyn MapFetcher, step: TimeStamp) {
-        self.map_states = match reader.fetch_traffic_data(step) {
-            Ok(map) => map,
-            Err(e) => {
-                error!("Error reading map state: {}", e);
-                HashMap::new()
-            }
-        };
-    }
-
-    #[inline]
-    fn remove_node_from_cell(&mut self, node_id: NodeId, cell_id: CellId) {
-        if let Some(nodes) = self.cell2node.get_mut(&cell_id) {
-            nodes.remove(&node_id);
-        }
     }
 
     #[inline]
@@ -118,7 +121,7 @@ impl Space {
 }
 
 #[derive(Default)]
-struct SpaceBuilder {
+pub struct SpaceBuilder {
     config_path: PathBuf,
     streaming_interval: TimeStamp,
     field_settings: FieldSettings,
@@ -167,7 +170,7 @@ impl SpaceBuilder {
             ),
         };
 
-        let mut space = Space {
+        Space {
             width: self.field_settings.width,
             height: self.field_settings.height,
             cell_size: self.field_settings.cell_size,
@@ -176,8 +179,7 @@ impl SpaceBuilder {
             map_cache: HashMap::new(),
             cell2node: HashMap::new(),
             node2cell: HashMap::new(),
-        };
-        space
+        }
     }
 }
 
