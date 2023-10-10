@@ -1,4 +1,5 @@
 use crate::enums::NodeType;
+use crate::named::class::Class;
 use crate::named::ids::node::NodeId;
 use crate::named::ids::road::RoadId;
 use crate::named::order::Order;
@@ -35,6 +36,6 @@ pub struct Link {
 pub struct NodeInfo {
     pub id: NodeId,
     pub node_type: NodeType,
-    pub node_class: u32,
+    pub node_class: Class,
     pub order: Order,
 }

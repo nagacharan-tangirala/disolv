@@ -1,3 +1,4 @@
+pub mod class;
 pub mod ids;
 pub mod ms;
 pub mod order;
