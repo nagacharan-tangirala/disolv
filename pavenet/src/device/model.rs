@@ -1,11 +1,14 @@
+use crate::pool::episode::{EpisodeInfo, ModelChanges};
+use pavenet_core::types::TimeStamp;
 use pavenet_models::node::composer::ComposerType;
+use pavenet_models::node::responder::ResponderType;
 use pavenet_models::node::simplifier::SimplifierType;
 
 #[derive(Debug, Copy, Clone)]
 pub struct DeviceModel {
     pub composer: Option<ComposerType>,
     pub simplifier: Option<SimplifierType>,
-    pub linker: Option<LinkerType>,
+    pub responder: Option<ResponderType>,
 }
 
 impl DeviceModel {
@@ -13,8 +16,25 @@ impl DeviceModel {
         ModelBuilder::new()
     }
 
-    fn update_models(&mut self, episode: &EpisodeInfo, reset_ts: TimeStamp) {
-        if let Some(data_sources) = &episode.data_sources {
+    pub fn fetch_current_settings(&mut self, new_models: &ModelChanges) -> ModelChanges {
+        let mut current_models = ModelChanges::default();
+        current_models.composer = match new_models.composer {
+            Some(ref composer) => composer.to_input(),
+            None => None,
+        };
+        current_models.responder = match new_models.responder {
+            Some(ref responder) => responder.to_input(),
+            None => None,
+        };
+        current_models.simplifier = match new_models.simplifier {
+            Some(ref simplifier) => simplifier.to_input(),
+            None => None,
+        };
+        return current_models;
+    }
+
+    pub fn update_models(&mut self, models: &ModelChanges) {
+        if let Some(data_sources) = &models.data_sources {
             match &mut self.composer {
                 Some(ComposerType::Basic(ref mut composer)) => {
                     composer.update_settings(data_sources);
@@ -28,7 +48,7 @@ impl DeviceModel {
             }
         }
 
-        if let Some(simplifier_settings) = &episode.simplifier {
+        if let Some(simplifier_settings) = &models.simplifier {
             match &mut self.simplifier {
                 SimplifierType::Basic(ref mut simplifier) => {
                     simplifier
@@ -38,7 +58,7 @@ impl DeviceModel {
             }
         }
 
-        if let Some(linker_settings) = &episode.veh_linker {
+        if let Some(linker_settings) = &models.veh_linker {
             match &mut self.linker {
                 VehLinkerType::Simple(ref mut linker) => {
                     linker
