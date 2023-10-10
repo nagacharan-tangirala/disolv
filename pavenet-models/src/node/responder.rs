@@ -18,7 +18,7 @@ pub enum ResponderType {
 }
 
 #[derive(Clone, Debug, Copy)]
-pub(crate) struct StatsResponder;
+pub struct StatsResponder;
 
 impl NodeModel for StatsResponder {
     type Input = Responder;
