@@ -16,8 +16,6 @@ pub static DISCRETIZATION: f32 = 100.0;
 struct CliArgs {
     #[arg(short = 'b', long, value_name = "BASE_CONFIG_FILE")]
     base: String,
-    #[arg(short = 'd', long, value_name = "DYNAMIC_CONFIG_FILE")]
-    dynamic: String,
 }
 
 /*
