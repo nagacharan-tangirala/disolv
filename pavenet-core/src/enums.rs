@@ -23,7 +23,7 @@ pub enum DataType {
     Status,
 }
 
-#[derive(Deserialize, Debug, Copy, Default, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Hash, Copy, Default, Clone, PartialEq, Eq)]
 pub enum NodeType {
     #[default]
     Vehicle = 0,
