@@ -19,7 +19,7 @@ pub struct FieldSettings {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub struct Mobility {
+pub struct SpaceSettings {
     pub mobility_type: MobilityType,
     pub is_streaming: bool,
     pub geo_data_file: String,
@@ -39,33 +39,19 @@ pub struct Space {
 impl PoolModel for Space {
     fn init(&mut self, step: TimeStamp) {
         self.map_states = match self.reader {
-            MapReaderType::File(ref mut reader) => match reader.fetch_traffic_data(step) {
-                Ok(map) => map,
-                Err(e) => {
-                    error!("Error reading map state: {}", e);
-                    HashMap::new()
-                }
-            },
-            MapReaderType::Stream(ref mut reader) => match reader.fetch_traffic_data(step) {
-                Ok(map) => map,
-                Err(e) => {
-                    error!("Error reading map state: {}", e);
-                    HashMap::new()
-                }
-            },
+            MapReaderType::File(ref mut reader) => {
+                reader.fetch_traffic_data(step).unwrap_or_default()
+            }
+            MapReaderType::Stream(ref mut reader) => {
+                reader.fetch_traffic_data(step).unwrap_or_default()
+            }
         };
     }
 
     fn stream_data(&mut self, step: TimeStamp) {
         match self.reader {
             MapReaderType::Stream(ref mut reader) => {
-                self.map_states = match reader.fetch_traffic_data(step) {
-                    Ok(map) => map,
-                    Err(e) => {
-                        error!("Error reading map state: {}", e);
-                        HashMap::new()
-                    }
-                };
+                self.map_states = reader.fetch_traffic_data(step).unwrap_or_default();
             }
             _ => {}
         }
@@ -125,7 +111,7 @@ pub struct SpaceBuilder {
     config_path: PathBuf,
     streaming_interval: TimeStamp,
     field_settings: FieldSettings,
-    map_state_settings: Mobility,
+    map_state_settings: SpaceSettings,
 }
 
 impl SpaceBuilder {
@@ -146,7 +132,7 @@ impl SpaceBuilder {
         self
     }
 
-    pub fn map_settings(mut self, map_state_settings: Mobility) -> Self {
+    pub fn map_settings(mut self, map_state_settings: SpaceSettings) -> Self {
         self.map_state_settings = map_state_settings;
         self
     }
