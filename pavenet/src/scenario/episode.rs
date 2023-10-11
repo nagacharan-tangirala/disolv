@@ -4,9 +4,9 @@ use pavenet_core::enums::NodeType;
 use pavenet_core::named::class::Class;
 use pavenet_core::structs::NodeInfo;
 use pavenet_core::types::{NodeId, Order, TimeStamp};
-use pavenet_models::node::composer::Composer;
-use pavenet_models::node::responder::Responder;
-use pavenet_models::node::simplifier::Simplifier;
+use pavenet_models::node::composer::ComposerSettings;
+use pavenet_models::node::responder::ResponderSettings;
+use pavenet_models::node::simplifier::SimplifierSettings;
 use rand::Rng;
 use serde::Deserialize;
 
@@ -30,9 +30,9 @@ pub struct EpisodeInfo {
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct ModelChanges {
-    pub composer: Option<Composer>,
-    pub simplifier: Option<Simplifier>,
-    pub responder: Option<Responder>,
+    pub composer: Option<ComposerSettings>,
+    pub simplifier: Option<SimplifierSettings>,
+    pub responder: Option<ResponderSettings>,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -105,7 +105,7 @@ impl Episode {
         }
     }
 
-    pub fn remove_from_map(&mut self, node_info: &NodeInfo) {
+    pub fn remove_old_entry(&mut self, node_info: &NodeInfo) {
         let node_id = node_info.id;
         self.node_id_map
             .entry(node_info.node_type)
@@ -118,7 +118,7 @@ impl Episode {
             });
     }
 
-    pub fn add_to_map(&mut self, node_info: &NodeInfo) {
+    pub fn add_new_entry(&mut self, node_info: &NodeInfo) {
         let node_id = node_info.id;
         self.node_id_map
             .entry(node_info.node_type)

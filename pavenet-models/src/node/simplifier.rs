@@ -4,13 +4,13 @@ use serde::Deserialize;
 
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
-pub struct Simplifier {
+pub struct SimplifierSettings {
     pub name: String,
     pub compression_factor: Option<f32>,
     pub sampling_factor: Option<f32>,
 }
 
-impl TomlReadable for Simplifier {}
+impl TomlReadable for SimplifierSettings {}
 
 #[derive(Clone, Debug, Copy)]
 pub enum SimplifierType {
@@ -25,10 +25,10 @@ pub struct BasicSimplifier {
 }
 
 impl NodeModel for BasicSimplifier {
-    type Input = Simplifier;
-    fn to_input(&self) -> Simplifier {
+    type Input = SimplifierSettings;
+    fn to_input(&self) -> SimplifierSettings {
         let name: String = "basic".to_string();
-        Simplifier {
+        SimplifierSettings {
             name,
             compression_factor: Some(self.compression_factor),
             sampling_factor: Some(self.sampling_factor),
@@ -37,7 +37,7 @@ impl NodeModel for BasicSimplifier {
 }
 
 impl BasicSimplifier {
-    pub fn new(simplifier_settings: &Simplifier) -> Self {
+    pub fn new(simplifier_settings: &SimplifierSettings) -> Self {
         let compression_factor = match simplifier_settings.compression_factor {
             Some(factor) => factor,
             None => 1.0,
@@ -82,10 +82,10 @@ pub struct RandomSimplifier {
 }
 
 impl NodeModel for RandomSimplifier {
-    type Input = Simplifier;
-    fn to_input(&self) -> Simplifier {
+    type Input = SimplifierSettings;
+    fn to_input(&self) -> SimplifierSettings {
         let name: String = "random".to_string();
-        Simplifier {
+        SimplifierSettings {
             name,
             compression_factor: Some(self.compression_factor),
             sampling_factor: Some(self.sampling_factor),
@@ -94,7 +94,7 @@ impl NodeModel for RandomSimplifier {
 }
 
 impl RandomSimplifier {
-    pub fn new(simplifier_settings: &Simplifier) -> Self {
+    pub fn new(simplifier_settings: &SimplifierSettings) -> Self {
         let compression_factor = match simplifier_settings.compression_factor {
             Some(factor) => factor,
             None => 1.0,

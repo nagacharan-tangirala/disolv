@@ -15,14 +15,14 @@ pub struct DataSource {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct Composer {
+pub struct ComposerSettings {
     pub name: String,
     pub source_settings: Vec<DataSource>,
 }
 
-impl TomlReadable for Composer {}
+impl TomlReadable for ComposerSettings {}
 
-impl Composer {
+impl ComposerSettings {
     pub fn ds_array(&self) -> [Option<DataSource>; SOURCE_SIZE] {
         let mut data_sources = [None; SOURCE_SIZE];
         for idx in 0..self.source_settings.len() {
@@ -49,11 +49,11 @@ pub struct BasicComposer {
 }
 
 impl NodeModel for BasicComposer {
-    type Input = Composer;
-    fn to_input(&self) -> Composer {
+    type Input = ComposerSettings;
+    fn to_input(&self) -> ComposerSettings {
         let ds: Vec<DataSource> = self.data_sources.into_iter().flatten().collect();
         let name: String = "basic".to_string();
-        Composer {
+        ComposerSettings {
             name,
             source_settings: ds,
         }
@@ -61,7 +61,7 @@ impl NodeModel for BasicComposer {
 }
 
 impl BasicComposer {
-    pub fn new(composer_settings: &Composer) -> Self {
+    pub fn new(composer_settings: &ComposerSettings) -> Self {
         Self {
             data_sources: composer_settings.ds_array(),
             ds_count: composer_settings.ds_count(),
@@ -117,11 +117,11 @@ pub struct StatusComposer {
 }
 
 impl NodeModel for StatusComposer {
-    type Input = Composer;
-    fn to_input(&self) -> Composer {
+    type Input = ComposerSettings;
+    fn to_input(&self) -> ComposerSettings {
         let ds: Vec<DataSource> = self.data_sources.into_iter().flatten().collect();
         let name: String = "basic".to_string();
-        Composer {
+        ComposerSettings {
             name,
             source_settings: ds,
         }
@@ -129,14 +129,14 @@ impl NodeModel for StatusComposer {
 }
 
 impl StatusComposer {
-    pub fn new(composer_settings: &Composer) -> Self {
+    pub fn new(composer_settings: &ComposerSettings) -> Self {
         Self {
             data_sources: composer_settings.ds_array(),
             ds_count: composer_settings.ds_count(),
         }
     }
 
-    pub(crate) fn update_data_sources(&mut self, composer_settings: &Composer) {
+    pub(crate) fn update_data_sources(&mut self, composer_settings: &ComposerSettings) {
         self.data_sources = composer_settings.ds_array();
         self.ds_count = composer_settings.ds_count();
     }

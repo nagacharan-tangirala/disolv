@@ -6,11 +6,11 @@ use rand::prelude::SliceRandom;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct Responder {
+pub struct ResponderSettings {
     pub name: String,
 }
 
-impl TomlReadable for Responder {}
+impl TomlReadable for ResponderSettings {}
 
 #[derive(Clone, Debug, Copy)]
 pub enum ResponderType {
@@ -21,10 +21,10 @@ pub enum ResponderType {
 pub struct StatsResponder;
 
 impl NodeModel for StatsResponder {
-    type Input = Responder;
-    fn to_input(&self) -> Responder {
+    type Input = ResponderSettings;
+    fn to_input(&self) -> ResponderSettings {
         let name: String = "stats".to_string();
-        Responder { name }
+        ResponderSettings { name }
     }
 }
 

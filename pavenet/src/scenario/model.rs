@@ -1,8 +1,10 @@
 use crate::scenario::episode::ModelChanges;
-use pavenet_models::node::composer::{BasicComposer, Composer, ComposerType, StatusComposer};
+use pavenet_models::node::composer::{
+    BasicComposer, ComposerSettings, ComposerType, StatusComposer,
+};
 use pavenet_models::node::responder::ResponderType;
 use pavenet_models::node::simplifier::{
-    BasicSimplifier, RandomSimplifier, Simplifier, SimplifierType,
+    BasicSimplifier, RandomSimplifier, SimplifierSettings, SimplifierType,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -53,7 +55,7 @@ impl ModelBuilder {
         }
     }
 
-    pub fn with_composer(mut self, composer_settings: &Option<Composer>) -> Self {
+    pub fn with_composer(mut self, composer_settings: &Option<ComposerSettings>) -> Self {
         self.composer = match composer_settings {
             Some(ref composer_settings) => match composer_settings.name.as_str() {
                 "basic" => Some(ComposerType::Basic(BasicComposer::new(composer_settings))),
@@ -65,7 +67,7 @@ impl ModelBuilder {
         self
     }
 
-    pub fn with_simplifier(mut self, simplifier: &Option<Simplifier>) -> Self {
+    pub fn with_simplifier(mut self, simplifier: &Option<SimplifierSettings>) -> Self {
         self.simplifier = match simplifier {
             Some(ref simplifier_settings) => match simplifier_settings.name.as_str() {
                 "basic" => Some(SimplifierType::Basic(BasicSimplifier::new(
