@@ -1,6 +1,10 @@
 use pavenet_core::enums::{DataType, MobilityType, NodeType, TransferMode};
 use pavenet_core::types::TimeStamp;
-use pavenet_models::pool::space::FieldSettings;
+use pavenet_models::node::composer::ComposerSettings;
+use pavenet_models::node::responder::ResponderSettings;
+use pavenet_models::node::simplifier::SimplifierSettings;
+use pavenet_models::pool::linker::LinkerSettings;
+use pavenet_models::pool::space::{FieldSettings, SpaceSettings};
 use serde_derive::Deserialize;
 use std::path::PathBuf;
 
@@ -11,7 +15,7 @@ pub struct BaseConfig {
     pub log_settings: LogSettings,
     pub output_settings: OutputSettings,
     pub field_settings: FieldSettings,
-    pub node_settings: Vec<NodeSettings>,
+    pub nodes: Vec<NodeSettings>,
     pub episode_settings: Option<EpisodeSettings>,
 }
 
@@ -37,16 +41,19 @@ pub struct OutputSettings {
     pub output_type: String,
 }
 
-#[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct NodeSettings {
-    pub ratio: f32,
     pub node_type: NodeType,
+    pub activation_file: String,
+    pub mobility: SpaceSettings,
+    pub linker: LinkerSettings,
+}
+
+#[serde_with::skip_serializing_none]
+#[derive(Deserialize, Debug, Clone)]
+pub struct NodeClassSettings {
     pub node_class: u32,
     pub node_order: i32,
-    pub activation_file: String,
-    pub mobility_settings: MapStateSettings,
-    pub linker: LinkerSettings,
     pub composer: Option<ComposerSettings>,
     pub simplifier: Option<SimplifierSettings>,
     pub responder: Option<ResponderSettings>,
