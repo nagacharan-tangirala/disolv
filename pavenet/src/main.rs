@@ -1,4 +1,3 @@
-pub mod builder;
 mod config;
 mod scenario;
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
