@@ -82,16 +82,16 @@ impl Devices {
     }
 
     fn apply_node_changes(&mut self, device: &mut Device, node_changes: &NodeChanges) {
-        self.episode.remove_from_map(&device.node_info);
+        self.episode.remove_old_entry(&device.node_info);
         device.apply_node_changes(node_changes);
-        self.episode.add_to_map(&device.node_info);
+        self.episode.add_new_entry(&device.node_info);
     }
 }
 
 impl NodePool for Devices {
     fn init(&mut self, schedule: &mut Schedule) {
         self.space.init(TimeStamp::from(schedule.step));
-        self.linker.init(TimeStamp::from(schedule.step));
+        self.node_links.init(TimeStamp::from(schedule.step));
         let mut by_type_and_class = HashMap::new();
         for device in self.devices.values() {
             by_type_and_class
@@ -106,7 +106,7 @@ impl NodePool for Devices {
 
     fn before_step(&mut self, step: TimeStamp) {
         self.space.refresh_cache(step);
-        self.linker.refresh_cache(step);
+        self.node_links.refresh_cache(step);
         self.apply_episodes(step);
     }
 
@@ -120,5 +120,6 @@ impl NodePool for Devices {
 
     fn streaming_step(&mut self, step: TimeStamp) {
         self.space.stream_data(step);
+        self.node_links.stream_data(step);
     }
 }
