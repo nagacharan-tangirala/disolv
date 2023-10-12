@@ -1,4 +1,4 @@
-use crate::scenario::device::Device;
+use crate::scenario::deviceimpl::Device;
 use hashbrown::HashMap;
 use pavenet_core::enums::NodeType;
 use pavenet_core::named::class::Class;
@@ -87,7 +87,7 @@ impl Episode {
         self.node_id_map = node_id_map;
     }
 
-    pub fn has_episode_at(&self, time_stamp: TimeStamp) -> bool {
+    pub fn has_episodes_at(&self, time_stamp: TimeStamp) -> bool {
         self.episodes.contains_key(&time_stamp)
     }
 
@@ -128,21 +128,22 @@ impl Episode {
             .push(node_id);
     }
 
-    pub fn filter_nodes(self, node_config: &NodeConfig) -> Vec<NodeId> {
+    pub fn filter_nodes(&self, node_config: &NodeConfig) -> Vec<NodeId> {
         let mut valid_nodes: Vec<NodeId> = self
             .node_id_map
             .get(&node_config.node_type)
             .and_then(|v| v.get(&node_config.node_class))
-            .unwrap_or_default()
+            .unwrap_or_else(|| panic!("No nodes found"))
             .clone();
         return match node_config.node_scope {
             NodeScope::All => valid_nodes,
             NodeScope::Exclude(ref exclude_list) => {
-                for node_id in exclude_list.iter() {
+                for node_id in exclude_list {
                     valid_nodes.retain(|&x| x != *node_id);
                 }
+                valid_nodes
             }
-            NodeScope::Include(ref include_list) => include_list,
+            NodeScope::Include(ref include_list) => include_list.to_owned(),
             NodeScope::Ratio(ratio) => {
                 let mut rng = rand::thread_rng();
                 valid_nodes.retain(|_| rng.gen::<f32>() < ratio);
@@ -177,7 +178,7 @@ impl Episode {
         return restore_episode;
     }
 
-    fn node_changes_to_restore(self, device: &mut Device) -> Option<NodeChanges> {
+    fn node_changes_to_restore(&self, device: &mut Device) -> Option<NodeChanges> {
         let mut node_changes = NodeChanges::default();
         node_changes.new_node_type = device.node_info.node_type;
         node_changes.new_node_class = device.node_info.node_class;
