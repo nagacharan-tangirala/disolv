@@ -1,11 +1,9 @@
 use crate::engine::core::Core;
 use crate::node::node::Node;
 use crate::node::power::PowerState;
-use crate::node::receive::Recipient;
-use crate::node::transmit::{Transferable, Transmitter};
-use pavenet_config::structs::NodeInfo;
+use pavenet_core::structs::NodeInfo;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct TestNode {
     pub node_info: NodeInfo,
     pub power_state: PowerState,
@@ -17,26 +15,6 @@ impl TestNode {
             node_info,
             power_state: PowerState::Off,
         }
-    }
-}
-
-impl Transmitter for TestNode {
-    fn generate_data(&mut self, _core: &mut Core) -> Box<dyn Transferable> {
-        todo!()
-    }
-
-    fn transmit(&mut self, _payload: Box<dyn Transferable>) {
-        todo!()
-    }
-}
-
-impl Recipient for TestNode {
-    fn receive(&mut self, _payloads: &mut Vec<Box<dyn Transferable>>) {
-        todo!()
-    }
-
-    fn report_stats(&mut self, _core: &mut Core) {
-        todo!()
     }
 }
 

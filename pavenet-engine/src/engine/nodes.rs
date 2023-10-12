@@ -6,13 +6,13 @@ use krabmaga::engine::schedule::Schedule;
 use pavenet_core::named::ids::node::NodeId;
 
 #[derive(Default)]
-pub struct Nodes {
+pub struct PoolImpl {
     nodes_by_id: HashMap<NodeId, NodeImpl>,
     pub to_add: Vec<NodeId>,
     pub to_pop: Vec<NodeId>,
 }
 
-impl Nodes {
+impl PoolImpl {
     pub fn new(
         dyn_nodes: HashMap<NodeId, Box<dyn Node>>,
         power_schedule_map: HashMap<NodeId, PowerSchedule>,

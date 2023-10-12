@@ -27,11 +27,11 @@ impl NodeImpl {
     fn power_off(&mut self, core: &mut Core) {
         self.node.set_power_state(PowerState::Off);
         self.power_schedule.pop_time_to_off();
-        core.nodes.to_pop.push(self.node_id);
+        core.pool_impl.to_pop.push(self.node_id);
 
         let time_stamp = self.power_schedule.pop_time_to_on();
         if time_stamp > core.step {
-            core.nodes.to_add.push(self.node_id);
+            core.pool_impl.to_add.push(self.node_id);
         }
     }
 

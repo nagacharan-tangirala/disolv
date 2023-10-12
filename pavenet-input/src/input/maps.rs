@@ -32,13 +32,13 @@ impl MapFetcher for MapStateReader {
 #[derive(TypedBuilder)]
 pub struct MapStateStreamer {
     file_path: PathBuf,
-    streaming_interval: TimeStamp,
+    streaming_step: TimeStamp,
 }
 
 impl MapFetcher for MapStateStreamer {
     fn fetch_traffic_data(&self, step: TimeStamp) -> Result<TraceMap, Box<dyn std::error::Error>> {
         let start_interval: TimeStamp = step;
-        let end_interval: TimeStamp = step + self.streaming_interval;
+        let end_interval: TimeStamp = step + self.streaming_step;
         let trace_data_df =
             files::stream_parquet_in_interval(&self.file_path, start_interval, end_interval)?;
         maps::extract_map_states(&trace_data_df)

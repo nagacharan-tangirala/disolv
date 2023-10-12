@@ -12,8 +12,7 @@ pub struct EpisodeReader {
 }
 
 impl EpisodeReader {
-    pub fn new(file_name: &str) -> Self {
-        let file_path = PathBuf::from(file_name);
+    pub fn new(file_path: PathBuf) -> Self {
         Self { file_path }
     }
 
