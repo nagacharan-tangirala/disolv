@@ -64,6 +64,7 @@ impl PoolModel for Linker {
     }
 }
 
+#[derive(Default)]
 pub struct NodeLinks {
     target_type_links: Vec<(NodeType, Linker)>,
 }

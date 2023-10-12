@@ -46,7 +46,7 @@ pub struct NodeSettings {
     pub node_type: NodeType,
     pub power_file: String,
     pub space: SpaceSettings,
-    pub linker: Vec<LinkerSettings>,
+    pub linker: Option<Vec<LinkerSettings>>,
     pub class: Vec<NodeClassSettings>,
 }
 
