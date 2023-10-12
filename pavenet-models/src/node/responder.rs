@@ -17,6 +17,14 @@ pub enum ResponderType {
     Stats(StatsResponder),
 }
 
+impl ResponderType {
+    pub fn to_input(&self) -> ResponderSettings {
+        match self {
+            ResponderType::Stats(responder) => responder.to_input(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Copy)]
 pub struct StatsResponder;
 

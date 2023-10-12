@@ -42,6 +42,15 @@ pub enum ComposerType {
     Status(StatusComposer),
 }
 
+impl ComposerType {
+    pub fn to_input(&self) -> ComposerSettings {
+        match self {
+            ComposerType::Basic(composer) => composer.to_input(),
+            ComposerType::Status(composer) => composer.to_input(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Copy)]
 pub struct BasicComposer {
     pub data_sources: [Option<DataSource>; SOURCE_SIZE],

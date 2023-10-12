@@ -7,7 +7,7 @@ use pavenet_models::node::simplifier::{
     BasicSimplifier, RandomSimplifier, SimplifierSettings, SimplifierType,
 };
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct DeviceModel {
     pub composer: Option<ComposerType>,
     pub simplifier: Option<SimplifierType>,
@@ -15,22 +15,31 @@ pub struct DeviceModel {
 }
 
 impl DeviceModel {
-    pub fn new() -> ModelBuilder {
-        ModelBuilder::new()
+    pub fn builder() -> ModelBuilder {
+        ModelBuilder::builder()
     }
 
-    pub fn fetch_current_settings(&mut self, new_models: &ModelChanges) -> ModelChanges {
+    pub fn fetch_current_settings(&mut self, models_to_change: &ModelChanges) -> ModelChanges {
         let mut current_models = ModelChanges::default();
-        current_models.composer = match new_models.composer {
-            Some(ref composer) => composer.to_input(),
+        current_models.composer = match models_to_change.composer {
+            Some(_) => match self.composer {
+                Some(composer) => Some(composer.to_input()),
+                None => None,
+            },
             None => None,
         };
-        current_models.responder = match new_models.responder {
-            Some(ref responder) => responder.to_input(),
+        current_models.simplifier = match models_to_change.simplifier {
+            Some(_) => match self.simplifier {
+                Some(simplifier) => Some(simplifier.to_input()),
+                None => None,
+            },
             None => None,
         };
-        current_models.simplifier = match new_models.simplifier {
-            Some(ref simplifier) => simplifier.to_input(),
+        current_models.responder = match models_to_change.responder {
+            Some(_) => match self.responder {
+                Some(responder) => Some(responder.to_input()),
+                None => None,
+            },
             None => None,
         };
         return current_models;
@@ -47,7 +56,7 @@ pub struct ModelBuilder {
 }
 
 impl ModelBuilder {
-    pub fn new() -> Self {
+    pub fn builder() -> Self {
         Self {
             composer: None,
             simplifier: None,
@@ -70,7 +79,7 @@ impl ModelBuilder {
     pub fn with_simplifier(mut self, simplifier: &Option<SimplifierSettings>) -> Self {
         self.simplifier = match simplifier {
             Some(ref simplifier_settings) => match simplifier_settings.name.as_str() {
-                "basic" => Some(SimplifierType::Basic(BasicSimplifier::new(
+                "simple" => Some(SimplifierType::Basic(BasicSimplifier::new(
                     simplifier_settings,
                 ))),
                 "random" => Some(SimplifierType::Random(RandomSimplifier::new(

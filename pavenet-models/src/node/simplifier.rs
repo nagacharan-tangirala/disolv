@@ -18,6 +18,15 @@ pub enum SimplifierType {
     Random(RandomSimplifier),
 }
 
+impl SimplifierType {
+    pub fn to_input(&self) -> SimplifierSettings {
+        match self {
+            SimplifierType::Basic(simplifier) => simplifier.to_input(),
+            SimplifierType::Random(simplifier) => simplifier.to_input(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Copy)]
 pub struct BasicSimplifier {
     compression_factor: f32,
