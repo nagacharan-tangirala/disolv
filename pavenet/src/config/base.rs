@@ -12,11 +12,11 @@ use std::path::PathBuf;
 #[derive(Deserialize, Debug, Clone)]
 pub struct BaseConfig {
     pub simulation_settings: SimSettings,
+    pub field_settings: FieldSettings,
     pub log_settings: LogSettings,
     pub output_settings: OutputSettings,
-    pub field_settings: FieldSettings,
-    pub nodes: Vec<NodeSettings>,
     pub episode_settings: Option<EpisodeSettings>,
+    pub nodes: Vec<NodeSettings>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -44,14 +44,16 @@ pub struct OutputSettings {
 #[derive(Deserialize, Debug, Clone)]
 pub struct NodeSettings {
     pub node_type: NodeType,
-    pub activation_file: String,
-    pub mobility: SpaceSettings,
-    pub linker: LinkerSettings,
+    pub power_file: String,
+    pub space: SpaceSettings,
+    pub linker: Vec<LinkerSettings>,
+    pub class: Vec<NodeClassSettings>,
 }
 
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct NodeClassSettings {
+    pub node_share: f32,
     pub node_class: u32,
     pub node_order: i32,
     pub composer: Option<ComposerSettings>,
@@ -78,5 +80,15 @@ impl BaseConfigReader {
         let parsing_result = std::fs::read_to_string(&self.file_path)?;
         let config: BaseConfig = toml::from_str(&parsing_result)?;
         Ok(config)
+    }
+}
+
+mod tests {
+    #[cfg(test)]
+    fn test_base_config_reader() {
+        let base_config_file = "../test/data/test_config.toml";
+        let config_reader = super::BaseConfigReader::new(&base_config_file);
+        let base_config = config_reader.parse().unwrap();
+        println!("{:?}", base_config);
     }
 }
