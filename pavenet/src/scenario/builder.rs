@@ -6,7 +6,7 @@ use crate::scenario::devices::DevicePool;
 use crate::scenario::episode::{Episode, EpisodeInfo};
 use crate::scenario::model::DeviceModel;
 use hashbrown::HashMap;
-use log::{debug, info, warn};
+use log::info;
 use pavenet_core::enums::NodeType;
 use pavenet_core::named::class::Class;
 use pavenet_core::structs::NodeInfo;
@@ -20,7 +20,6 @@ use pavenet_input::input::links::{LinkReaderType, ReadLinks, StreamLinks};
 use pavenet_input::input::power;
 use pavenet_models::pool::linker::{Linker, LinkerSettings, NodeLinks};
 use pavenet_models::pool::space::{Space, SpaceSettings};
-use std::fs;
 use std::path::{Path, PathBuf};
 
 pub struct PavenetBuilder {
@@ -230,8 +229,15 @@ impl PavenetBuilder {
         let mut device_pools = Vec::new();
         for node_setting in self.base_config.nodes.iter() {
             let space = self.build_space(&node_setting.space);
-            let node_links = self.build_node_links(&node_setting.linker);
-            let targets = self.collect_targets(&node_setting.linker);
+            let mut node_links = NodeLinks::default();
+            let mut targets = Vec::new();
+            match &node_setting.linker {
+                Some(linker_settings) => {
+                    node_links = self.build_node_links(linker_settings);
+                    targets = self.collect_targets(linker_settings);
+                }
+                None => {}
+            };
 
             let episodes = match self.episodes.get(&node_setting.node_type) {
                 Some(episodes) => episodes.clone(),
@@ -336,5 +342,9 @@ impl PavenetBuilder {
 
     pub fn get_duration(&self) -> u64 {
         return self.base_config.simulation_settings.sim_duration;
+    }
+
+    pub fn get_time_step(&self) -> u64 {
+        return self.base_config.simulation_settings.sim_step;
     }
 }
