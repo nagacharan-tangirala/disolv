@@ -1,34 +1,29 @@
-use crate::scenario::device::Device;
+use crate::scenario::deviceimpl::Device;
 use crate::scenario::episode::{Episode, EpisodeInfo, EpisodeType, NodeChanges, NodeScope};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
-use log::error;
+use pavenet_core::enums::NodeType;
 use pavenet_core::types::{NodeId, TimeStamp};
 use pavenet_engine::node::pool::NodePool;
 use pavenet_models::model::PoolModel;
-use pavenet_models::pool::linker::Linker;
+use pavenet_models::pool::linker::NodeLinks;
 use pavenet_models::pool::space::Space;
-use rand::Rng;
+use typed_builder::TypedBuilder;
 
-pub struct Devices {
+#[derive(TypedBuilder)]
+pub struct DevicePool {
     devices: HashMap<NodeId, Device>,
     pub episode: Episode,
-    pub to_add: Vec<(NodeId, TimeStamp)>,
-    pub to_pop: Vec<NodeId>,
     pub space: Space,
-    pub linker: Linker,
+    pub node_links: NodeLinks,
+    pub targets: Vec<NodeType>,
+    #[builder(default)]
+    pub to_pop: Vec<NodeId>,
+    #[builder(default)]
+    pub to_add: Vec<(NodeId, TimeStamp)>,
 }
 
-impl Devices {
-    pub fn new(space: Space, linker: Linker, episode: Episode) -> Self {
-        Self {
-            space,
-            linker,
-            episode,
-            ..Default::default()
-        }
-    }
-
+impl DevicePool {
     fn apply_episodes(&mut self, step: TimeStamp) {
         if !self.episode.has_episodes_at(step) {
             return;
@@ -37,21 +32,15 @@ impl Devices {
         let mut episode_list = self.episode.episodes_at(step);
         let mut restore_episodes = Vec::new();
         for episode_info in episode_list.drain(..) {
-            let node_config = match episode_info.node_config {
-                Some(ref node_settings) => node_settings.clone(),
-                None => panic!("No node config found"),
-            };
-            let node_list = self.episode.filter_nodes(&node_config);
+            let node_config = &episode_info.node_config;
+            let node_list = self.episode.filter_nodes(node_config);
             let device = match self.devices.get_mut(&node_list[0]) {
                 Some(device) => device,
                 None => panic!("No device found"),
             };
             match episode_info.episode_type {
                 EpisodeType::Persistent => {
-                    let duration = match episode_info.duration {
-                        Some(duration) => duration,
-                        None => panic!("No duration found"),
-                    };
+                    let duration = episode_info.duration.expect("No duration found");
                     let reset_ts = step + duration;
                     let mut restore = self.episode.get_restore(device, &episode_info, reset_ts);
                     restore.node_config.node_scope = NodeScope::Include(node_list.clone());
@@ -66,7 +55,7 @@ impl Devices {
 
     fn consume_episode(&mut self, node_list: &Vec<NodeId>, episode_info: &EpisodeInfo) {
         for node_id in node_list.iter() {
-            let mut device = match self.devices.get_mut(node_id) {
+            let device = match self.devices.get_mut(node_id) {
                 Some(device) => device,
                 None => panic!("No device found"),
             };
@@ -75,20 +64,20 @@ impl Devices {
                 None => {}
             }
             match episode_info.node_changes {
-                Some(ref node_changes) => self.apply_node_changes(&mut device, node_changes),
+                Some(ref node_changes) => {
+                    self.episode.remove_old_entry(&device.node_info);
+                    device.apply_node_changes(node_changes);
+                    self.episode.add_new_entry(&device.node_info);
+                }
                 None => {}
             }
         }
     }
 
-    fn apply_node_changes(&mut self, device: &mut Device, node_changes: &NodeChanges) {
-        self.episode.remove_old_entry(&device.node_info);
-        device.apply_node_changes(node_changes);
-        self.episode.add_new_entry(&device.node_info);
-    }
+    fn apply_node_changes(&mut self, device: &mut Device, node_changes: &NodeChanges) {}
 }
 
-impl NodePool for Devices {
+impl NodePool for DevicePool {
     fn init(&mut self, schedule: &mut Schedule) {
         self.space.init(TimeStamp::from(schedule.step));
         self.node_links.init(TimeStamp::from(schedule.step));
