@@ -1,4 +1,5 @@
-pub mod device;
+pub mod builder;
+pub mod deviceimpl;
+pub mod devices;
 pub mod episode;
 pub mod model;
-pub mod pool;
