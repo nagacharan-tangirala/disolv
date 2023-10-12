@@ -1,4 +1,4 @@
-use crate::engine::core::Core;
+use crate::engine::engine::Engine;
 use crate::node::node::Node;
 use crate::node::power::{PowerSchedule, PowerState};
 use downcast_rs::impl_downcast;
@@ -24,14 +24,14 @@ impl NodeImpl {
         }
     }
 
-    fn power_off(&mut self, core: &mut Core) {
+    fn power_off(&mut self, engine: &mut Engine) {
         self.node.set_power_state(PowerState::Off);
         self.power_schedule.pop_time_to_off();
-        core.pool_impl.to_pop.push(self.node_id);
+        engine.pool_impl.to_pop.push(self.node_id);
 
         let time_stamp = self.power_schedule.pop_time_to_on();
-        if time_stamp > core.step {
-            core.pool_impl.to_add.push(self.node_id);
+        if time_stamp > engine.step {
+            engine.pool_impl.to_add.push(self.node_id);
         }
     }
 
@@ -43,16 +43,16 @@ impl NodeImpl {
 impl Agent for NodeImpl {
     fn step(&mut self, state: &mut dyn State) {
         self.node.set_power_state(PowerState::On);
-        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
-        self.node.step(core_state);
-        if core_state.step == self.power_schedule.peek_time_to_off() {
-            self.power_off(core_state);
+        let engine = state.as_any_mut().downcast_mut::<Engine>().unwrap();
+        self.node.step(engine);
+        if engine.step == self.power_schedule.peek_time_to_off() {
+            self.power_off(engine);
         }
     }
 
     fn after_step(&mut self, state: &mut dyn State) {
-        let core_state = state.as_any_mut().downcast_mut::<Core>().unwrap();
-        self.node.after_step(core_state);
+        let engine = state.as_any_mut().downcast_mut::<Engine>().unwrap();
+        self.node.after_step(engine);
     }
 
     fn is_stopped(&self, _state: &mut dyn State) -> bool {

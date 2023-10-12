@@ -11,8 +11,8 @@ use pavenet_core::enums::NodeType;
 use pavenet_core::named::class::Class;
 use pavenet_core::structs::NodeInfo;
 use pavenet_core::types::{NodeId, Order, PowerTimes, TimeStamp};
-use pavenet_engine::engine::core::Core;
-use pavenet_engine::engine::nodes::PoolImpl;
+use pavenet_engine::engine::engine::Engine;
+use pavenet_engine::engine::poolimpl::PoolImpl;
 use pavenet_engine::node::node::Node;
 use pavenet_engine::node::pool::NodePool;
 use pavenet_engine::node::power::{PowerSchedule, SCHEDULE_SIZE};
@@ -60,7 +60,7 @@ impl PavenetBuilder {
         }
     }
 
-    pub fn build(&mut self) -> Core {
+    pub fn build(&mut self) -> Engine {
         logger::initiate_logger(&self.config_path, &self.base_config.log_settings);
 
         let start_time = TimeStamp::default();
@@ -80,8 +80,8 @@ impl PavenetBuilder {
         let node_map = self.build_dyn_nodes(&device_map);
         let pool_impl = self.build_pool_impl(node_map);
 
-        info!("Initializing Core...");
-        Core::builder()
+        info!("Initializing Engine...");
+        Engine::builder()
             .step(start_time)
             .end_step(end_time)
             .streaming_step(self.streaming_step)

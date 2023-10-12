@@ -1,4 +1,4 @@
-use crate::engine::core::Core;
+use crate::engine::engine::Engine;
 use crate::node::node::Node;
 use crate::node::power::PowerState;
 use pavenet_core::structs::NodeInfo;
@@ -31,11 +31,11 @@ impl Node for TestNode {
         self.power_state = power_state;
     }
 
-    fn step(&mut self, _core: &mut Core) {
+    fn step(&mut self, _engine: &mut Engine) {
         println!("TestNode::step");
     }
 
-    fn after_step(&mut self, _core: &mut Core) {
+    fn after_step(&mut self, _engine: &mut Engine) {
         println!("TestNode::after_step");
     }
 }

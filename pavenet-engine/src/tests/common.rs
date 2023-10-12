@@ -1,5 +1,5 @@
 use crate::engine::nodeimpl::NodeImpl;
-use crate::engine::nodes::PoolImpl;
+use crate::engine::poolimpl::PoolImpl;
 use crate::node::node::Node;
 use crate::node::power::{PowerSchedule, SCHEDULE_SIZE};
 use crate::tests::node::TestNode;

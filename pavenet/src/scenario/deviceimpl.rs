@@ -2,7 +2,7 @@ use crate::scenario::episode::NodeChanges;
 use crate::scenario::model::DeviceModel;
 use pavenet_core::structs::{MapState, NodeInfo};
 use pavenet_core::types::{NodeId, TimeStamp};
-use pavenet_engine::engine::core::Core;
+use pavenet_engine::engine::engine::Engine;
 use pavenet_engine::node::node::Node;
 use pavenet_engine::node::power::{PowerSchedule, PowerState};
 use pavenet_models::node::payload::Payload;
@@ -30,9 +30,9 @@ impl Device {
         DeviceBuilder::default()
     }
 
-    fn update_map_state(&mut self, core: &mut Core) {}
+    fn update_map_state(&mut self, engine: &mut Engine) {}
 
-    fn collect_data(&mut self, core_state: &mut Core) {}
+    fn collect_data(&mut self, engine_state: &mut Engine) {}
 
     pub fn apply_node_changes(&mut self, node_changes: &NodeChanges) {
         self.node_info.node_type = node_changes.new_node_type;
@@ -47,7 +47,7 @@ impl Transmitter for Device {
         todo!()
     }
 
-    fn generate_data(&mut self, core: &mut Core) -> Self::Item {
+    fn generate_data(&mut self, engine: &mut Engine) -> Self::Item {
         todo!()
     }
 
@@ -62,7 +62,7 @@ impl Recipient for Device {
         todo!()
     }
 
-    fn report_stats(&mut self, core: &mut Core) {
+    fn report_stats(&mut self, engine: &mut Engine) {
         todo!()
     }
 }
@@ -80,15 +80,15 @@ impl Node for Device {
         self.power_state = power_state;
     }
 
-    fn step(&mut self, core: &mut Core) {
-        self.step = core.step;
-        self.update_map_state(core);
-        self.generate_data(core);
+    fn step(&mut self, engine: &mut Engine) {
+        self.step = engine.step;
+        self.update_map_state(engine);
+        self.generate_data(engine);
     }
 
-    fn after_step(&mut self, core: &mut Core) {
-        // self.receive(core);
-        self.report_stats(core);
+    fn after_step(&mut self, engine: &mut Engine) {
+        // self.receive(engine);
+        self.report_stats(engine);
     }
 }
 
