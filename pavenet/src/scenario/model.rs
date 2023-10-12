@@ -22,24 +22,15 @@ impl DeviceModel {
     pub fn fetch_current_settings(&mut self, models_to_change: &ModelChanges) -> ModelChanges {
         let mut current_models = ModelChanges::default();
         current_models.composer = match models_to_change.composer {
-            Some(_) => match self.composer {
-                Some(composer) => Some(composer.to_input()),
-                None => None,
-            },
+            Some(_) => self.composer.map(|composer| composer.to_input()),
             None => None,
         };
         current_models.simplifier = match models_to_change.simplifier {
-            Some(_) => match self.simplifier {
-                Some(simplifier) => Some(simplifier.to_input()),
-                None => None,
-            },
+            Some(_) => self.simplifier.map(|simplifier| simplifier.to_input()),
             None => None,
         };
         current_models.responder = match models_to_change.responder {
-            Some(_) => match self.responder {
-                Some(responder) => Some(responder.to_input()),
-                None => None,
-            },
+            Some(_) => self.responder.map(|responder| responder.to_input()),
             None => None,
         };
         return current_models;
