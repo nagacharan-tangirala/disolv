@@ -36,7 +36,7 @@ pub struct ModelChanges {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-#[serde(tag = "node_scope", content = "nodes")]
+#[serde(tag = "scope", content = "nodes")]
 pub enum NodeScope {
     #[default]
     None,
