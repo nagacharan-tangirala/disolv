@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+use serde_derive::Deserialize;
+
+#[derive(Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Order(i32);
 
 impl From<i32> for Order {
