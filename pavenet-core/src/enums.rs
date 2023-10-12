@@ -1,4 +1,5 @@
 use serde_derive::Deserialize;
+use std::fmt::Display;
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub enum MobilityType {
@@ -30,4 +31,15 @@ pub enum NodeType {
     RSU,
     BaseStation,
     Controller,
+}
+
+impl Display for NodeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NodeType::Vehicle => write!(f, "Vehicle"),
+            NodeType::RSU => write!(f, "RSU"),
+            NodeType::BaseStation => write!(f, "BaseStation"),
+            NodeType::Controller => write!(f, "Controller"),
+        }
+    }
 }
