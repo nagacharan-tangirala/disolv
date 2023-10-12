@@ -1,4 +1,4 @@
-use crate::engine::nodes::PoolImpl;
+use crate::engine::poolimpl::PoolImpl;
 use crate::node::pool::NodePool;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use pavenet_core::types::TimeStamp;
@@ -6,7 +6,7 @@ use std::any::Any;
 use typed_builder::TypedBuilder;
 
 #[derive(TypedBuilder)]
-pub struct Core {
+pub struct Engine {
     pub step: TimeStamp,
     streaming_step: TimeStamp,
     end_step: TimeStamp,
@@ -14,8 +14,9 @@ pub struct Core {
     pub node_pools: Vec<Box<dyn NodePool>>,
 }
 
-impl State for Core {
+impl State for Engine {
     fn init(&mut self, schedule: &mut Schedule) {
+        self.pool_impl.init();
         self.node_pools.iter_mut().for_each(|c| c.init(schedule));
     }
 
