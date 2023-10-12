@@ -25,7 +25,9 @@ itertools = "0.11.0"
 serde_with = "3.3.0"
 clap = {version = "4.4.6", features = ["derive"]}
 hashbrown = "0.14.1"
+typed-builder = "0.16.2"
 
 [features]
+headless = []
 visualization = ["krabmaga/visualization"]
 visualization_wasm = ["krabmaga/visualization_wasm"]

@@ -3594,6 +3594,7 @@ dependencies = [
  "serde_derive",
  "serde_with",
  "toml 0.8.2",
+ "typed-builder",
 ]
 
 [[package]]
