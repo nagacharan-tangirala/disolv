@@ -22,7 +22,7 @@ pub struct FieldSettings {
 pub struct SpaceSettings {
     pub mobility_type: MobilityType,
     pub is_streaming: bool,
-    pub geo_data_file: String,
+    pub trace_file: String,
 }
 
 pub struct Space {
@@ -109,9 +109,9 @@ impl Space {
 #[derive(Default)]
 pub struct SpaceBuilder {
     config_path: PathBuf,
-    streaming_interval: TimeStamp,
+    streaming_step: TimeStamp,
     field_settings: FieldSettings,
-    map_state_settings: SpaceSettings,
+    space_settings: SpaceSettings,
 }
 
 impl SpaceBuilder {
@@ -122,8 +122,8 @@ impl SpaceBuilder {
         }
     }
 
-    pub fn streaming_interval(mut self, streaming_interval: TimeStamp) -> Self {
-        self.streaming_interval = streaming_interval;
+    pub fn streaming_step(mut self, streaming_step: TimeStamp) -> Self {
+        self.streaming_step = streaming_step;
         self
     }
 
@@ -132,21 +132,19 @@ impl SpaceBuilder {
         self
     }
 
-    pub fn map_settings(mut self, map_state_settings: SpaceSettings) -> Self {
-        self.map_state_settings = map_state_settings;
+    pub fn space_settings(mut self, space_settings: SpaceSettings) -> Self {
+        self.space_settings = space_settings;
         self
     }
 
     pub fn build(self) -> Space {
-        let file_path = self
-            .config_path
-            .join(&self.map_state_settings.geo_data_file);
+        let file_path = self.config_path.join(&self.space_settings.trace_file);
 
-        let map_state_reader: MapReaderType = match self.map_state_settings.is_streaming {
+        let map_state_reader: MapReaderType = match self.space_settings.is_streaming {
             true => MapReaderType::Stream(
                 MapStateStreamer::builder()
                     .file_path(PathBuf::from(file_path))
-                    .streaming_interval(self.streaming_interval)
+                    .streaming_step(self.streaming_step)
                     .build(),
             ),
             false => MapReaderType::File(
@@ -161,10 +159,10 @@ impl SpaceBuilder {
             height: self.field_settings.height,
             cell_size: self.field_settings.cell_size,
             reader: map_state_reader,
-            map_states: HashMap::new(),
-            map_cache: HashMap::new(),
-            cell2node: HashMap::new(),
-            node2cell: HashMap::new(),
+            map_states: HashMap::default(),
+            map_cache: HashMap::default(),
+            cell2node: HashMap::default(),
+            node2cell: HashMap::default(),
         }
     }
 }

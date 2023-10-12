@@ -8,29 +8,35 @@ use pavenet_input::input::links::{LinkMap, LinkReaderType, LinksFetcher};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct LinkConfig {
+pub struct LinkerSettings {
     pub transfer_mode: TransferMode,
-    pub target_device: NodeType,
+    pub target_type: NodeType,
     pub links_file: String,
     pub range: f32,
     pub is_streaming: bool,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct LinkerSettings {
-    pub link_config: Vec<LinkConfig>,
-}
-
 pub struct Linker {
-    pub link_config: LinkConfig,
-    pub links: LinkMap,
+    pub linker_settings: LinkerSettings,
     pub reader: LinkReaderType,
+    pub links: LinkMap,
     pub link_cache: HashMap<NodeId, Link>,
     pub uplink: HashMap<NodeId, Vec<Payload>>,
     pub downlink: HashMap<NodeId, Vec<Payload>>,
 }
 
-impl Linker {}
+impl Linker {
+    pub fn new(link_config: LinkerSettings, reader: LinkReaderType) -> Self {
+        Self {
+            linker_settings: link_config,
+            reader,
+            links: HashMap::new(),
+            link_cache: HashMap::new(),
+            uplink: HashMap::new(),
+            downlink: HashMap::new(),
+        }
+    }
+}
 
 impl PoolModel for Linker {
     fn init(&mut self, step: TimeStamp) {
@@ -63,27 +69,23 @@ pub struct NodeLinks {
 }
 
 impl NodeLinks {
-    pub fn new(node_type_links: HashMap<NodeType, Linker>) -> Self {
-        let mut target_type_links = Vec::with_capacity(node_type_links.len());
-        for (node_type, links) in node_type_links {
-            target_type_links.push((node_type, links));
-        }
+    pub fn new(target_type_links: Vec<(NodeType, Linker)>) -> Self {
         Self { target_type_links }
     }
 
-    pub fn links_for(&mut self, node_id: NodeId, node_type: NodeType) -> Link {
-        self.linker_for(node_type)
+    pub fn links_for(&mut self, node_id: NodeId, target_type: NodeType) -> Link {
+        self.linker_for(target_type)
             .link_cache
             .remove(&node_id)
             .unwrap_or_default()
     }
 
-    fn linker_for(&mut self, node_type: NodeType) -> &mut Linker {
+    fn linker_for(&mut self, target_type: NodeType) -> &mut Linker {
         self.target_type_links
             .iter_mut()
-            .find(|(target_type, _)| *target_type == node_type)
+            .find(|(node_type, _)| *node_type == target_type)
             .map(|(_, links)| links)
-            .unwrap_or_else(|| panic!("No links found for node type: {:?}", node_type))
+            .unwrap_or_else(|| panic!("No links found for target node type: {:?}", target_type))
     }
 }
 
