@@ -179,9 +179,10 @@ impl Episode {
     }
 
     fn node_changes_to_restore(&self, device: &mut Device) -> Option<NodeChanges> {
-        let mut node_changes = NodeChanges::default();
-        node_changes.new_node_type = device.node_info.node_type;
-        node_changes.new_node_class = device.node_info.node_class;
-        return Some(node_changes);
+        Some(NodeChanges {
+            new_order: device.node_info.order,
+            new_node_type: device.node_info.node_type,
+            new_node_class: device.node_info.node_class,
+        })
     }
 }
