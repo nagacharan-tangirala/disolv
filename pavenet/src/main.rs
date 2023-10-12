@@ -9,6 +9,8 @@ use clap::Parser;
 use krabmaga::*;
 
 pub static DISCRETIZATION: f32 = 100.0;
+use pavenet_engine::engine::core::Core;
+use scenario::builder::PavenetBuilder;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]
@@ -23,9 +25,9 @@ Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
     let args = CliArgs::parse();
-    let simulation_core: Core = PavenetBuilder::new(&args.base, &args.dynamic).build();
-    let duration = simulation_core.get_duration();
-    println!("Running the simulation for {} steps", duration);
+    let mut builder = PavenetBuilder::new(&args.base);
+    let simulation_core: Core = builder.build();
+    let duration = builder.get_duration();
     simulate!(simulation_core, duration, 1);
 }
 
