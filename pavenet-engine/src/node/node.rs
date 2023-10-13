@@ -1,12 +1,11 @@
-use crate::engine::engine::Engine;
 use crate::node::power::PowerState;
-use downcast_rs::Downcast;
-use dyn_clone::DynClone;
+use pavenet_core::enums::NodeType;
 
-pub trait Node: Send + Sync + Downcast + DynClone {
+pub trait Node: Clone + Send + Sync + Default + 'static {
+    fn node_type(&self) -> NodeType;
     fn power_state(&self) -> PowerState;
     fn node_order(&self) -> i32;
     fn set_power_state(&mut self, power_state: PowerState);
-    fn step(&mut self, engine: &mut Engine);
-    fn after_step(&mut self, engine: &mut Engine);
+    fn step<U>(&mut self, pool: &mut U);
+    fn after_step<U>(&mut self, pool: &mut U);
 }
