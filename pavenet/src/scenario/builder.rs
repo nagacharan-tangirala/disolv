@@ -7,7 +7,7 @@ use crate::scenario::episode::{Episode, EpisodeInfo};
 use crate::scenario::model::DeviceModel;
 use hashbrown::HashMap;
 use log::info;
-use pavenet_core::enums::NodeType;
+use pavenet_core::enums::{NodeType, TransferMode};
 use pavenet_core::named::class::Class;
 use pavenet_core::structs::NodeInfo;
 use pavenet_core::types::{NodeId, Order, PowerTimes, TimeStamp};
@@ -26,6 +26,7 @@ pub struct PavenetBuilder {
     base_config: BaseConfig,
     config_path: PathBuf,
     streaming_step: TimeStamp,
+    node_targets: HashMap<NodeType, Vec<NodeType>>,
     episodes: HashMap<NodeType, Vec<EpisodeInfo>>,
     power_schedules: HashMap<NodeType, HashMap<NodeId, PowerSchedule>>,
     node_ids_by_type: HashMap<NodeType, Vec<NodeId>>,
@@ -48,6 +49,7 @@ impl PavenetBuilder {
             Ok(base_config) => Self {
                 base_config,
                 config_path,
+                node_targets: HashMap::new(),
                 streaming_step: TimeStamp::default(),
                 episodes: HashMap::new(),
                 power_schedules: HashMap::new(),
@@ -69,6 +71,7 @@ impl PavenetBuilder {
 
         info!("Reading power schedules...");
         self.read_power_schedules();
+        self.read_node_targets();
         self.read_node_ids();
         self.read_episodes();
 
@@ -136,6 +139,32 @@ impl PavenetBuilder {
             schedule_map.insert(node_id, power_schedule);
         }
         return schedule_map;
+    }
+
+    fn read_node_targets(&mut self) {
+        for node_setting in self.base_config.nodes.iter() {
+            let node_type = node_setting.node_type;
+            let linker_settings = match &node_setting.linker {
+                Some(linker_settings) => linker_settings,
+                None => continue,
+            };
+            for link_config in linker_settings.iter() {
+                self.node_targets
+                    .entry(link_config.target_type)
+                    .or_insert(Vec::new())
+                    .push(node_type);
+
+                match link_config.transfer_mode {
+                    TransferMode::BDT => {
+                        self.node_targets
+                            .entry(link_config.target_type)
+                            .or_insert(Vec::new())
+                            .push(node_type);
+                    }
+                    _ => {}
+                }
+            }
+        }
     }
 
     fn read_node_ids(&mut self) {
@@ -230,13 +259,12 @@ impl PavenetBuilder {
         for node_setting in self.base_config.nodes.iter() {
             let space = self.build_space(&node_setting.space);
             let mut node_links = NodeLinks::default();
-            let mut targets = Vec::new();
-            match &node_setting.linker {
-                Some(linker_settings) => {
-                    node_links = self.build_node_links(linker_settings);
-                    targets = self.collect_targets(linker_settings);
-                }
-                None => {}
+            if let Some(linker_settings) = &node_setting.linker {
+                node_links = self.build_node_links(linker_settings);
+            }
+            let targets = match self.node_targets.get(&node_setting.node_type) {
+                Some(targets) => targets.clone(),
+                None => Vec::new(),
             };
 
             let episodes = match self.episodes.get(&node_setting.node_type) {
@@ -290,14 +318,6 @@ impl PavenetBuilder {
             false => LinkReaderType::File(ReadLinks::builder().links_file(links_file).build()),
         };
         return Linker::new(link_config.clone(), link_reader);
-    }
-
-    fn collect_targets(&self, link_configs: &Vec<LinkerSettings>) -> Vec<NodeType> {
-        let mut targets = Vec::new();
-        for link_config in link_configs {
-            targets.push(link_config.target_type);
-        }
-        return targets;
     }
 
     fn get_devices_of_type(
