@@ -92,33 +92,83 @@ where
     }
 }
 
-impl fmt::Display for NodeImpl {
+impl<T, U> fmt::Display for NodeImpl<T, U>
+where
+    T: Node,
+    U: NodePool,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.node_id)
     }
 }
 
-impl Eq for NodeImpl {}
+impl<T, U> Eq for NodeImpl<T, U>
+where
+    T: Node,
+    U: NodePool,
+{
+}
 
-impl PartialEq for NodeImpl {
-    fn eq(&self, other: &NodeImpl) -> bool {
+impl<T, U> PartialEq for NodeImpl<T, U>
+where
+    T: Node,
+    U: NodePool,
+{
+    fn eq(&self, other: &NodeImpl<T, U>) -> bool {
         self.node_id == other.node_id
     }
 }
 
-dyn_clone::clone_trait_object!(Node);
-impl_downcast!(Node);
-
 #[cfg(test)]
 pub(crate) mod tests {
-    mod test_node {
-        use crate::engine::engine::Engine;
+    pub(crate) mod test_pool {
+        use super::test_node::TestNode;
+        use crate::node::pool::NodePool;
+        use krabmaga::engine::schedule::Schedule;
+        use pavenet_core::types::TimeStamp;
+
+        #[derive(Clone, Debug, Default)]
+        pub(crate) struct TestPool {
+            pub(crate) nodes: Vec<TestNode>,
+        }
+
+        impl TestPool {
+            pub fn add_node(&mut self, nodes: TestNode) {
+                self.nodes.push(nodes);
+            }
+        }
+
+        impl NodePool for TestPool {
+            fn init(&mut self, schedule: &mut Schedule) {
+                println!("Initializing test pool");
+            }
+
+            fn before_step(&mut self, step: TimeStamp) {
+                println!("TestPool::before_step {}", step);
+            }
+
+            fn update(&mut self, step: TimeStamp) {
+                println!("TestPool::update {}", step);
+            }
+
+            fn after_step(&mut self, schedule: &mut Schedule) {
+                println!("TestPool::after_step {}", schedule.step);
+            }
+
+            fn streaming_step(&mut self, step: TimeStamp) {
+                println!("TestPool::streaming_step {}", step);
+            }
+        }
+    }
+
+    pub(crate) mod test_node {
         use crate::node::node::Node;
         use crate::node::power::PowerState;
+        use pavenet_core::enums::NodeType;
         use pavenet_core::structs::NodeInfo;
 
-        #[derive(Clone, Debug)]
-        pub struct TestNode {
+        #[derive(Clone, Copy, Debug, Default)]
+        pub(crate) struct TestNode {
             pub node_info: NodeInfo,
             pub power_state: PowerState,
         }
@@ -133,6 +183,10 @@ pub(crate) mod tests {
         }
 
         impl Node for TestNode {
+            fn node_type(&self) -> NodeType {
+                self.node_info.node_type
+            }
+
             fn power_state(&self) -> PowerState {
                 self.power_state
             }
@@ -145,28 +199,29 @@ pub(crate) mod tests {
                 self.power_state = power_state;
             }
 
-            fn step(&mut self, _engine: &mut Engine) {
+            fn step<TestPool>(&mut self, _pool: &mut TestPool) {
                 println!("TestNode::step");
             }
 
-            fn after_step(&mut self, _engine: &mut Engine) {
+            fn after_step<TestPool>(&mut self, _pool: &mut TestPool) {
                 println!("TestNode::after_step");
             }
         }
     }
 
-    use crate::engine::nodeimpl::tests::test_node::TestNode;
-    use crate::engine::nodeimpl::NodeImpl;
+    use super::tests::test_node::TestNode;
+    use super::NodeImpl;
+    use crate::engine::node_set::NodeSet;
+    use crate::engine::nodeimpl::tests::test_pool::TestPool;
     use crate::node::node::Node;
     use crate::node::power::{PowerSchedule, SCHEDULE_SIZE};
     use hashbrown::HashMap;
     use pavenet_core::enums::NodeType;
-    use pavenet_core::named::class::Class;
     use pavenet_core::structs::NodeInfo;
-    use pavenet_core::types::{NodeId, Order, TimeStamp};
+    use pavenet_core::types::{Class, NodeId, Order, TimeStamp};
 
-    pub(crate) fn make_dyn_nodes() -> HashMap<NodeId, Box<dyn Node>> {
-        let mut nodes: HashMap<NodeId, Box<dyn Node>> = HashMap::with_capacity(10);
+    pub(crate) fn make_test_pool() -> TestPool {
+        let mut test_pool = TestPool::default();
         for i in 0..10 {
             let node_info = NodeInfo::builder()
                 .node_type(NodeType::Vehicle)
@@ -175,19 +230,30 @@ pub(crate) mod tests {
                 .order(Order::from(1))
                 .build();
             let test_node = TestNode::new(node_info);
-            let power_schedule = make_power_schedule();
-            nodes.insert(NodeId::from(i), Box::new(test_node));
+            test_pool.add_node(test_node);
         }
-        nodes
+        test_pool
     }
 
-    pub(crate) fn make_power_schedule() -> PowerSchedule {
+    fn make_power_schedule() -> PowerSchedule {
         let mut on_times: [Option<TimeStamp>; SCHEDULE_SIZE] = [None; SCHEDULE_SIZE];
         let mut off_times: [Option<TimeStamp>; SCHEDULE_SIZE] = [None; SCHEDULE_SIZE];
         for i in 0..SCHEDULE_SIZE {
-            on_times[i] = Some(TimeStamp::from(0u64));
+            on_times[i] = Some(TimeStamp::from(1u64));
             off_times[i] = Some(TimeStamp::from(10u64));
         }
         PowerSchedule::new(on_times, off_times)
+    }
+
+    pub(crate) fn make_test_node_set() -> NodeSet<TestNode, TestPool> {
+        let test_pool = make_test_pool();
+        let mut nodes: HashMap<NodeId, NodeImpl<TestNode, TestPool>> = HashMap::new();
+        for node in test_pool.nodes.into_iter() {
+            let power_schedule = make_power_schedule();
+            let node_id = node.node_info.id;
+            let node_impl = NodeImpl::new(node_id, power_schedule, node);
+            nodes.insert(node_id, node_impl);
+        }
+        NodeSet::new(nodes)
     }
 }
