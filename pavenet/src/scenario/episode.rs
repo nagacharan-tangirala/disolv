@@ -1,4 +1,4 @@
-use crate::scenario::deviceimpl::Device;
+use crate::scenario::device::Device;
 use hashbrown::HashMap;
 use pavenet_core::enums::NodeType;
 use pavenet_core::named::class::Class;
