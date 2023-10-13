@@ -1,58 +1,77 @@
 use crate::engine::engine::Engine;
 use crate::node::node::Node;
+use crate::node::pool::NodePool;
 use crate::node::power::{PowerSchedule, PowerState};
-use downcast_rs::impl_downcast;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::state::State;
-use pavenet_core::named::ids::node::NodeId;
+use pavenet_core::types::NodeId;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 
 #[derive(Clone)]
-pub struct NodeImpl {
+pub struct NodeImpl<T, U>
+where
+    T: Node,
+    U: NodePool,
+{
     pub(crate) node_id: NodeId,
     pub(crate) power_schedule: PowerSchedule,
-    pub(crate) node: Box<dyn Node>,
+    pub(crate) node: T,
+    pub(crate) _phantom_u: PhantomData<fn() -> U>,
 }
 
-impl NodeImpl {
-    pub fn new(node_id: NodeId, power_schedule: PowerSchedule, dyn_node: Box<dyn Node>) -> Self {
+impl<T, U> NodeImpl<T, U>
+where
+    T: Node,
+    U: NodePool,
+{
+    pub fn new(node_id: NodeId, power_schedule: PowerSchedule, node: T) -> Self {
         Self {
             node_id,
-            node: dyn_node,
+            node,
             power_schedule,
+            _phantom_u: PhantomData,
         }
     }
 
-    fn power_off(&mut self, engine: &mut Engine) {
+    fn power_off(&mut self, engine: &mut Engine<T, U>) {
         self.node.set_power_state(PowerState::Off);
         self.power_schedule.pop_time_to_off();
-        engine.pool_impl.to_pop.push(self.node_id);
+        engine.node_set.to_pop.push(self.node_id);
 
         let time_stamp = self.power_schedule.pop_time_to_on();
         if time_stamp > engine.step {
-            engine.pool_impl.to_add.push(self.node_id);
+            engine.node_set.to_add.push(self.node_id);
         }
-    }
-
-    pub fn as_agent(&self) -> Box<dyn Agent> {
-        Box::new(self.clone())
     }
 }
 
-impl Agent for NodeImpl {
+impl<T, U> Agent for NodeImpl<T, U>
+where
+    T: Node,
+    U: NodePool,
+{
     fn step(&mut self, state: &mut dyn State) {
         self.node.set_power_state(PowerState::On);
-        let engine = state.as_any_mut().downcast_mut::<Engine>().unwrap();
-        self.node.step(engine);
+        let engine: &mut Engine<T, U> = state.as_any_mut().downcast_mut::<Engine<T, U>>().unwrap();
+        let pool = match engine.pool_set.pool_of(self.node.node_type()) {
+            Some(pool) => pool,
+            None => panic!("Could not find pool for type {}", self.node.node_type()),
+        };
+        self.node.step(pool);
         if engine.step == self.power_schedule.peek_time_to_off() {
             self.power_off(engine);
         }
     }
 
     fn after_step(&mut self, state: &mut dyn State) {
-        let engine = state.as_any_mut().downcast_mut::<Engine>().unwrap();
-        self.node.after_step(engine);
+        let engine = state.as_any_mut().downcast_mut::<Engine<T, U>>().unwrap();
+        let pool = match engine.pool_set.pool_of(self.node.node_type()) {
+            Some(pool) => pool,
+            None => panic!("Could not find pool for type {}", self.node.node_type()),
+        };
+        self.node.after_step(pool);
     }
 
     fn is_stopped(&self, _state: &mut dyn State) -> bool {
@@ -60,7 +79,11 @@ impl Agent for NodeImpl {
     }
 }
 
-impl Hash for NodeImpl {
+impl<T, U> Hash for NodeImpl<T, U>
+where
+    T: Node,
+    U: NodePool,
+{
     fn hash<H>(&self, state: &mut H)
     where
         H: Hasher,
