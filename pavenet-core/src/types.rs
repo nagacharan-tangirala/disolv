@@ -1,3 +1,4 @@
+pub use super::named::class::Class;
 pub use super::named::ids::node::NodeId;
 pub use super::named::ids::road::RoadId;
 pub use super::named::order::Order;
