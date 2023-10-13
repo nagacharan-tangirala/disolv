@@ -1,4 +1,4 @@
-use crate::scenario::deviceimpl::Device;
+use crate::scenario::device::Device;
 use crate::scenario::episode::{Episode, EpisodeInfo, EpisodeType, NodeChanges, NodeScope};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
@@ -10,7 +10,7 @@ use pavenet_models::pool::linker::NodeLinks;
 use pavenet_models::pool::space::Space;
 use typed_builder::TypedBuilder;
 
-#[derive(TypedBuilder)]
+#[derive(Clone, Default, TypedBuilder)]
 pub struct DevicePool {
     devices: HashMap<NodeId, Device>,
     pub episode: Episode,
