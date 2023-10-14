@@ -20,8 +20,8 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{Bucket, TimeS};
-    use crate::engine::entity::tests::Nid;
-    use crate::engine::node::tests::MyNode;
+    use crate::entity::tests::Nid;
+    use crate::node::tests::MyNode;
     use krabmaga::engine::schedule::Schedule;
     use std::collections::HashMap;
     use std::fmt::Display;

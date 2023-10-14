@@ -1,4 +1,4 @@
-use crate::engine::bucket::{Bucket, TimeS};
+use super::bucket::{Bucket, TimeS};
 use std::hash::Hash;
 
 pub trait Identifier:
@@ -21,8 +21,8 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{Entity, Identifier, Kind};
-    use crate::engine::bucket::tests::{MyBucket, Ts};
-    use crate::engine::node::tests::as_node;
+    use crate::bucket::tests::{MyBucket, Ts};
+    use crate::node::tests::as_node;
     use krabmaga::engine::schedule::Schedule;
     use std::fmt::Display;
 

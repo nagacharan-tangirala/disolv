@@ -1,6 +1,6 @@
-use crate::engine::bucket::{Bucket, TimeS};
-use crate::engine::engine::Engine;
-use crate::engine::entity::{Entity, Identifier, Kind};
+use crate::bucket::{Bucket, TimeS};
+use crate::engine::Engine;
+use crate::entity::{Entity, Identifier, Kind};
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::state::State;
 use std::fmt;
@@ -131,9 +131,9 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::engine::bucket::tests::{MyBucket, Ts};
-    use crate::engine::entity::tests::{make_device, DeviceType, Nid, TDevice};
-    use crate::engine::node::Node;
+    use crate::bucket::tests::{MyBucket, Ts};
+    use crate::entity::tests::{make_device, DeviceType, Nid, TDevice};
+    use crate::node::Node;
 
     pub(crate) type MyNode = Node<Nid, TDevice, DeviceType, MyBucket, Ts>;
 

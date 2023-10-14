@@ -1,5 +1,6 @@
-use crate::engine::bucket::{Bucket, TimeS};
-use crate::engine::entity::Kind;
+use super::bucket::Bucket;
+use super::bucket::TimeS;
+use super::entity::Kind;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use std::any::Any;
 use typed_builder::TypedBuilder;
@@ -103,9 +104,9 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use super::Engine;
-    use crate::engine::bucket::tests::{MyBucket, Ts};
-    use crate::engine::entity::tests::{make_device, DeviceType, Nid};
-    use crate::engine::node::tests::as_node;
+    use crate::bucket::tests::{MyBucket, Ts};
+    use crate::entity::tests::{make_device, DeviceType, Nid};
+    use crate::node::tests::as_node;
     use krabmaga::simulate;
 
     fn make_bucket_a(order: i32) -> MyBucket {
