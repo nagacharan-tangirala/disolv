@@ -1,4 +1,4 @@
-use pavenet_core::named::ts::TimeStamp;
+use crate::engine::ts::TimeStamp;
 
 #[derive(Clone, Default, Copy, Debug, PartialEq)]
 pub enum PowerState {
