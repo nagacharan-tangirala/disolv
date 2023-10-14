@@ -1,5 +1,5 @@
 use super::bucket::Bucket;
-use super::bucket::TimeS;
+use super::bucket::TimeStamp;
 use super::entity::Kind;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use std::any::Any;
@@ -10,7 +10,7 @@ pub struct Engine<K, B, S>
 where
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     end_step: S,
     streaming_interval: S,
@@ -25,7 +25,7 @@ impl<K, B, S> Engine<K, B, S>
 where
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     pub fn add(&mut self, kind: K, bucket: B) {
         self.buckets_by_kind.push((kind, bucket));
@@ -43,7 +43,7 @@ impl<K, B, S> State for Engine<K, B, S>
 where
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     fn init(&mut self, schedule: &mut Schedule) {
         self.streaming_step = self.streaming_interval;

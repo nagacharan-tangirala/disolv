@@ -1,14 +1,14 @@
 use krabmaga::engine::schedule::Schedule;
 use std::ops::{Add, AddAssign};
 
-pub trait TimeS:
+pub trait TimeStamp:
     Default + Copy + AddAssign + Clone + Ord + Add + Send + Sync + From<u64> + 'static
 {
 }
 
 pub trait Bucket<S>: Clone + Send + Sync + 'static
 where
-    S: TimeS,
+    S: TimeStamp,
 {
     fn init(&mut self, schedule: &mut Schedule);
     fn before_step(&mut self, schedule: &mut Schedule);
@@ -19,7 +19,7 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{Bucket, TimeS};
+    use super::{Bucket, TimeStamp};
     use crate::entity::tests::Nid;
     use crate::node::tests::MyNode;
     use krabmaga::engine::schedule::Schedule;
@@ -62,7 +62,7 @@ pub(crate) mod tests {
         }
     }
 
-    impl TimeS for Ts {}
+    impl TimeStamp for Ts {}
 
     impl Display for Ts {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

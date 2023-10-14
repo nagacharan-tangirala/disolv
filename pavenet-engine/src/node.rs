@@ -1,4 +1,4 @@
-use crate::bucket::{Bucket, TimeS};
+use crate::bucket::{Bucket, TimeStamp};
 use crate::engine::Engine;
 use crate::entity::{Entity, Identifier, Kind};
 use krabmaga::engine::agent::Agent;
@@ -14,7 +14,7 @@ where
     N: Entity<B, S>,
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     pub(crate) node_id: I,
     pub(crate) node: N,
@@ -28,7 +28,7 @@ where
     N: Entity<B, S>,
     K: Kind + Display,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     fn step(&mut self, state: &mut dyn State) {
         let engine: &mut Engine<K, B, S> = state
@@ -65,7 +65,7 @@ where
     N: Entity<B, S>,
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     pub fn new(node_id: I, node: N, kind: K) -> Self {
         Self {
@@ -83,7 +83,7 @@ where
     N: Entity<B, S>,
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     fn hash<H>(&self, state: &mut H)
     where
@@ -99,7 +99,7 @@ where
     N: Entity<B, S>,
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.node_id)
@@ -112,7 +112,7 @@ where
     N: Entity<B, S>,
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
 }
 
@@ -122,7 +122,7 @@ where
     N: Entity<B, S>,
     K: Kind,
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     fn eq(&self, other: &Node<I, N, K, B, S>) -> bool {
         self.node_id == other.node_id

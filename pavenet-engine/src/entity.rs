@@ -1,4 +1,4 @@
-use super::bucket::{Bucket, TimeS};
+use super::bucket::{Bucket, TimeStamp};
 use std::hash::Hash;
 
 pub trait Identifier:
@@ -11,7 +11,7 @@ pub trait Kind: Default + Clone + Copy + PartialEq + Eq + Send + Sync + 'static 
 pub trait Entity<B, S>: Default + Clone + Send + Sync + 'static
 where
     B: Bucket<S>,
-    S: TimeS,
+    S: TimeStamp,
 {
     fn step(&mut self, bucket: &mut B);
     fn after_step(&mut self, bucket: &mut B);
