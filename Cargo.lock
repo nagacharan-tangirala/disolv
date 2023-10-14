@@ -3602,6 +3602,7 @@ name = "pavenet-core"
 version = "0.0.1"
 dependencies = [
  "hashbrown 0.14.1",
+ "pavenet-engine",
  "serde",
  "serde_derive",
  "serde_with",

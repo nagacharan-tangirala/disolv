@@ -6,12 +6,13 @@ authors = [
 ]
 edition = "2021"
 license = "MIT"
-readme = "README.md"
+readme = "../pavenet-engine/README.md"
 
 [dependencies]
-serde = "1.0.188"
-serde_derive = "1.0.188"
+pavenet-engine = { path = "../pavenet-engine" }
+serde = "1.0.189"
+serde_derive = "1.0.189"
 hashbrown = "0.14.1"
-toml = "0.8.1"
+toml = "0.8.2"
 serde_with = "3.3.0"
 typed-builder = "0.16.2"
