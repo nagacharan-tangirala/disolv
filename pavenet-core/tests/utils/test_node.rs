@@ -140,10 +140,7 @@ impl DataMaker<SensorData, Nid, PayloadStatData, DataType> for TDevice {
     }
 
     fn update_payload(&mut self, given: &mut MyPayload, incoming: Option<Vec<MyPayload>>) {
-        given.gathered_data = match incoming {
-            Some(data) => Some(data.iter().map(|p| p.data_pile).collect()),
-            None => None,
-        }
+        todo!()
     }
 }
 

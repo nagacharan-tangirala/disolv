@@ -21,7 +21,7 @@ where
     I: Identifier,
     Q: Queryable,
 {
-    pub data_pile: D, // consolidate after gathering
+    pub data_pile: D,
     pub from_node: I,
     _phantom: std::marker::PhantomData<fn() -> Q>,
 }
