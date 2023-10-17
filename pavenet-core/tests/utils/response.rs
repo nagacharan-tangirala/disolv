@@ -1,4 +1,4 @@
-use pavenet_core::response::{Queryable, RequestCreek, TransferStats};
+use pavenet_core::download::{Queryable, RequestCreek, TransferStats};
 
 #[derive(Clone, Copy, Default)]
 pub(crate) enum DataType {

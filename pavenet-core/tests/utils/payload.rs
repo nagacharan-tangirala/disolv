@@ -1,6 +1,6 @@
 use crate::utils::response::DataType;
 use crate::utils::types::Nid;
-use pavenet_core::payload::{DataCreek, PayloadStats};
+use pavenet_core::upload::{DataCreek, PayloadMetadata};
 
 #[derive(Clone, Copy, Default)]
 pub(crate) struct SensorData {
@@ -22,7 +22,7 @@ pub(crate) struct PayloadStatData {
     pub(crate) data_count: u32,
 }
 
-impl PayloadStats<SensorData, DataType> for PayloadStatData {}
+impl PayloadMetadata<SensorData, DataType> for PayloadStatData {}
 
 #[derive(Clone, Default)]
 pub(crate) struct Payload {

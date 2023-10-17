@@ -2,12 +2,10 @@ use crate::utils::bucket::MyBucket;
 use crate::utils::payload::{PayloadStatData, SensorData};
 use crate::utils::response::{DataType, RequestInfo, TransferInfo};
 use crate::utils::types::{Nid, Order, Ts};
-use pavenet_core::download::{Downloader, ResponseMaker};
+use pavenet_core::download::{Downloader, RequestData, Response};
 use pavenet_core::mobility::{MobilityInfo, Movable};
-use pavenet_core::payload::{Payload, PayloadData};
-use pavenet_core::response::{RequestData, Response};
 use pavenet_core::tier::Tiered;
-use pavenet_core::upload::{DataMaker, Uploader};
+use pavenet_core::upload::{Payload, PayloadData, Uploader};
 use pavenet_engine::entity::{Entity, Kind};
 use pavenet_engine::node::Node;
 use std::fmt::Display;
@@ -73,9 +71,9 @@ impl TDevice {
     }
 
     fn transmit_data(&mut self, bucket: &mut MyBucket) {
-        let mut payload = self.make_payload();
-        let gather_data = self.gather(bucket);
-        self.update_payload(&mut payload, gather_data);
+        let gathered_data = self.gather(bucket).unwrap();
+        let gathered_infos = Some(gathered_data.iter().map(|x| x.data_pile).collect());
+        let payload = self.make_payload(gathered_infos);
         self.transmit(payload, bucket);
     }
 }
@@ -131,19 +129,6 @@ impl Tiered<Order> for TDevice {
 pub(crate) type MyPayloadData = PayloadData<SensorData, Nid, DataType>;
 pub type MyPayload = Payload<SensorData, Nid, PayloadStatData, DataType>;
 
-impl DataMaker<SensorData, Nid, PayloadStatData, DataType> for TDevice {
-    fn make_payload(&mut self) -> Payload<SensorData, Nid, PayloadStatData, DataType> {
-        let payload_data = self.make_data();
-        let payload_stats = self.payload_stats();
-        let payload = Payload::new(payload_data, payload_stats);
-        payload
-    }
-
-    fn update_payload(&mut self, given: &mut MyPayload, incoming: Option<Vec<MyPayload>>) {
-        todo!()
-    }
-}
-
 impl Uploader<MyBucket, SensorData, Nid, PayloadStatData, DataType, Ts> for TDevice {
     fn gather(&mut self, _bucket: &mut MyBucket) -> Option<Vec<MyPayload>> {
         let data_pile = SensorData {
@@ -155,8 +140,15 @@ impl Uploader<MyBucket, SensorData, Nid, PayloadStatData, DataType, Ts> for TDev
             data_size: 0.1,
             data_count: 10,
         };
-        let payload = Payload::new(payload_data, payload_stats);
+        let payload = Payload::new(payload_data, payload_stats, None);
         Some(vec![payload])
+    }
+
+    fn make_payload(&mut self, incoming: Option<Vec<MyPayloadData>>) -> MyPayload {
+        let payload_data = self.make_data();
+        let payload_stats = self.payload_stats();
+        let payload = Payload::new(payload_data, payload_stats, incoming);
+        payload
     }
 
     fn transmit(&mut self, payload: MyPayload, bucket: &mut MyBucket) {
@@ -167,8 +159,11 @@ impl Uploader<MyBucket, SensorData, Nid, PayloadStatData, DataType, Ts> for TDev
 pub(crate) type MyFeedbackData = RequestData<Nid, DataType, RequestInfo>;
 pub(crate) type MyResponse = Response<Nid, DataType, RequestInfo, TransferInfo>;
 
-impl ResponseMaker<MyBucket, Nid, DataType, RequestInfo, Ts, TransferInfo> for TDevice {
-    fn read_response(&mut self, response: Response<Nid, DataType, RequestInfo, TransferInfo>) {
+impl Downloader<DataType, Ts, TransferInfo, Nid, RequestInfo, MyBucket> for TDevice {
+    fn fetch_feedback(
+        &mut self,
+        bucket: &mut MyBucket,
+    ) -> Option<Response<Nid, DataType, RequestInfo, TransferInfo>> {
         todo!()
     }
 
@@ -178,17 +173,8 @@ impl ResponseMaker<MyBucket, Nid, DataType, RequestInfo, Ts, TransferInfo> for T
     ) -> Option<Vec<Response<Nid, DataType, RequestInfo, TransferInfo>>> {
         todo!()
     }
-}
 
-impl Downloader<DataType, Ts, TransferInfo, Nid, RequestInfo, MyBucket> for TDevice {
-    fn fetch_feedback(
-        &mut self,
-        bucket: &mut MyBucket,
-    ) -> Option<Response<Nid, DataType, RequestInfo, TransferInfo>> {
-        todo!()
-    }
-
-    fn send_response(
+    fn relay_responses(
         &mut self,
         responses: Option<Vec<Response<Nid, DataType, RequestInfo, TransferInfo>>>,
         bucket: MyBucket,
