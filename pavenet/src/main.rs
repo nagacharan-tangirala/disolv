@@ -28,8 +28,7 @@ fn main() {
     let mut builder = PavenetBuilder::new(&args.base);
     let sim_engine: Engine = builder.build();
     let duration = builder.get_duration();
-    let time_step = builder.get_time_step();
-    simulate!(sim_engine, duration, time_step);
+    simulate!(sim_engine, duration, 1);
 }
 
 // Visualization specific imports
