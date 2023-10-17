@@ -58,9 +58,12 @@ pub mod road {
         }
     }
 
-    impl Into<u32> for RoadId {
-        fn into(self) -> u32 {
+    impl RoadId {
+        pub fn as_u32(&self) -> u32 {
             self.0
+        }
+        pub fn as_i64(&self) -> i64 {
+            self.0 as i64
         }
     }
 }
@@ -83,9 +86,18 @@ pub mod velocity {
         }
     }
 
-    impl Into<f32> for Velocity {
-        fn into(self) -> f32 {
+    impl From<f32> for Velocity {
+        fn from(f: f32) -> Self {
+            Self(f)
+        }
+    }
+
+    impl Velocity {
+        pub fn as_f32(&self) -> f32 {
             self.0
+        }
+        pub fn as_f64(&self) -> f64 {
+            self.0 as f64
         }
     }
 }
@@ -118,8 +130,8 @@ pub mod cell {
         }
     }
 
-    impl Into<u32> for CellId {
-        fn into(self) -> u32 {
+    impl CellId {
+        pub fn as_u32(&self) -> u32 {
             self.0
         }
     }

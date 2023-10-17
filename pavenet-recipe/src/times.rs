@@ -35,17 +35,15 @@ pub mod ts {
         }
     }
 
-    impl Into<u64> for TimeS {
-        fn into(self) -> u64 {
+    impl TimeS {
+        pub fn as_u64(&self) -> u64 {
             self.0
+        }
+        pub fn as_i64(&self) -> i64 {
+            self.0 as i64
         }
     }
 
-    impl Into<f32> for TimeS {
-        fn into(self) -> f32 {
-            self.0 as f32
-        }
-    }
     impl Add for TimeS {
         type Output = Self;
 
@@ -67,15 +65,15 @@ pub mod ms {
     use std::str::FromStr;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-    pub struct MilliSeconds(u64);
+    pub struct MilliS(u64);
 
-    impl Display for MilliSeconds {
+    impl Display for MilliS {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{:09}", self.0)
         }
     }
 
-    impl FromStr for MilliSeconds {
+    impl FromStr for MilliS {
         type Err = std::num::ParseIntError;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -84,21 +82,24 @@ pub mod ms {
         }
     }
 
-    impl From<u64> for MilliSeconds {
+    impl From<u64> for MilliS {
         fn from(f: u64) -> Self {
             Self(f)
         }
     }
 
-    impl From<i64> for MilliSeconds {
+    impl From<i64> for MilliS {
         fn from(f: i64) -> Self {
             Self(f as u64)
         }
     }
 
-    impl Into<u64> for MilliSeconds {
-        fn into(self) -> u64 {
+    impl MilliS {
+        pub fn as_u64(&self) -> u64 {
             self.0
+        }
+        pub fn as_i64(&self) -> i64 {
+            self.0 as i64
         }
     }
 }

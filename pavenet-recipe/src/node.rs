@@ -36,21 +36,24 @@ pub mod id {
         }
     }
 
-    impl Into<u32> for NodeId {
-        fn into(self) -> u32 {
-            self.0
-        }
-    }
-
-    impl Into<f32> for NodeId {
-        fn into(self) -> f32 {
-            self.0 as f32
+    impl From<u32> for NodeId {
+        fn from(f: u32) -> Self {
+            Self(f)
         }
     }
 
     impl From<i64> for NodeId {
         fn from(f: i64) -> Self {
             Self(f as u32)
+        }
+    }
+
+    impl NodeId {
+        pub fn as_u32(&self) -> u32 {
+            self.0
+        }
+        pub fn as_i64(&self) -> i64 {
+            self.0 as i64
         }
     }
 
@@ -77,15 +80,12 @@ pub mod order {
         }
     }
 
-    impl Into<u32> for Order {
-        fn into(self) -> u32 {
-            self.0 as u32
-        }
-    }
-
-    impl Into<i32> for Order {
-        fn into(self) -> i32 {
+    impl Order {
+        pub fn as_i32(&self) -> i32 {
             self.0
+        }
+        pub fn as_u32(&self) -> u32 {
+            self.0 as u32
         }
     }
 
@@ -139,14 +139,8 @@ pub mod class {
         }
     }
 
-    impl Into<i32> for Class {
-        fn into(self) -> i32 {
-            self.0 as i32
-        }
-    }
-
-    impl Into<u32> for Class {
-        fn into(self) -> u32 {
+    impl Class {
+        pub fn as_u32(&self) -> u32 {
             self.0
         }
     }
