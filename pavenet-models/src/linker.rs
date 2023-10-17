@@ -7,6 +7,12 @@ use pavenet_core::types::{NodeId, Order, TimeStamp};
 use pavenet_input::input::links::{LinkMap, LinkReaderType, LinksFetcher};
 use serde::Deserialize;
 
+#[derive(Deserialize, Clone, Debug, Copy)]
+pub enum TransferMode {
+    UDT,
+    BDT,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct LinkerSettings {
     pub transfer_mode: TransferMode,
