@@ -2,10 +2,10 @@ use crate::model::PoolModel;
 use hashbrown::{HashMap, HashSet};
 use log::error;
 use pavenet_core::enums::MobilityType;
-use pavenet_core::named::ids::cell::CellId;
+use pavenet_core::node::ids::cell::CellId;
 use pavenet_core::structs::{MapState, Point2D};
 use pavenet_core::types::{NodeId, TimeStamp};
-use pavenet_input::input::maps::{
+use pavenet_input::input::mobility::{
     MapFetcher, MapReaderType, MapStateReader, MapStateStreamer, TraceMap,
 };
 use serde::Deserialize;
