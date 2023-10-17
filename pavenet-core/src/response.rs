@@ -5,28 +5,60 @@ pub trait Queryable: Copy + Clone + Send + Sync {}
 pub trait RequestCreek<Q>: Clone + Send + Sync {}
 
 #[derive(Clone, Default)]
-pub struct FeedbackData<Q, I, R>
+pub struct RequestData<I, Q, R>
 where
+    I: Identifier,
     Q: Queryable,
     R: RequestCreek<Q>,
-    I: Identifier,
 {
-    pub feedback: R,
-    pub feedback_to: I,
+    pub request: R,
+    pub request_to: I,
     _phantom: std::marker::PhantomData<fn() -> Q>,
+}
+
+impl<I, Q, R> RequestData<I, Q, R>
+where
+    I: Identifier,
+    Q: Queryable,
+    R: RequestCreek<Q>,
+{
+    pub fn new(request: R, request_to: I) -> Self {
+        Self {
+            request,
+            request_to,
+            _phantom: std::marker::PhantomData,
+        }
+    }
 }
 
 pub trait TransferStats: Clone + Send + Sync {}
 
 #[derive(Clone, Default)]
-pub struct Response<Q, I, R, T>
+pub struct Response<I, Q, R, T>
 where
+    I: Identifier,
     Q: Queryable,
     R: RequestCreek<Q>,
-    I: Identifier,
     T: TransferStats,
 {
-    pub feedbacks: Option<Vec<FeedbackData<Q, I, R>>>,
+    pub relayed_requests: Option<Vec<RequestData<I, Q, R>>>,
     pub transfer_stats: T,
-    _phantom: std::marker::PhantomData<fn() -> (Q, I)>,
+    _phantom: std::marker::PhantomData<fn() -> (I, Q)>,
+}
+
+impl<I, Q, R, T> Response<I, Q, R, T>
+where
+    I: Identifier,
+    Q: Queryable,
+    R: RequestCreek<Q>,
+    T: TransferStats,
+{
+    pub fn new(request_data: RequestData<I, Q, R>, transfer_stats: T) -> Self {
+        Self {
+            request_data,
+            transfer_stats,
+            incoming: None,
+            _phantom: std::marker::PhantomData,
+        }
+    }
 }
