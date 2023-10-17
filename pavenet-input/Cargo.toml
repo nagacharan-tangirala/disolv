@@ -1,6 +1,6 @@
 [package]
 name = "pavenet-input"
-version = "0.0.1"
+version = "0.0.0"
 authors = [
     "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
 ]
@@ -9,13 +9,10 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-pavenet-core = { path = "../pavenet-core" }
+pavenet-recipe = { path = "../pavenet-recipe" }
 pavenet-engine = { path = "../pavenet-engine" }
 hashbrown = "0.14.1"
-log = "0.4.20"
-polars-core = "0.33.2"
-polars-io = "0.33.2"
-typed-builder = "0.16.2"
+typed-builder = "0.17.0"
 
 [dependencies.polars]
 version = "0.33.2"
