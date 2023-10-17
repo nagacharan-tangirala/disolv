@@ -112,7 +112,7 @@ pub(crate) mod tests {
     fn make_bucket_a(order: i32) -> MyBucket {
         let device_a = make_device(Nid::from(1), DeviceType::TypeA, order);
         let node_a = as_node(device_a);
-        let mut bucket_a = MyBucket::default();
+        let mut bucket_a = MyBucket::new(DeviceType::TypeA);
         bucket_a.add(node_a);
         bucket_a
     }
@@ -132,7 +132,7 @@ pub(crate) mod tests {
     fn make_bucket_b(order: i32) -> MyBucket {
         let device_b = make_device(Nid::from(2), DeviceType::TypeB, order);
         let node_b = as_node(device_b);
-        let mut bucket_b = MyBucket::default();
+        let mut bucket_b = MyBucket::new(DeviceType::TypeB);
         bucket_b.add(node_b);
         bucket_b
     }
