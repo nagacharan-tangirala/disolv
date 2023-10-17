@@ -1,6 +1,5 @@
 use crate::node::id::NodeId;
 use pavenet_core::node_finder::LinkInfo;
-use serde_derive::Deserialize;
 use typed_builder::TypedBuilder;
 
 #[derive(Debug, Clone, Default, TypedBuilder)]

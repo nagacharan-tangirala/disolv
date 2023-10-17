@@ -1,4 +1,6 @@
+use crate::mobility::MapState;
 use crate::node::id::NodeId;
+use crate::node::NodeInfo;
 use hashbrown::HashMap;
 use serde_derive::Deserialize;
 
