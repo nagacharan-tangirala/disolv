@@ -9,13 +9,13 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-pavenet-types = { version = "0.0.0", path= "../pavenet-types" }
+pavenet-recipe = { version = "0.0.0", path= "../pavenet-recipe" }
 pavenet-input = { version = "0.0.0", path= "../pavenet-input" }
 pavenet-engine = { version = "0.0.0", path= "../pavenet-engine" }
 rand = "0.8.5"
 log4rs = "1.2.0"
 log = "0.4.20"
 hashbrown = "0.14.1"
-serde = { version = "1.0.188", features = ["derive"] }
-serde_with = "3.3.0"
-typed-builder = "0.16.2"
+serde = { version = "1.0.189", features = ["derive"] }
+serde_with = "3.4.0"
+typed-builder = "0.17.0"
