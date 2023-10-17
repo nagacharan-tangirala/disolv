@@ -16,9 +16,9 @@ where
     B: Bucket<S>,
     S: TimeStamp,
 {
-    pub(crate) node_id: I,
-    pub(crate) node: N,
-    pub(crate) kind: K,
+    pub node_id: I,
+    pub node: N,
+    pub kind: K,
     _marker: std::marker::PhantomData<fn() -> (B, S)>,
 }
 
