@@ -53,11 +53,10 @@ where
     R: RequestCreek<Q>,
     T: TransferStats,
 {
-    pub fn new(request_data: RequestData<I, Q, R>, transfer_stats: T) -> Self {
+    pub fn new(transfer_stats: T) -> Self {
         Self {
-            request_data,
             transfer_stats,
-            incoming: None,
+            relayed_requests: None,
             _phantom: std::marker::PhantomData,
         }
     }
