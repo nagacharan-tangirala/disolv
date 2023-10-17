@@ -1,3 +1,3 @@
 pub(crate) mod links;
-pub(crate) mod maps;
+pub(crate) mod mobility;
 pub(crate) mod power;

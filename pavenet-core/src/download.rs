@@ -1,4 +1,4 @@
-use crate::response::{Queryable, RequestCreek, RequestData, Response, TransferStats};
+use crate::response::{Queryable, RequestCreek, Response, TransferStats};
 use pavenet_engine::bucket::{Bucket, TimeStamp};
 use pavenet_engine::entity::Identifier;
 

@@ -1,4 +1,4 @@
-use crate::dfs::maps;
+use crate::dfs::mobility;
 use crate::input::files;
 use hashbrown::HashMap;
 use pavenet_core::structs::MapState;
@@ -25,7 +25,7 @@ pub struct MapStateReader {
 impl MapFetcher for MapStateReader {
     fn fetch_traffic_data(&self, _step: TimeStamp) -> Result<TraceMap, Box<dyn std::error::Error>> {
         let trace_df = files::read_file(&self.file_path)?;
-        maps::extract_map_states(&trace_df)
+        mobility::extract_map_states(&trace_df)
     }
 }
 
@@ -41,6 +41,6 @@ impl MapFetcher for MapStateStreamer {
         let end_interval: TimeStamp = step + self.streaming_step;
         let trace_data_df =
             files::stream_parquet_in_interval(&self.file_path, start_interval, end_interval)?;
-        maps::extract_map_states(&trace_data_df)
+        mobility::extract_map_states(&trace_data_df)
     }
 }
