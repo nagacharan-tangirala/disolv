@@ -1,18 +1,9 @@
 [package]
 name = "pavenet-core"
-version = "0.0.1"
-authors = [
-    "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
-]
+version = "0.1.0"
 edition = "2021"
-license = "MIT"
-readme = "../pavenet-engine/README.md"
 
 [dependencies]
-pavenet-engine = { path = "../pavenet-engine" }
-serde = "1.0.189"
-serde_derive = "1.0.189"
+pavenet-engine = { version = "0.0.1", path = "../pavenet-engine" }
+krabmaga = { version = "0.4.1", path= "../../krABMaga" }
 hashbrown = "0.14.1"
-toml = "0.8.2"
-serde_with = "3.3.0"
-typed-builder = "0.16.2"
