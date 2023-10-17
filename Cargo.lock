@@ -3584,11 +3584,11 @@ dependencies = [
  "krabmaga",
  "log",
  "log4rs",
- "pavenet-core",
  "pavenet-engine",
  "pavenet-input",
  "pavenet-models",
  "pavenet-output",
+ "pavenet-recipe",
  "rand",
  "serde",
  "serde_derive",
@@ -3599,20 +3599,16 @@ dependencies = [
 
 [[package]]
 name = "pavenet-core"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "hashbrown 0.14.1",
+ "krabmaga",
  "pavenet-engine",
- "serde",
- "serde_derive",
- "serde_with",
- "toml 0.8.2",
- "typed-builder",
 ]
 
 [[package]]
 name = "pavenet-engine"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "krabmaga",
  "typed-builder",
@@ -3620,28 +3616,25 @@ dependencies = [
 
 [[package]]
 name = "pavenet-input"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "hashbrown 0.14.1",
- "log",
- "pavenet-core",
  "pavenet-engine",
+ "pavenet-recipe",
  "polars",
- "polars-core",
- "polars-io",
  "typed-builder",
 ]
 
 [[package]]
 name = "pavenet-models"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "hashbrown 0.14.1",
  "log",
  "log4rs",
- "pavenet-core",
  "pavenet-engine",
  "pavenet-input",
+ "pavenet-recipe",
  "rand",
  "serde",
  "serde_with",
@@ -3650,9 +3643,21 @@ dependencies = [
 
 [[package]]
 name = "pavenet-output"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "krabmaga",
+]
+
+[[package]]
+name = "pavenet-recipe"
+version = "0.0.0"
+dependencies = [
+ "hashbrown 0.14.1",
+ "pavenet-core",
+ "pavenet-engine",
+ "serde",
+ "serde_derive",
+ "typed-builder",
 ]
 
 [[package]]
@@ -3846,7 +3851,6 @@ dependencies = [
  "bytes",
  "chrono",
  "fast-float",
- "flate2",
  "home",
  "lexical",
  "lexical-core",
@@ -4412,9 +4416,9 @@ dependencies = [
 
 [[package]]
 name = "serde_with"
-version = "3.3.0"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ca3b16a3d82c4088f343b7480a93550b3eabe1a358569c2dfe38bbcead07237"
+checksum = "64cd236ccc1b7a29e7e2739f27c0b2dd199804abc4290e32f59f3b68d6405c23"
 dependencies = [
  "base64 0.21.4",
  "chrono",
@@ -4429,9 +4433,9 @@ dependencies = [
 
 [[package]]
 name = "serde_with_macros"
-version = "3.3.0"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e6be15c453eb305019bfa438b1593c731f36a289a7853f7707ee29e870b3b3c"
+checksum = "93634eb5f75a2323b16de4748022ac4297f9e76b6dced2be287a099f41b5e788"
 dependencies = [
  "darling 0.20.3",
  "proc-macro2",
@@ -5038,18 +5042,18 @@ dependencies = [
 
 [[package]]
 name = "typed-builder"
-version = "0.16.2"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34085c17941e36627a879208083e25d357243812c30e7d7387c3b954f30ade16"
+checksum = "b1c6a006a6d3d6a6f143fda41cf4d1ad35110080687628c9f2117bd3cc7924f3"
 dependencies = [
  "typed-builder-macro",
 ]
 
 [[package]]
 name = "typed-builder-macro"
-version = "0.16.2"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f03ca4cb38206e2bef0700092660bb74d696f808514dae47fa1467cbfe26e96e"
+checksum = "8fa054ee5e2346187d631d2f1d1fd3b33676772d6d03a2d84e1c5213b31674ee"
 dependencies = [
  "proc-macro2",
  "quote",

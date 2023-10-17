@@ -8,6 +8,7 @@ members  = [
     "pavenet-engine",
     "pavenet-models",
     "pavenet-output",
+    "pavenet-recipe",
 ]
 
 [profile.dev]
