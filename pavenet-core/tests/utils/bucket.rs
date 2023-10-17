@@ -1,4 +1,4 @@
-use crate::utils::test_node::MyNode;
+use crate::utils::test_node::{MyNode, MyPayload};
 use crate::utils::types::{Nid, Ts};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
@@ -8,6 +8,7 @@ use pavenet_engine::bucket::Bucket;
 pub struct MyBucket {
     pub step: Ts,
     pub devices: HashMap<Nid, MyNode>,
+    pub incoming_data: HashMap<Nid, Vec<MyPayload>>,
 }
 
 impl MyBucket {
@@ -25,6 +26,14 @@ impl MyBucket {
             );
         }
     }
+
+    pub(crate) fn add_payload(&mut self, payload: MyPayload) {
+        let from_node = payload.data_pile.from_node;
+        self.incoming_data
+            .entry(from_node)
+            .or_insert(Vec::new())
+            .push(payload);
+    }
 }
 
 impl Bucket<Ts> for MyBucket {
@@ -35,6 +44,7 @@ impl Bucket<Ts> for MyBucket {
 
     fn before_step(&mut self, _schedule: &mut Schedule) {
         println!("Before step in MyBucket");
+        self.incoming_data.clear();
     }
 
     fn update(&mut self, step: Ts) {

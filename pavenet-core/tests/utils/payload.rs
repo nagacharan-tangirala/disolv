@@ -24,6 +24,7 @@ pub(crate) struct PayloadStatData {
 
 impl PayloadStats<SensorData, DataType> for PayloadStatData {}
 
+#[derive(Clone, Default)]
 pub(crate) struct Payload {
     pub(crate) gathered_data: Option<Vec<PayloadInfo>>,
     pub(crate) data_pile: PayloadInfo,

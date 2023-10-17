@@ -14,6 +14,12 @@ pub(crate) struct RequestInfo {
     pub(crate) size: f32,
 }
 
+impl RequestInfo {
+    pub(crate) fn new(request_type: DataType, size: f32) -> Self {
+        Self { request_type, size }
+    }
+}
+
 impl RequestCreek<DataType> for RequestInfo {}
 
 #[derive(Clone, Copy)]
