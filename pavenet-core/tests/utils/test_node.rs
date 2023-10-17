@@ -43,7 +43,8 @@ pub(crate) fn make_device(id: Nid, device_type: DeviceType, order: Order) -> TDe
 }
 
 pub(crate) fn as_node(device: TDevice) -> MyNode {
-    Node::new(device.id, device, device.device_type.clone())
+    let device_type = device.device_type.clone();
+    Node::new(device.id, device, device_type)
 }
 
 #[derive(Default, Clone, Debug)]

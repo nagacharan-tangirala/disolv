@@ -2,7 +2,7 @@ use crate::utils::response::DataType;
 use crate::utils::types::Nid;
 use pavenet_core::payload::{DataCreek, PayloadStats};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub(crate) struct SensorData {
     pub(crate) data_type: DataType,
     pub(crate) size: f32,
@@ -10,13 +10,13 @@ pub(crate) struct SensorData {
 
 impl DataCreek<DataType> for SensorData {}
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub(crate) struct PayloadInfo {
     pub(crate) data_pile: SensorData,
     pub(crate) from_node: Nid,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub(crate) struct PayloadStatData {
     pub(crate) data_size: f32,
     pub(crate) data_count: u32,
