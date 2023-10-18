@@ -75,10 +75,6 @@ where
             _phantom: std::marker::PhantomData,
         }
     }
-
-    pub fn add_gathered_data(&mut self, gathered_data: Option<Vec<PayloadData<D, I, Q>>>) {
-        self.gathered_data = gathered_data;
-    }
 }
 
 pub trait Uploader<B, D, I, P, Q, T>
