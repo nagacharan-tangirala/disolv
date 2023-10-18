@@ -1,55 +1,32 @@
 use super::bucket::Bucket;
 use super::bucket::TimeStamp;
-use super::entity::Kind;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use std::any::Any;
 use typed_builder::TypedBuilder;
 
 #[derive(TypedBuilder)]
-pub struct Engine<K, B, S>
+pub struct Engine<B, S>
 where
-    K: Kind,
     B: Bucket<S>,
     S: TimeStamp,
 {
     end_step: S,
     streaming_interval: S,
-    pub buckets_by_kind: Vec<(K, B)>, // Hashmap might be expensive, as list is potentially tiny
+    pub bucket: B, // Hashmap might be expensive, as list is potentially tiny
     #[builder(default)]
     streaming_step: S,
     #[builder(default)]
     pub step: S,
 }
 
-impl<K, B, S> Engine<K, B, S>
+impl<B, S> State for Engine<B, S>
 where
-    K: Kind,
-    B: Bucket<S>,
-    S: TimeStamp,
-{
-    pub fn add(&mut self, kind: K, bucket: B) {
-        self.buckets_by_kind.push((kind, bucket));
-    }
-
-    pub fn bucket_of(&mut self, this_kind: K) -> Option<&mut B> {
-        self.buckets_by_kind
-            .iter_mut()
-            .find(|(kind, _)| *kind == this_kind)
-            .map(|(_, pool)| pool)
-    }
-}
-
-impl<K, B, S> State for Engine<K, B, S>
-where
-    K: Kind,
     B: Bucket<S>,
     S: TimeStamp,
 {
     fn init(&mut self, schedule: &mut Schedule) {
         self.streaming_step = self.streaming_interval;
-        self.buckets_by_kind
-            .iter_mut()
-            .for_each(|(_, bucket)| bucket.init(schedule));
+        self.bucket.init(schedule);
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
@@ -72,28 +49,19 @@ where
 
     fn update(&mut self, step: u64) {
         self.step = S::from(step);
-        self.buckets_by_kind
-            .iter_mut()
-            .for_each(|(_, bucket)| bucket.update(self.step));
+        self.bucket.update(self.step);
     }
 
     fn before_step(&mut self, schedule: &mut Schedule) {
-        self.buckets_by_kind
-            .iter_mut()
-            .for_each(|(_, bucket)| bucket.before_step(schedule));
-
+        self.bucket.before_step(schedule);
         if self.step == self.streaming_step {
-            self.buckets_by_kind
-                .iter_mut()
-                .for_each(|(_, bucket)| bucket.streaming_step(self.step));
+            self.bucket.streaming_step(self.step);
             self.streaming_step += self.streaming_interval;
         }
     }
 
     fn after_step(&mut self, schedule: &mut Schedule) {
-        self.buckets_by_kind
-            .iter_mut()
-            .for_each(|(_, bucket)| bucket.after_step(schedule));
+        self.bucket.after_step(schedule);
     }
 
     fn end_condition(&mut self, _schedule: &mut Schedule) -> bool {
