@@ -22,36 +22,22 @@ where
     _marker: std::marker::PhantomData<fn() -> (B, S)>,
 }
 
-impl<I, N, K, B, S> Agent for Node<I, N, K, B, S>
+impl<B, I, K, N, S> Agent for Node<B, I, K, N, S>
 where
-    I: Identifier,
-    N: Entity<B, S>,
-    K: Kind + Display,
     B: Bucket<S>,
+    I: Identifier,
+    K: Kind,
+    N: Entity<B, S>,
     S: TimeStamp,
 {
     fn step(&mut self, state: &mut dyn State) {
-        let engine: &mut Engine<K, B, S> = state
-            .as_any_mut()
-            .downcast_mut::<Engine<K, B, S>>()
-            .unwrap();
-        let bucket: &mut B = match engine.bucket_of(self.kind) {
-            Some(bucket) => bucket,
-            None => panic!("Could not find bucket for type {}", self.kind),
-        };
-        self.node.step(bucket);
+        let engine: &mut Engine<B, S> = state.as_any_mut().downcast_mut::<Engine<B, S>>().unwrap();
+        self.node.step(&mut engine.bucket);
     }
 
     fn after_step(&mut self, state: &mut dyn State) {
-        let engine = state
-            .as_any_mut()
-            .downcast_mut::<Engine<K, B, S>>()
-            .unwrap();
-        let bucket = match engine.bucket_of(self.kind) {
-            Some(bucket) => bucket,
-            None => panic!("Could not find bucket for type {}", self.kind),
-        };
-        self.node.after_step(bucket);
+        let engine = state.as_any_mut().downcast_mut::<Engine<B, S>>().unwrap();
+        self.node.after_step(&mut engine.bucket);
     }
 
     fn is_stopped(&self, _state: &mut dyn State) -> bool {
