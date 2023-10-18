@@ -1,12 +1,13 @@
 use super::bucket::{Bucket, TimeStamp};
+use std::fmt::Display;
 use std::hash::Hash;
 
 pub trait Identifier:
-    Default + Clone + Copy + Hash + PartialEq + Eq + Send + Sync + 'static
+    Default + Display + Clone + Copy + Hash + PartialEq + Eq + Send + Sync + 'static
 {
 }
 
-pub trait Kind: Default + Clone + Copy + PartialEq + Eq + Send + Sync + 'static {}
+pub trait Kind: Default + Display + Clone + Copy + PartialEq + Eq + Send + Sync + 'static {}
 
 pub trait Entity<B, S>: Default + Clone + Send + Sync + 'static
 where
@@ -67,7 +68,7 @@ pub(crate) mod tests {
         }
     }
 
-    #[derive(Default, Copy, Clone, Debug)]
+    #[derive(Default, Clone, Debug)]
     pub(crate) struct TDevice {
         pub(crate) id: Nid,
         pub(crate) device_type: DeviceType,
@@ -140,7 +141,7 @@ pub(crate) mod tests {
         let node_a = as_node(device_a);
         let x = schedule.schedule_repeating(
             Box::new(node_a.clone()),
-            device_a.id.into(),
+            node_a.node_id.into(),
             Ts::default().into(),
             0,
         );

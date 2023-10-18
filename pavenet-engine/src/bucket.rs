@@ -20,7 +20,7 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{Bucket, TimeStamp};
-    use crate::entity::tests::{DeviceType, Nid};
+    use crate::entity::tests::Nid;
     use crate::node::tests::MyNode;
     use krabmaga::engine::schedule::Schedule;
     use std::collections::HashMap;
@@ -73,15 +73,13 @@ pub(crate) mod tests {
     #[derive(Default, Clone)]
     pub(crate) struct MyBucket {
         pub(crate) step: Ts,
-        pub(crate) bucket_type: DeviceType,
         pub(crate) devices: HashMap<Nid, MyNode>,
     }
 
     impl MyBucket {
-        pub(crate) fn new(bucket_type: DeviceType) -> Self {
+        pub(crate) fn new() -> Self {
             Self {
                 step: Ts::default(),
-                bucket_type,
                 devices: HashMap::new(),
             }
         }
@@ -109,7 +107,7 @@ pub(crate) mod tests {
         }
 
         fn before_step(&mut self, _schedule: &mut Schedule) {
-            println!("Before step in MyBucket of type {}", self.bucket_type);
+            println!("Before step in MyBucket of type");
         }
 
         fn update(&mut self, step: Ts) {
@@ -118,7 +116,7 @@ pub(crate) mod tests {
         }
 
         fn after_step(&mut self, _schedule: &mut Schedule) {
-            println!("After step in MyBucket {}", self.bucket_type);
+            println!("After step in MyBucket");
         }
 
         fn streaming_step(&mut self, step: Ts) {
