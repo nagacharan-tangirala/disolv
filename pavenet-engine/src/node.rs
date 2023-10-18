@@ -8,12 +8,12 @@ use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Default)]
-pub struct Node<I, N, K, B, S>
+pub struct Node<B, I, K, N, S>
 where
-    I: Identifier,
-    N: Entity<B, S>,
-    K: Kind,
     B: Bucket<S>,
+    I: Identifier,
+    K: Kind,
+    N: Entity<B, S>,
     S: TimeStamp,
 {
     pub node_id: I,
@@ -45,12 +45,12 @@ where
     }
 }
 
-impl<I, N, K, B, S> Node<I, N, K, B, S>
+impl<B, I, K, N, S> Node<B, I, K, N, S>
 where
-    I: Identifier,
-    N: Entity<B, S>,
-    K: Kind,
     B: Bucket<S>,
+    I: Identifier,
+    K: Kind,
+    N: Entity<B, S>,
     S: TimeStamp,
 {
     pub fn new(node_id: I, node: N, kind: K) -> Self {
@@ -63,12 +63,12 @@ where
     }
 }
 
-impl<I, N, K, B, S> Hash for Node<I, N, K, B, S>
+impl<B, I, K, N, S> Hash for Node<B, I, K, N, S>
 where
-    I: Identifier,
-    N: Entity<B, S>,
-    K: Kind,
     B: Bucket<S>,
+    I: Identifier,
+    K: Kind,
+    N: Entity<B, S>,
     S: TimeStamp,
 {
     fn hash<H>(&self, state: &mut H)
@@ -79,12 +79,12 @@ where
     }
 }
 
-impl<I, N, K, B, S> Display for Node<I, N, K, B, S>
+impl<B, I, K, N, S> Display for Node<B, I, K, N, S>
 where
-    I: Identifier + Display,
-    N: Entity<B, S>,
-    K: Kind,
     B: Bucket<S>,
+    I: Identifier,
+    K: Kind,
+    N: Entity<B, S>,
     S: TimeStamp,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -92,25 +92,25 @@ where
     }
 }
 
-impl<I, N, K, B, S> Eq for Node<I, N, K, B, S>
+impl<B, I, K, N, S> Eq for Node<B, I, K, N, S>
 where
-    I: Identifier,
-    N: Entity<B, S>,
-    K: Kind,
     B: Bucket<S>,
+    I: Identifier,
+    K: Kind,
+    N: Entity<B, S>,
     S: TimeStamp,
 {
 }
 
-impl<I, N, K, B, S> PartialEq for Node<I, N, K, B, S>
+impl<B, I, K, N, S> PartialEq for Node<B, I, K, N, S>
 where
-    I: Identifier,
-    N: Entity<B, S>,
-    K: Kind,
     B: Bucket<S>,
+    I: Identifier,
+    K: Kind,
+    N: Entity<B, S>,
     S: TimeStamp,
 {
-    fn eq(&self, other: &Node<I, N, K, B, S>) -> bool {
+    fn eq(&self, other: &Node<B, I, K, N, S>) -> bool {
         self.node_id == other.node_id
     }
 }
@@ -121,10 +121,11 @@ pub(crate) mod tests {
     use crate::entity::tests::{make_device, DeviceType, Nid, TDevice};
     use crate::node::Node;
 
-    pub(crate) type MyNode = Node<Nid, TDevice, DeviceType, MyBucket, Ts>;
+    pub(crate) type MyNode = Node<MyBucket, Nid, DeviceType, TDevice, Ts>;
 
     pub(crate) fn as_node(device: TDevice) -> MyNode {
-        Node::new(device.id, device, device.device_type)
+        let device_type = device.device_type.clone();
+        Node::new(device.id, device, device_type)
     }
 
     #[test]
