@@ -1,4 +1,4 @@
-use crate::node::id::NodeId;
+use crate::node_info::id::NodeId;
 use pavenet_core::node_finder::LinkInfo;
 use typed_builder::TypedBuilder;
 
