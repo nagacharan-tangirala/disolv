@@ -63,14 +63,14 @@ where
     }
 }
 
-pub trait Downloader<Q, T, TS, I, R, B>
+pub trait Downloader<B, I, Q, R, T, TS>
 where
-    R: RequestCreek<Q>,
+    B: Bucket<T>,
     I: Identifier,
+    Q: Queryable,
+    R: RequestCreek<Q>,
     T: TimeStamp,
     TS: TransferStats,
-    B: Bucket<T>,
-    Q: Queryable,
 {
     fn fetch_feedback(&mut self, bucket: &mut B) -> Option<Response<I, Q, R, TS>>;
     fn build_responses(&mut self, bucket: &mut B) -> Option<Vec<Response<I, Q, R, TS>>>;

@@ -159,7 +159,7 @@ impl Uploader<MyBucket, SensorData, Nid, PayloadStatData, DataType, Ts> for TDev
 pub(crate) type MyFeedbackData = RequestData<Nid, DataType, RequestInfo>;
 pub(crate) type MyResponse = Response<Nid, DataType, RequestInfo, TransferInfo>;
 
-impl Downloader<DataType, Ts, TransferInfo, Nid, RequestInfo, MyBucket> for TDevice {
+impl Downloader<MyBucket, Nid, DataType, RequestInfo, Ts, TransferInfo> for TDevice {
     fn fetch_feedback(
         &mut self,
         bucket: &mut MyBucket,
