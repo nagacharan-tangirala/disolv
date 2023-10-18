@@ -12,38 +12,8 @@ where
     fn set_tier(&mut self, tier: T);
 }
 
-pub struct TierRelations<T>
-where
-    T: Tier,
-{
-    tier_to_tiers: HashMap<T, Option<Vec<T>>>, // tier can talk to various tiers
-}
-
-impl<T> TierRelations<T>
-where
-    T: Tier,
-{
-    fn new() -> Self {
-        Self {
-            tier_to_tiers: HashMap::new(),
-        }
-    }
-
-    fn add_relation(&mut self, tier: T, other_tier: T) {
-        self.tier_to_tiers
-            .entry(tier)
-            .or_insert(Some(Vec::new()))
-            .as_mut()
-            .map(|v| v.push(other_tier));
-    }
-
-    fn relations_of(&self, tier: T) -> Option<&Option<Vec<T>>> {
-        self.tier_to_tiers.get(&tier)
-    }
-}
-
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
-struct TierKindMap<T, K>
+pub struct TierKindMap<T, K>
 where
     T: Tier,
     K: Kind,
@@ -56,27 +26,27 @@ where
     T: Tier + PartialOrd + Ord,
     K: Kind,
 {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 
-    fn add_tier_of_kind(&mut self, tier: T, kind: K) {
+    pub fn add_tier_of_kind(&mut self, tier: T, kind: K) {
         match self.tier_to_kind.insert(tier, kind) {
             Some(_) => panic!("Tier already exists"),
             None => (),
         }
     }
 
-    fn kind_of(&self, tier: T) -> &K {
+    pub fn kind_of(&self, tier: T) -> &K {
         self.tier_to_kind.get(&tier).expect("Tier does not exist")
     }
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::tier::{Tier, TierKindMap, TierRelations, Tiered};
+    use crate::tier::{Tier, TierKindMap, Tiered};
     use pavenet_engine::entity::Kind;
-    use std::fmt::Debug;
+    use std::fmt::{Debug, Display, Formatter};
 
     #[derive(Default, Debug, Copy, Clone, Hash, Ord, PartialOrd, PartialEq, Eq)]
     struct Level(u32);
@@ -103,8 +73,18 @@ pub(crate) mod tests {
         C,
     }
 
+    impl Display for DType {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            match self {
+                DType::A => write!(f, "A"),
+                DType::B => write!(f, "B"),
+                DType::C => write!(f, "C"),
+            }
+        }
+    }
+
     impl Debug for DType {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             match self {
                 DType::A => write!(f, "A"),
                 DType::B => write!(f, "B"),
@@ -157,29 +137,5 @@ pub(crate) mod tests {
         assert_eq!(tier_kind_map.kind_of(0.into()), &DType::A);
         assert_eq!(tier_kind_map.kind_of(1.into()), &DType::B);
         assert_eq!(tier_kind_map.kind_of(2.into()), &DType::C);
-    }
-
-    #[test]
-    fn test_tier_relations() {
-        let mut tier_relations: TierRelations<Level> = TierRelations::new();
-        tier_relations.add_relation(0.into(), 1.into());
-        tier_relations.add_relation(0.into(), 2.into());
-        tier_relations.add_relation(0.into(), 3.into());
-        tier_relations.add_relation(1.into(), 2.into());
-        tier_relations.add_relation(1.into(), 3.into());
-        tier_relations.add_relation(2.into(), 3.into());
-        assert_eq!(
-            tier_relations.relations_of(0.into()),
-            Some(&Some(vec![1.into(), 2.into(), 3.into()]))
-        );
-        assert_eq!(
-            tier_relations.relations_of(1.into()),
-            Some(&Some(vec![2.into(), 3.into()]))
-        );
-        assert_eq!(
-            tier_relations.relations_of(2.into()),
-            Some(&Some(vec![3.into()]))
-        );
-        assert_eq!(tier_relations.relations_of(3.into()), None);
     }
 }
