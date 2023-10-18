@@ -1,4 +1,4 @@
-use crate::engine::ts::TimeStamp;
+use pavenet_recipe::times::ts::TimeS;
 
 #[derive(Clone, Default, Copy, Debug, PartialEq)]
 pub enum PowerState {
@@ -7,19 +7,19 @@ pub enum PowerState {
     On,
 }
 
-pub const SCHEDULE_SIZE: usize = 10;
+pub const SCHEDULE_SIZE: usize = 20;
 
 #[derive(Clone, Default, Copy, Debug, PartialEq)]
 pub struct PowerSchedule {
-    pub on_times: [Option<TimeStamp>; SCHEDULE_SIZE],
-    pub off_times: [Option<TimeStamp>; SCHEDULE_SIZE],
+    pub on_times: [Option<TimeS>; SCHEDULE_SIZE],
+    pub off_times: [Option<TimeS>; SCHEDULE_SIZE],
     array_idx: usize,
 }
 
 impl PowerSchedule {
     pub fn new(
-        on_times: [Option<TimeStamp>; SCHEDULE_SIZE],
-        off_times: [Option<TimeStamp>; SCHEDULE_SIZE],
+        on_times: [Option<TimeS>; SCHEDULE_SIZE],
+        off_times: [Option<TimeS>; SCHEDULE_SIZE],
     ) -> Self {
         Self {
             on_times,
@@ -28,26 +28,26 @@ impl PowerSchedule {
         }
     }
 
-    pub fn peek_time_to_off(self) -> TimeStamp {
+    pub fn peek_time_to_off(self) -> TimeS {
         if self.array_idx == SCHEDULE_SIZE {
-            return TimeStamp::default();
+            return TimeS::default();
         }
         match self.off_times[self.array_idx] {
             Some(time_stamp) => time_stamp,
-            None => TimeStamp::default(),
+            None => TimeS::default(),
         }
     }
 
-    pub fn pop_time_to_on(&mut self) -> TimeStamp {
+    pub fn pop_time_to_on(&mut self) -> TimeS {
         if self.array_idx == SCHEDULE_SIZE {
-            return TimeStamp::default();
+            return TimeS::default();
         }
         match self.on_times[self.array_idx] {
             Some(time_stamp) => {
                 self.on_times[self.array_idx] = None;
                 time_stamp
             }
-            None => TimeStamp::default(),
+            None => TimeS::default(),
         }
     }
 

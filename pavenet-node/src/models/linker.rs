@@ -1,10 +1,9 @@
-use crate::model::PoolModel;
-use crate::node::payload::Payload;
 use hashbrown::HashMap;
-use pavenet_core::enums::{NodeType, TransferMode};
-use pavenet_core::structs::Link;
-use pavenet_core::types::{NodeId, Order, TimeStamp};
-use pavenet_input::input::links::{LinkMap, LinkReaderType, LinksFetcher};
+use pavenet_input::links::data::{LinkMap, LinkReader};
+use pavenet_recipe::link::Link;
+use pavenet_recipe::node_info::id::NodeId;
+use pavenet_recipe::node_info::kind::NodeType;
+use pavenet_recipe::payload::TPayload;
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone, Debug, Copy)]
@@ -24,15 +23,15 @@ pub struct LinkerSettings {
 
 pub struct Linker {
     pub linker_settings: LinkerSettings,
-    pub reader: LinkReaderType,
+    pub reader: LinkReader,
     pub links: LinkMap,
     pub link_cache: HashMap<NodeId, Link>,
-    pub uplink: HashMap<NodeId, Vec<Payload>>,
-    pub downlink: HashMap<NodeId, Vec<Payload>>,
+    pub uplink: HashMap<NodeId, Vec<TPayload>>,
+    pub downlink: HashMap<NodeId, Vec<TPayload>>,
 }
 
 impl Linker {
-    pub fn new(link_config: LinkerSettings, reader: LinkReaderType) -> Self {
+    pub fn new(link_config: LinkerSettings, reader: LinkReader) -> Self {
         Self {
             linker_settings: link_config,
             reader,
@@ -47,18 +46,14 @@ impl Linker {
 impl PoolModel for Linker {
     fn init(&mut self, step: TimeStamp) {
         self.links = match self.reader {
-            LinkReaderType::File(ref mut reader) => {
-                reader.fetch_links_data(step).unwrap_or_default()
-            }
-            LinkReaderType::Stream(ref mut reader) => {
-                reader.fetch_links_data(step).unwrap_or_default()
-            }
+            LinkReader::File(ref mut reader) => reader.fetch_links_data(step).unwrap_or_default(),
+            LinkReader::Stream(ref mut reader) => reader.fetch_links_data(step).unwrap_or_default(),
         };
     }
 
     fn stream_data(&mut self, step: TimeStamp) {
         match self.reader {
-            LinkReaderType::Stream(ref mut reader) => {
+            LinkReader::Stream(ref mut reader) => {
                 self.links = reader.fetch_links_data(step).unwrap_or_default()
             }
             _ => {}
@@ -80,17 +75,17 @@ impl NodeLinks {
         Self { target_type_links }
     }
 
-    pub fn links_for(&mut self, node_id: NodeId, target_type: NodeType) -> Link {
+    pub fn links_for(&mut self, node_id: NodeId, target_type: &NodeType) -> Link {
         self.linker_for(target_type)
             .link_cache
             .remove(&node_id)
             .unwrap_or_default()
     }
 
-    fn linker_for(&mut self, target_type: NodeType) -> &mut Linker {
+    fn linker_for(&mut self, target_type: &NodeType) -> &mut Linker {
         self.target_type_links
             .iter_mut()
-            .find(|(node_type, _)| *node_type == target_type)
+            .find(|(node_type, _)| *node_type == *target_type)
             .map(|(_, links)| links)
             .unwrap_or_else(|| panic!("No links found for target node type: {:?}", target_type))
     }

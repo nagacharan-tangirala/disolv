@@ -1,5 +1,5 @@
 [package]
-name = "pavenet-models"
+name = "pavenet-node"
 version = "0.0.0"
 authors = [
     "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
@@ -9,9 +9,10 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-pavenet-recipe = { version = "0.0.0", path= "../pavenet-recipe" }
-pavenet-input = { version = "0.0.0", path= "../pavenet-input" }
 pavenet-engine = { version = "0.0.0", path= "../pavenet-engine" }
+pavenet-core = { version = "0.0.0", path= "../pavenet-core" }
+pavenet-input = { version = "0.0.0", path= "../pavenet-input" }
+pavenet-recipe = { version = "0.0.0", path= "../pavenet-recipe" }
 rand = "0.8.5"
 log4rs = "1.2.0"
 log = "0.4.20"
