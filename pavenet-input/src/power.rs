@@ -2,7 +2,7 @@ pub mod data {
     use crate::file_reader::read_file;
     use crate::power::df::extract_power_schedule;
     use hashbrown::HashMap;
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use pavenet_recipe::times::ts::TimeS;
     use std::path::PathBuf;
 
@@ -21,7 +21,7 @@ pub(super) mod df {
     use crate::converter::series::to_nodeid_vec;
     use crate::power::data::PowerTimes;
     use hashbrown::HashMap;
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use polars::prelude::{col, DataFrame, IntoLazy};
 
     pub(crate) fn extract_power_schedule(

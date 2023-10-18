@@ -1,7 +1,7 @@
 pub(crate) mod series {
     use pavenet_recipe::mobility::road::RoadId;
     use pavenet_recipe::mobility::velocity::Velocity;
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use pavenet_recipe::times::ts::TimeS;
     use polars::prelude::Series;
 
@@ -71,7 +71,7 @@ pub(crate) mod series {
 }
 
 pub(crate) mod list_series {
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use pavenet_recipe::times::ts::TimeS;
     use polars::prelude::Series;
     use std::slice;
@@ -143,7 +143,7 @@ mod tests {
     use super::series::*;
     use pavenet_recipe::mobility::road::RoadId;
     use pavenet_recipe::mobility::velocity::Velocity;
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use pavenet_recipe::times::ts::TimeS;
     use polars::prelude::{NamedFrom, Series};
 

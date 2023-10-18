@@ -3,7 +3,7 @@ pub mod data {
     use crate::links::df::extract_link_traces;
     use hashbrown::HashMap;
     use pavenet_recipe::link::Link;
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use pavenet_recipe::times::ts::TimeS;
     use polars::prelude::DataFrame;
     use std::error::Error;
@@ -12,7 +12,7 @@ pub mod data {
 
     pub type LinkMap = HashMap<TimeS, HashMap<NodeId, Link>>;
 
-    pub enum LinkReaderType {
+    pub enum LinkReader {
         File(ReadLinks),
         Stream(StreamLinks),
     }
@@ -57,7 +57,7 @@ pub(super) mod df {
     use crate::links::data::LinkMap;
     use hashbrown::HashMap;
     use pavenet_recipe::link::Link;
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use pavenet_recipe::times::ts::TimeS;
     use polars::error::ErrString;
     use polars::prelude::{col, lit, DataFrame, IntoLazy, PolarsError, PolarsResult, Series};

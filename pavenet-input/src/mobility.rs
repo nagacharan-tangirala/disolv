@@ -3,7 +3,7 @@ pub mod data {
     use crate::mobility::df::extract_map_states;
     use hashbrown::HashMap;
     use pavenet_recipe::mobility::MapState;
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use pavenet_recipe::times::ts::TimeS;
     use std::path::PathBuf;
     use typed_builder::TypedBuilder;
@@ -58,7 +58,7 @@ pub(super) mod df {
     use pavenet_recipe::mobility::road::RoadId;
     use pavenet_recipe::mobility::velocity::Velocity;
     use pavenet_recipe::mobility::{MapState, Point2D};
-    use pavenet_recipe::node::id::NodeId;
+    use pavenet_recipe::node_info::id::NodeId;
     use pavenet_recipe::times::ts::TimeS;
     use polars::error::{ErrString, PolarsError};
     use polars::prelude::{col, lit, DataFrame, IntoLazy, PolarsResult};
