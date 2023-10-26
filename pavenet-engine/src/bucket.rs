@@ -1,29 +1,44 @@
 use krabmaga::engine::schedule::Schedule;
 use std::ops::{Add, AddAssign};
 
+/// A trait used to represent time stamps. Use this to define your own time stamp type.
+/// All the engine parameters should be defined using this type.
 pub trait TimeStamp:
     Default + Copy + AddAssign + Clone + Ord + Add + Send + Sync + From<u64> + 'static
 {
+    fn as_f32(&self) -> f32;
 }
 
-pub trait Bucket<S>: Clone + Send + Sync + 'static
+/// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
+/// of calling the scheduler's functions is important to ensure the correct behavior of the engine.
+/// Adding and removing entities should be handled in this trait.
+pub trait Scheduler<T>: Clone + Send + Sync + 'static
 where
-    S: TimeStamp,
+    T: TimeStamp,
 {
     fn init(&mut self, schedule: &mut Schedule);
-    fn before_step(&mut self, schedule: &mut Schedule);
-    fn update(&mut self, step: S);
-    fn after_step(&mut self, schedule: &mut Schedule);
-    fn streaming_step(&mut self, step: S);
+    fn add_to_schedule(&mut self, schedule: &mut Schedule);
+    fn remove_from_schedule(&mut self, schedule: &mut Schedule);
+}
+
+/// A trait passed to the entity so that an entity can access other entities. Any common models
+/// applicable to all the entities irrespective of type should be assigned to a struct that
+/// implements this trait.
+pub trait Bucket<T>: Clone + Send + Sync + 'static
+where
+    T: TimeStamp,
+{
+    fn init(&mut self, step: T);
+    fn update(&mut self, step: T);
+    fn before_uplink(&mut self);
+    fn after_downlink(&mut self);
+    fn streaming_step(&mut self, step: T);
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{Bucket, TimeStamp};
-    use crate::entity::tests::Nid;
-    use crate::node::tests::MyNode;
     use krabmaga::engine::schedule::Schedule;
-    use std::collections::HashMap;
     use std::fmt::Display;
     use std::ops::{Add, AddAssign};
 
