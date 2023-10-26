@@ -1,7 +1,7 @@
-use crate::node::class::Class;
-use crate::node::id::NodeId;
-use crate::node::kind::NodeType;
-use crate::node::order::Order;
+use crate::node_info::class::Class;
+use crate::node_info::id::NodeId;
+use crate::node_info::kind::NodeType;
+use crate::node_info::order::Order;
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
@@ -14,11 +14,11 @@ pub struct NodeInfo {
 
 pub mod id {
     use pavenet_engine::entity::Identifier;
-    use serde_derive::Deserialize;
+    use serde::Deserialize;
     use std::fmt::Display;
     use std::str::FromStr;
 
-    #[derive(Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+    #[derive(Deserialize, Default, Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
     pub struct NodeId(u32);
 
     impl Display for NodeId {
@@ -49,20 +49,21 @@ pub mod id {
     }
 
     impl NodeId {
-        pub fn as_u32(&self) -> u32 {
-            self.0
-        }
         pub fn as_i64(&self) -> i64 {
             self.0 as i64
         }
     }
 
-    impl Identifier for NodeId {}
+    impl Identifier for NodeId {
+        fn as_u32(&self) -> u32 {
+            self.0
+        }
+    }
 }
 
 pub mod order {
-    use pavenet_core::tier::Tier;
-    use serde_derive::Deserialize;
+    use pavenet_engine::entity::Tier;
+    use serde::Deserialize;
     use std::fmt::Display;
 
     #[derive(Deserialize, Debug, Clone, Copy, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -81,20 +82,21 @@ pub mod order {
     }
 
     impl Order {
-        pub fn as_i32(&self) -> i32 {
-            self.0
-        }
         pub fn as_u32(&self) -> u32 {
             self.0 as u32
         }
     }
 
-    impl Tier for Order {}
+    impl Tier for Order {
+        fn as_i32(&self) -> i32 {
+            self.0
+        }
+    }
 }
 
 pub mod kind {
     use pavenet_engine::entity::Kind;
-    use serde_derive::Deserialize;
+    use serde::Deserialize;
     use std::fmt::Display;
 
     #[derive(Deserialize, Debug, Hash, Copy, Default, Clone, PartialEq, Eq)]
@@ -121,7 +123,7 @@ pub mod kind {
 }
 
 pub mod class {
-    use serde_derive::Deserialize;
+    use serde::Deserialize;
     use std::fmt::Display;
 
     #[derive(Debug, Deserialize, Hash, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]

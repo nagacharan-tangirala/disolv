@@ -42,6 +42,9 @@ pub mod ts {
         pub fn as_i64(&self) -> i64 {
             self.0 as i64
         }
+        pub fn as_f32(&self) -> f32 {
+            self.0 as f32
+        }
     }
 
     impl Add for TimeS {
