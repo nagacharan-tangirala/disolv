@@ -1,6 +1,7 @@
 use crate::bucket::{Bucket, TimeStamp};
 use crate::engine::Engine;
-use crate::entity::{Entity, Identifier, Kind};
+use crate::entity::{Entity, Identifier, Kind, Tier};
+use crate::scheduler::NodeScheduler;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::state::State;
 use std::fmt;
@@ -8,68 +9,78 @@ use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Default)]
-pub struct Node<B, I, K, N, S>
+pub struct Node<B, E, I, K, T, Ts>
 where
-    B: Bucket<S>,
+    B: Bucket<Ts>,
+    E: Entity<B, T, Ts>,
     I: Identifier,
     K: Kind,
-    N: Entity<B, S>,
-    S: TimeStamp,
+    T: Tier,
+    Ts: TimeStamp,
 {
     pub node_id: I,
-    pub node: N,
+    pub entity: E,
     pub kind: K,
-    _marker: std::marker::PhantomData<fn() -> (B, S)>,
+    _marker: std::marker::PhantomData<fn() -> (B, T, Ts)>,
 }
 
-impl<B, I, K, N, S> Agent for Node<B, I, K, N, S>
+impl<B, E, I, K, T, Ts> Agent for Node<B, E, I, K, T, Ts>
 where
-    B: Bucket<S>,
+    B: Bucket<Ts>,
+    E: Entity<B, T, Ts>,
     I: Identifier,
     K: Kind,
-    N: Entity<B, S>,
-    S: TimeStamp,
+    T: Tier,
+    Ts: TimeStamp,
 {
     fn step(&mut self, state: &mut dyn State) {
-        let engine: &mut Engine<B, S> = state.as_any_mut().downcast_mut::<Engine<B, S>>().unwrap();
-        self.node.step(&mut engine.bucket);
+        let engine: &mut Engine<B, NodeScheduler<B, E, I, K, T, Ts>, Ts> = state
+            .as_any_mut()
+            .downcast_mut::<Engine<B, NodeScheduler<B, E, I, K, T, Ts>, Ts>>()
+            .unwrap();
+        self.entity.uplink_stage(&mut engine.bucket);
     }
 
     fn after_step(&mut self, state: &mut dyn State) {
-        let engine = state.as_any_mut().downcast_mut::<Engine<B, S>>().unwrap();
-        self.node.after_step(&mut engine.bucket);
+        let engine = state
+            .as_any_mut()
+            .downcast_mut::<Engine<B, NodeScheduler<B, E, I, K, T, Ts>, Ts>>()
+            .unwrap();
+        self.entity.downlink_stage(&mut engine.bucket);
     }
 
     fn is_stopped(&self, _state: &mut dyn State) -> bool {
-        self.node.is_stopped()
+        self.entity.is_stopped()
     }
 }
 
-impl<B, I, K, N, S> Node<B, I, K, N, S>
+impl<B, E, I, K, T, Ts> Node<B, E, I, K, T, Ts>
 where
-    B: Bucket<S>,
+    B: Bucket<Ts>,
+    E: Entity<B, T, Ts>,
     I: Identifier,
     K: Kind,
-    N: Entity<B, S>,
-    S: TimeStamp,
+    T: Tier,
+    Ts: TimeStamp,
 {
-    pub fn new(node_id: I, node: N, kind: K) -> Self {
+    pub fn new(node_id: I, node: E, kind: K) -> Self {
         Self {
             node_id,
-            node,
+            entity: node,
             kind,
             _marker: std::marker::PhantomData,
         }
     }
 }
 
-impl<B, I, K, N, S> Hash for Node<B, I, K, N, S>
+impl<B, E, I, K, T, Ts> Hash for Node<B, E, I, K, T, Ts>
 where
-    B: Bucket<S>,
+    B: Bucket<Ts>,
+    E: Entity<B, T, Ts>,
     I: Identifier,
     K: Kind,
-    N: Entity<B, S>,
-    S: TimeStamp,
+    T: Tier,
+    Ts: TimeStamp,
 {
     fn hash<H>(&self, state: &mut H)
     where
@@ -79,49 +90,52 @@ where
     }
 }
 
-impl<B, I, K, N, S> Display for Node<B, I, K, N, S>
+impl<B, E, I, K, T, Ts> Display for Node<B, E, I, K, T, Ts>
 where
-    B: Bucket<S>,
+    B: Bucket<Ts>,
+    E: Entity<B, T, Ts>,
     I: Identifier,
     K: Kind,
-    N: Entity<B, S>,
-    S: TimeStamp,
+    T: Tier,
+    Ts: TimeStamp,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.node_id)
     }
 }
 
-impl<B, I, K, N, S> Eq for Node<B, I, K, N, S>
+impl<B, E, I, K, T, Ts> PartialEq for Node<B, E, I, K, T, Ts>
 where
-    B: Bucket<S>,
+    B: Bucket<Ts>,
+    E: Entity<B, T, Ts>,
     I: Identifier,
     K: Kind,
-    N: Entity<B, S>,
-    S: TimeStamp,
+    T: Tier,
+    Ts: TimeStamp,
 {
-}
-
-impl<B, I, K, N, S> PartialEq for Node<B, I, K, N, S>
-where
-    B: Bucket<S>,
-    I: Identifier,
-    K: Kind,
-    N: Entity<B, S>,
-    S: TimeStamp,
-{
-    fn eq(&self, other: &Node<B, I, K, N, S>) -> bool {
+    fn eq(&self, other: &Node<B, E, I, K, T, Ts>) -> bool {
         self.node_id == other.node_id
     }
+}
+
+impl<B, E, I, K, T, Ts> Eq for Node<B, E, I, K, T, Ts>
+where
+    B: Bucket<Ts>,
+    E: Entity<B, T, Ts>,
+    I: Identifier,
+    K: Kind,
+    T: Tier,
+    Ts: TimeStamp,
+{
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use crate::bucket::tests::{MyBucket, Ts};
-    use crate::entity::tests::{make_device, DeviceType, Nid, TDevice};
+    use crate::entity::tests::{make_device, DeviceType, Level, Nid, TDevice};
     use crate::node::Node;
 
-    pub(crate) type MyNode = Node<MyBucket, Nid, DeviceType, TDevice, Ts>;
+    pub(crate) type MyNode = Node<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
 
     pub(crate) fn as_node(device: TDevice) -> MyNode {
         let device_type = device.device_type.clone();
