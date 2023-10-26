@@ -1,39 +1,168 @@
 use super::bucket::{Bucket, TimeStamp};
+use crate::payload::Transmitter;
+use crate::response::Responder;
 use std::fmt::Display;
 use std::hash::Hash;
 
+/// Unique value that identifies an entity. Only a single instance of this type
+/// is allowed. Irrespective of the type of the entity, it should be uniquely identified
+/// by a type implementing this trait.
+/// For example, in a vehicular scenario, both the vehicles and the RSUs can be identified by a
+/// single type (e.g. ID), which implements this trait.
 pub trait Identifier:
     Default + Display + Clone + Copy + Hash + PartialEq + Eq + Send + Sync + 'static
 {
+    fn as_u32(&self) -> u32;
 }
 
+/// A trait that represents the tier of an entity. Extend this to a custom type that represents
+/// the tier of your entity. Only one instance of this type is allowed. A named type masking an
+/// integer is sufficient.
+///
+/// This is required to control the order of calling the uplink and downlink stages of the
+/// entities. At each time step, the entities are sorted by their tier. The entities with the
+/// lowest tier are called first and gradually proceeding to the entities with the highest tier.
+/// This allows the entities to be simulated in a tiered fashion.
+pub trait Tier: Default + Copy + Clone + Hash + PartialEq + Eq + Send + Sync + 'static {
+    fn as_i32(&self) -> i32;
+}
+
+/// Trait that represents the kind of an entity. Extend this to a custom type
+/// (e.g. enum) that represents the kind of your entity. Only one instance of this type
+/// is allowed. This is required to distinguish between different types of entities.
+///
+/// Multiple types of entities can be simulated in a single simulation. However, all entities
+/// must be distinguishable by only their kind. For example, in a vehicular scenario, this trait
+/// can be implemented for both vehicles and RSUs. There can also be multiple types of vehicles
+/// (e.g. cars, trucks, buses, etc.). Similarly, there can be multiple types of RSUs (e.g. RSUs
+/// with different transmission ranges). Each of these types can have their own struct that
+/// implements the [Entity] trait. However, all these types must be documented in a single enum.
+/// Such enum should implement this trait.
 pub trait Kind: Default + Display + Clone + Copy + PartialEq + Eq + Send + Sync + 'static {}
 
-pub trait Entity<B, S>: Default + Clone + Send + Sync + 'static
+/// A trait to get and set the tier of an entity.
+pub trait Tiered<T>
 where
-    B: Bucket<S>,
-    S: TimeStamp,
+    T: Tier,
 {
-    fn step(&mut self, bucket: &mut B);
-    fn after_step(&mut self, bucket: &mut B);
+    fn tier(&self) -> T;
+    fn set_tier(&mut self, tier: T);
+}
+
+/// A trait that represents the mobility information of an entity. Extend this to
+/// a custom type that represents the static or dynamic positional information of entities.
+///
+/// Multiple types of mobility information can be used in a single simulation.
+/// For example, static devices need only the positional information, while mobile devices need
+/// both the positional and mobility information.
+pub trait MobilityInfo: Copy + Clone {}
+
+/// A trait to get and set the mobility information of an entity. Must extend this for
+/// both the static and mobile entities.
+pub trait Movable<M>
+where
+    M: MobilityInfo,
+{
+    fn mobility(&self) -> &M;
+    fn set_mobility(&mut self, mobility_info: M);
+}
+
+/// A trait that allows an entity to be scheduled for simulation.
+pub trait Schedulable<T>
+where
+    T: TimeStamp,
+{
+    fn stop(&mut self);
     fn is_stopped(&self) -> bool;
+    fn time_to_add(&mut self) -> T;
+}
+
+/// A trait that represents an entity. Extend this to a custom device type (e.g. struct) that
+/// you want to simulate. Only types with this trait can be added to a bucket and hence
+/// scheduled for simulation.
+///
+/// At each time step, the entities are called based on the [tier]. There are two passes for
+/// each entity. In the first pass, <code>uplink_stage</code> is called on all the entities in
+/// ascending order of their tier. In the second pass, <code>downlink_stage</code> is called on
+/// all the entities in descending order of their tier. This allows the entities to be simulated
+/// in a tiered fashion.
+///
+/// Starting at this trait will guide you to the other traits that you need to implement for the
+/// device to be simulation-ready.
+/// [tier]: Tier
+pub trait Entity<B, T, Ts>:
+    Schedulable<Ts> + Tiered<T> + Transmitter<B, Ts> + Responder<B, Ts> + Clone + Send + Sync + 'static
+where
+    B: Bucket<Ts>,
+    T: Tier,
+    Ts: TimeStamp,
+{
+    fn uplink_stage(&mut self, bucket: &mut B);
+    fn downlink_stage(&mut self, bucket: &mut B);
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{Entity, Identifier, Kind};
+    use super::{Entity, Identifier, Kind, MobilityInfo, Movable, Schedulable, Tier, Tiered};
     use crate::bucket::tests::{MyBucket, Ts};
+    use crate::bucket::TimeStamp;
     use crate::node::tests::as_node;
+    use crate::payload::Transmitter;
+    use crate::response::Responder;
     use krabmaga::engine::schedule::Schedule;
-    use std::fmt::Display;
+    use std::fmt::{Debug, Display, Formatter};
+
+    #[derive(Copy, Clone, Default, Debug)]
+    struct Mobility {
+        x: f32,
+        y: f32,
+        velocity: f32,
+    }
+
+    impl Mobility {
+        fn new(x: f32, y: f32, velocity: f32) -> Mobility {
+            Mobility { x, y, velocity }
+        }
+    }
+
+    impl MobilityInfo for Mobility {}
+
+    #[derive(Copy, Clone, Default, Debug)]
+    struct Device {
+        mobility: Mobility,
+    }
+
+    impl Movable<Mobility> for Device {
+        fn mobility(&self) -> &Mobility {
+            &self.mobility
+        }
+
+        fn set_mobility(&mut self, mobility_info: Mobility) {
+            self.mobility = mobility_info;
+        }
+    }
+
+    #[test]
+    fn test_mobility() {
+        let mut device = Device::default();
+        let mobility = Mobility::new(1.0, 2.0, 3.0);
+        device.set_mobility(mobility);
+        assert_eq!(device.mobility().x, 1.0);
+        assert_eq!(device.mobility().y, 2.0);
+        assert_eq!(device.mobility().velocity, 3.0);
+    }
 
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub(crate) struct Nid(u32);
 
-    impl Identifier for Nid {}
+    impl Identifier for Nid {
+        fn as_u32(&self) -> u32 {
+            self.0
+        }
+    }
 
-    impl std::fmt::Display for Nid {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    impl Display for Nid {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             write!(f, "{}", self.0)
         }
     }
@@ -50,6 +179,27 @@ pub(crate) mod tests {
         }
     }
 
+    #[derive(Default, Debug, Copy, Clone, Hash, Ord, PartialOrd, PartialEq, Eq)]
+    pub(crate) struct Level(u32);
+
+    impl From<u32> for Level {
+        fn from(level: u32) -> Self {
+            Self(level)
+        }
+    }
+
+    impl Into<i32> for Level {
+        fn into(self) -> i32 {
+            self.0 as i32
+        }
+    }
+
+    impl Tier for Level {
+        fn as_i32(&self) -> i32 {
+            self.0 as i32
+        }
+    }
+
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub(crate) enum DeviceType {
         #[default]
@@ -60,7 +210,7 @@ pub(crate) mod tests {
     impl Kind for DeviceType {}
 
     impl Display for DeviceType {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             match self {
                 DeviceType::TypeA => write!(f, "TypeA"),
                 DeviceType::TypeB => write!(f, "TypeB"),
@@ -76,16 +226,48 @@ pub(crate) mod tests {
         pub(crate) step: Ts,
     }
 
-    impl Entity<MyBucket, Ts> for TDevice {
-        fn step(&mut self, bucket: &mut MyBucket) {
+    impl Schedulable<Ts> for TDevice {
+        fn stop(&mut self) {}
+
+        fn is_stopped(&self) -> bool {
+            false
+        }
+
+        fn time_to_add(&mut self) -> Ts {
+            Ts::from(0)
+        }
+    }
+
+    impl Tiered<Level> for TDevice {
+        fn tier(&self) -> Level {
+            Level::from(self.order as u32)
+        }
+
+        fn set_tier(&mut self, tier: Level) {
+            todo!()
+        }
+    }
+
+    impl Transmitter<MyBucket, Ts> for TDevice {
+        fn transmit(&mut self, bucket: &mut MyBucket) {
+            todo!()
+        }
+    }
+
+    impl Responder<MyBucket, Ts> for TDevice {
+        fn respond(&mut self, bucket: &mut MyBucket) {
+            todo!()
+        }
+    }
+
+    impl Entity<MyBucket, Level, Ts> for TDevice {
+        fn uplink_stage(&mut self, bucket: &mut MyBucket) {
             self.step = bucket.step;
             println!("step {} in TDevice of type {}", self.step, self.device_type);
         }
-        fn after_step(&mut self, _bucket: &mut MyBucket) {
+
+        fn downlink_stage(&mut self, _bucket: &mut MyBucket) {
             println!("after_step in TDevice of type {}", self.device_type);
-        }
-        fn is_stopped(&self) -> bool {
-            false
         }
     }
 
@@ -118,20 +300,8 @@ pub(crate) mod tests {
     fn test_device_step() {
         let mut device_a = make_device(Nid::from(1), DeviceType::TypeA, 1);
         let mut bucket = MyBucket::default();
-        device_a.step(&mut bucket);
+        device_a.uplink_stage(&mut bucket);
         assert_eq!(bucket.step, Ts::default());
-    }
-
-    #[test]
-    fn test_add_to_bucket() {
-        let mut bucket = MyBucket::default();
-        let device_a = make_device(Nid::from(1), DeviceType::TypeA, 1);
-        let device_b = make_device(Nid::from(2), DeviceType::TypeB, 2);
-        let node_a = as_node(device_a);
-        let node_b = as_node(device_b);
-        bucket.add(node_a);
-        bucket.add(node_b);
-        assert_eq!(bucket.devices.len(), 2);
     }
 
     #[test]
@@ -142,7 +312,7 @@ pub(crate) mod tests {
         let x = schedule.schedule_repeating(
             Box::new(node_a.clone()),
             node_a.node_id.into(),
-            Ts::default().into(),
+            Ts::default().as_f32(),
             0,
         );
         assert_eq!(x, true);
