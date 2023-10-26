@@ -10,7 +10,8 @@ readme = "README.md"
 
 [dependencies]
 krabmaga = { version = "0.4.1", path= "../../krABMaga" }
-typed-builder = "0.17.0"
+typed-builder = "0.18.0"
+hashbrown = "0.14.2"
 
 [features]
 visualization = ["krabmaga/visualization"]
