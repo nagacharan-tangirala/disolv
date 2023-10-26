@@ -81,27 +81,22 @@ where
 pub(crate) mod tests {
     use super::Engine;
     use crate::bucket::tests::{MyBucket, Ts};
-    use crate::entity::tests::{make_device, DeviceType, Nid};
-    use crate::node::tests::as_node;
+    use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
     use krabmaga::simulate;
 
-    fn make_bucket_with_2_devices() -> MyBucket {
-        let device_a = make_device(Nid::from(1), DeviceType::TypeA, 1);
-        let device_b = make_device(Nid::from(2), DeviceType::TypeB, 2);
-        let node_a = as_node(device_a);
-        let node_b = as_node(device_b);
+    fn make_empty_bucket() -> MyBucket {
         let mut bucket = MyBucket::new();
-        bucket.add(node_a);
-        bucket.add(node_b);
         bucket
     }
 
-    fn make_engine(end_step: Ts, stream_step: Ts) -> Engine<MyBucket, Ts> {
-        let bucket = make_bucket_with_2_devices();
+    fn make_engine(end_step: Ts, stream_step: Ts) -> Engine<MyBucket, MyScheduler, Ts> {
+        let bucket = make_empty_bucket();
+        let scheduler = make_scheduler_with_2_devices();
         Engine::builder()
             .end_step(end_step)
             .streaming_interval(stream_step)
             .bucket(bucket)
+            .scheduler(scheduler)
             .build()
     }
 

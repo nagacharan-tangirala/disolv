@@ -65,19 +65,17 @@ pub(crate) mod tests {
         }
     }
 
-    impl Into<f32> for Ts {
-        fn into(self) -> f32 {
-            self.0 as f32
-        }
-    }
-
     impl Into<u64> for Ts {
         fn into(self) -> u64 {
             self.0 as u64
         }
     }
 
-    impl TimeStamp for Ts {}
+    impl TimeStamp for Ts {
+        fn as_f32(&self) -> f32 {
+            self.0 as f32
+        }
+    }
 
     impl Display for Ts {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -88,41 +86,19 @@ pub(crate) mod tests {
     #[derive(Default, Clone)]
     pub(crate) struct MyBucket {
         pub(crate) step: Ts,
-        pub(crate) devices: HashMap<Nid, MyNode>,
     }
 
     impl MyBucket {
         pub(crate) fn new() -> Self {
             Self {
                 step: Ts::default(),
-                devices: HashMap::new(),
-            }
-        }
-
-        pub(crate) fn add(&mut self, node: MyNode) {
-            self.devices.insert(node.node.id, node);
-        }
-
-        pub(crate) fn add_to_schedule(&mut self, schedule: &mut Schedule) {
-            for (_, node) in self.devices.iter_mut() {
-                schedule.schedule_repeating(
-                    Box::new(node.clone()),
-                    node.node_id.into(),
-                    0.,
-                    node.node.order,
-                );
             }
         }
     }
 
     impl Bucket<Ts> for MyBucket {
-        fn init(&mut self, schedule: &mut Schedule) {
-            self.add_to_schedule(schedule);
-            self.step = Ts::default();
-        }
-
-        fn before_step(&mut self, _schedule: &mut Schedule) {
-            println!("Before step in MyBucket of type");
+        fn init(&mut self, step: Ts) {
+            self.step = step;
         }
 
         fn update(&mut self, step: Ts) {
@@ -130,8 +106,12 @@ pub(crate) mod tests {
             println!("Update in MyBucket at {}", step);
         }
 
-        fn after_step(&mut self, _schedule: &mut Schedule) {
-            println!("After step in MyBucket");
+        fn before_uplink(&mut self) {
+            println!("before_uplink in MyBucket");
+        }
+
+        fn after_downlink(&mut self) {
+            println!("after_downlink in MyBucket");
         }
 
         fn streaming_step(&mut self, step: Ts) {
@@ -140,19 +120,17 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_bucket_init() {
-        let mut schedule = Schedule::new();
-        let mut bucket = MyBucket::default();
-        bucket.init(&mut schedule);
-        assert_eq!(bucket.step, Ts::default());
-    }
-
-    #[test]
     fn test_bucket_update() {
-        let mut schedule = Schedule::new();
+        let schedule = Schedule::new();
         let mut bucket = MyBucket::default();
-        bucket.init(&mut schedule);
-        bucket.update(Ts::from(1));
+        let step0 = Ts::from(0);
+        bucket.init(step0);
+        assert_eq!(bucket.step, Ts::from(0));
+        let step1 = Ts::from(1);
+        bucket.update(step1);
         assert_eq!(bucket.step, Ts::from(1));
+        let step2 = Ts::from(2);
+        bucket.update(step2);
+        assert_eq!(bucket.step, Ts::from(2));
     }
 }
