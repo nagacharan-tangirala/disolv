@@ -1,32 +1,38 @@
 use super::bucket::Bucket;
 use super::bucket::TimeStamp;
+use crate::bucket::Scheduler;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use std::any::Any;
 use typed_builder::TypedBuilder;
 
 #[derive(TypedBuilder)]
-pub struct Engine<B, S>
+pub struct Engine<B, S, T>
 where
-    B: Bucket<S>,
-    S: TimeStamp,
+    B: Bucket<T>,
+    S: Scheduler<T>,
+    T: TimeStamp,
 {
-    end_step: S,
-    streaming_interval: S,
-    pub bucket: B, // Hashmap might be expensive, as list is potentially tiny
+    end_step: T,
+    streaming_interval: T,
+    pub bucket: B,
+    pub scheduler: S,
     #[builder(default)]
-    streaming_step: S,
+    streaming_step: T,
     #[builder(default)]
-    pub step: S,
+    step: T,
 }
 
-impl<B, S> State for Engine<B, S>
+impl<B, S, T> State for Engine<B, S, T>
 where
-    B: Bucket<S>,
-    S: TimeStamp,
+    B: Bucket<T>,
+    S: Scheduler<T>,
+    T: TimeStamp,
 {
     fn init(&mut self, schedule: &mut Schedule) {
+        self.scheduler.init(schedule);
         self.streaming_step = self.streaming_interval;
-        self.bucket.init(schedule);
+        let step = T::from(schedule.step);
+        self.bucket.init(step);
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
@@ -48,12 +54,13 @@ where
     fn reset(&mut self) {}
 
     fn update(&mut self, step: u64) {
-        self.step = S::from(step);
+        self.step = T::from(step);
         self.bucket.update(self.step);
     }
 
     fn before_step(&mut self, schedule: &mut Schedule) {
-        self.bucket.before_step(schedule);
+        self.scheduler.add_to_schedule(schedule);
+        self.bucket.before_uplink();
         if self.step == self.streaming_step {
             self.bucket.streaming_step(self.step);
             self.streaming_step += self.streaming_interval;
@@ -61,7 +68,8 @@ where
     }
 
     fn after_step(&mut self, schedule: &mut Schedule) {
-        self.bucket.after_step(schedule);
+        self.bucket.after_downlink();
+        self.scheduler.remove_from_schedule(schedule);
     }
 
     fn end_condition(&mut self, _schedule: &mut Schedule) -> bool {
