@@ -10,7 +10,8 @@ pub mod data {
 
     pub type TraceMap = HashMap<TimeS, HashMap<NodeId, MapState>>;
 
-    pub enum MapReaderType {
+    #[derive(Clone, Debug)]
+    pub enum MapReader {
         File(MapStateReader),
         Stream(MapStateStreamer),
     }
@@ -19,7 +20,7 @@ pub mod data {
         fn fetch_traffic_data(&self, step: TimeS) -> Result<TraceMap, Box<dyn std::error::Error>>;
     }
 
-    #[derive(TypedBuilder)]
+    #[derive(Clone, Debug, TypedBuilder)]
     pub struct MapStateReader {
         file_path: PathBuf,
     }
@@ -31,7 +32,7 @@ pub mod data {
         }
     }
 
-    #[derive(TypedBuilder)]
+    #[derive(Clone, Debug, TypedBuilder)]
     pub struct MapStateStreamer {
         file_path: PathBuf,
         streaming_step: TimeS,

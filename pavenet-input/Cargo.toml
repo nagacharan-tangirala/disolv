@@ -9,7 +9,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-pavenet-recipe = { path = "../pavenet-recipe" }
+pavenet-core = { path = "../pavenet-core" }
 pavenet-engine = { path = "../pavenet-engine" }
 hashbrown = "0.14.1"
 typed-builder = "0.17.0"

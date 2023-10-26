@@ -12,6 +12,7 @@ pub mod data {
 
     pub type LinkMap = HashMap<TimeS, HashMap<NodeId, Link>>;
 
+    #[derive(Clone)]
     pub enum LinkReader {
         File(ReadLinks),
         Stream(StreamLinks),
@@ -21,7 +22,7 @@ pub mod data {
         fn fetch_links_data(&self, step: TimeS) -> Result<LinkMap, Box<dyn Error>>;
     }
 
-    #[derive(TypedBuilder)]
+    #[derive(Clone, TypedBuilder)]
     pub struct ReadLinks {
         links_file: PathBuf,
     }
@@ -33,7 +34,7 @@ pub mod data {
         }
     }
 
-    #[derive(TypedBuilder)]
+    #[derive(Clone, TypedBuilder)]
     pub struct StreamLinks {
         links_file: PathBuf,
         streaming_interval: TimeS,
@@ -149,7 +150,7 @@ pub(super) mod df {
 
         let links: Vec<Link> = target_ids
             .into_iter()
-            .map(|target_id| Link::builder().target(target_id).build())
+            .map(|target_id| Link::new())
             .collect();
         return Ok(links);
     }
