@@ -16,12 +16,7 @@ where
 
 /// A trait that represents the metadata of a payload. Extend this to a custom type (e.g. struct)
 /// that contains the metadata such as the size, count, etc. of a payload.
-pub trait PayloadMetadata<C, Q>: Clone + Send + Sync
-where
-    C: PayloadContent<Q>,
-    Q: Queryable,
-{
-}
+pub trait PayloadMetadata: Clone + Send + Sync {}
 
 /// A generic struct that represents a payload of a device. A message exchange between two devices
 /// can be represented by a payload. Gathered content can be used to represent the aggregated
@@ -30,7 +25,7 @@ where
 pub struct Payload<C, M, Q>
 where
     C: PayloadContent<Q>,
-    M: PayloadMetadata<C, Q>,
+    M: PayloadMetadata,
     Q: Queryable,
 {
     pub content: C,
@@ -42,7 +37,7 @@ where
 impl<C, M, Q> Payload<C, M, Q>
 where
     C: PayloadContent<Q>,
-    M: PayloadMetadata<C, Q>,
+    M: PayloadMetadata,
     Q: Queryable,
 {
     pub fn new(content: C, payload_stats: M, gathered_data: Option<Vec<C>>) -> Self {
@@ -57,9 +52,7 @@ where
 
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
 /// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
-/// This should be called in the <code>uplink_stage</code> method of the entity if the entity is
-/// a source of data. If the entity is a sink of data, then this should be called in the
-/// <code>downlink_stage</code> method of the entity.
+/// This should be called in the <code>uplink_stage</code> method of the entity.
 pub trait Transmitter<B, T>
 where
     B: Bucket<T>,
