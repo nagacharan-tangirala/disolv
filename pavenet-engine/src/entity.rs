@@ -222,7 +222,7 @@ pub(crate) mod tests {
     pub(crate) struct TDevice {
         pub(crate) id: Nid,
         pub(crate) device_type: DeviceType,
-        pub(crate) order: i32,
+        pub(crate) order: Level,
         pub(crate) step: Ts,
     }
 
@@ -240,23 +240,23 @@ pub(crate) mod tests {
 
     impl Tiered<Level> for TDevice {
         fn tier(&self) -> Level {
-            Level::from(self.order as u32)
+            Level::from(self.order.as_i32() as u32)
         }
 
         fn set_tier(&mut self, tier: Level) {
-            todo!()
+            self.order = tier;
         }
     }
 
     impl Transmitter<MyBucket, Ts> for TDevice {
         fn transmit(&mut self, bucket: &mut MyBucket) {
-            todo!()
+            println!("Transmitting to bucket {}", bucket.step);
         }
     }
 
     impl Responder<MyBucket, Ts> for TDevice {
         fn respond(&mut self, bucket: &mut MyBucket) {
-            todo!()
+            println!("Responding to bucket {}", bucket.step);
         }
     }
 
@@ -275,7 +275,7 @@ pub(crate) mod tests {
         TDevice {
             id,
             device_type,
-            order,
+            order: Level::from(order as u32),
             step: Ts::default(),
         }
     }
@@ -292,8 +292,8 @@ pub(crate) mod tests {
         let device_b = make_device(Nid::from(2), DeviceType::TypeB, 2);
         assert_ne!(device_a.id, device_b.id);
         assert_ne!(device_a.device_type, device_b.device_type);
-        assert_eq!(device_a.order, 1);
-        assert_eq!(device_b.order, 2);
+        assert_eq!(device_a.order, Level::from(1));
+        assert_eq!(device_b.order, Level::from(2));
     }
 
     #[test]

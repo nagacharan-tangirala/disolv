@@ -1,6 +1,6 @@
 use super::bucket::Bucket;
 use super::bucket::TimeStamp;
-use crate::bucket::Scheduler;
+use crate::scheduler::Scheduler;
 use krabmaga::engine::{schedule::Schedule, state::State};
 use std::any::Any;
 use typed_builder::TypedBuilder;
@@ -84,13 +84,8 @@ pub(crate) mod tests {
     use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
     use krabmaga::simulate;
 
-    fn make_empty_bucket() -> MyBucket {
-        let mut bucket = MyBucket::new();
-        bucket
-    }
-
     fn make_engine(end_step: Ts, stream_step: Ts) -> Engine<MyBucket, MyScheduler, Ts> {
-        let bucket = make_empty_bucket();
+        let bucket = MyBucket::new();
         let scheduler = make_scheduler_with_2_devices();
         Engine::builder()
             .end_step(end_step)
