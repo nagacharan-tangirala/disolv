@@ -1,11 +1,25 @@
-use crate::bucket::{Bucket, Scheduler, TimeStamp};
+use crate::bucket::{Bucket, TimeStamp};
 use crate::entity::{Entity, Identifier, Kind, Tier};
 use crate::node::Node;
 use krabmaga::engine::schedule::Schedule;
 use std::collections::HashMap;
 
+/// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
+/// of calling the scheduler's functions is important to ensure the correct behavior of the engine.
+/// Adding and removing entities should be handled in this trait.
+pub trait Scheduler<T>: Clone + Send + Sync + 'static
+where
+    T: TimeStamp,
+{
+    fn init(&mut self, schedule: &mut Schedule);
+    fn add_to_schedule(&mut self, schedule: &mut Schedule);
+    fn remove_from_schedule(&mut self, schedule: &mut Schedule);
+}
+
+/// A struct that represents a scheduler for nodes. This is used to schedule nodes when they are
+/// added or removed from the network.
 #[derive(Default, Clone)]
-pub(crate) struct NodeScheduler<B, E, I, K, T, Ts>
+pub struct NodeScheduler<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,

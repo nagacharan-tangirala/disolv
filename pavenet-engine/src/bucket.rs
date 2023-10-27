@@ -1,4 +1,3 @@
-use krabmaga::engine::schedule::Schedule;
 use std::ops::{Add, AddAssign};
 
 /// A trait used to represent time stamps. Use this to define your own time stamp type.
@@ -7,18 +6,6 @@ pub trait TimeStamp:
     Default + Copy + AddAssign + Clone + Ord + Add + Send + Sync + From<u64> + 'static
 {
     fn as_f32(&self) -> f32;
-}
-
-/// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
-/// of calling the scheduler's functions is important to ensure the correct behavior of the engine.
-/// Adding and removing entities should be handled in this trait.
-pub trait Scheduler<T>: Clone + Send + Sync + 'static
-where
-    T: TimeStamp,
-{
-    fn init(&mut self, schedule: &mut Schedule);
-    fn add_to_schedule(&mut self, schedule: &mut Schedule);
-    fn remove_from_schedule(&mut self, schedule: &mut Schedule);
 }
 
 /// A trait passed to the entity so that an entity can access other entities. Any common models
@@ -38,7 +25,6 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{Bucket, TimeStamp};
-    use krabmaga::engine::schedule::Schedule;
     use std::fmt::Display;
     use std::ops::{Add, AddAssign};
 
@@ -121,7 +107,6 @@ pub(crate) mod tests {
 
     #[test]
     fn test_bucket_update() {
-        let schedule = Schedule::new();
         let mut bucket = MyBucket::default();
         let step0 = Ts::from(0);
         bucket.init(step0);
