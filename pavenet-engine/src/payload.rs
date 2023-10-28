@@ -23,7 +23,7 @@ pub trait PayloadMetadata: Clone + Send + Sync {}
 /// can be represented by a payload. Gathered content can be used to represent the aggregated
 /// content from the downstream devices that require forwarding.
 #[derive(Clone, Debug, Default)]
-pub struct Payload<C, M, Q>
+pub struct GPayload<C, M, Q>
 where
     C: PayloadContent<Q>,
     M: PayloadMetadata,
@@ -35,7 +35,7 @@ where
     _phantom: std::marker::PhantomData<fn() -> Q>,
 }
 
-impl<C, M, Q> Payload<C, M, Q>
+impl<C, M, Q> GPayload<C, M, Q>
 where
     C: PayloadContent<Q>,
     M: PayloadMetadata,
@@ -62,8 +62,8 @@ where
     Q: Queryable,
     T: TimeStamp,
 {
-    fn collect(&mut self, bucket: &mut B) -> Vec<Payload<C, M, Q>>;
-    fn payloads_to_forward(&mut self, payloads: Vec<Payload<C, M, Q>>) -> Vec<Payload<C, M, Q>>;
-    fn compose(&mut self, payloads: Vec<Payload<C, M, Q>>) -> Payload<C, M, Q>;
-    fn transmit(&mut self, payload: Payload<C, M, Q>, bucket: &mut B);
+    fn collect(&mut self, bucket: &mut B) -> Vec<GPayload<C, M, Q>>;
+    fn payloads_to_forward(&mut self, payloads: Vec<GPayload<C, M, Q>>) -> Vec<GPayload<C, M, Q>>;
+    fn compose(&mut self, payloads: Vec<GPayload<C, M, Q>>) -> GPayload<C, M, Q>;
+    fn transmit(&mut self, payload: GPayload<C, M, Q>, bucket: &mut B);
 }

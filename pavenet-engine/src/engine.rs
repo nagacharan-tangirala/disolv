@@ -6,7 +6,7 @@ use std::any::Any;
 use typed_builder::TypedBuilder;
 
 #[derive(TypedBuilder)]
-pub struct Engine<B, S, T>
+pub struct GEngine<B, S, T>
 where
     B: Bucket<T>,
     S: Scheduler<T>,
@@ -22,7 +22,7 @@ where
     step: T,
 }
 
-impl<B, S, T> State for Engine<B, S, T>
+impl<B, S, T> State for GEngine<B, S, T>
 where
     B: Bucket<T>,
     S: Scheduler<T>,
@@ -79,15 +79,15 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::Engine;
+    use super::GEngine;
     use crate::bucket::tests::{MyBucket, Ts};
     use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
     use krabmaga::simulate;
 
-    fn make_engine(end_step: Ts, stream_step: Ts) -> Engine<MyBucket, MyScheduler, Ts> {
+    fn make_engine(end_step: Ts, stream_step: Ts) -> GEngine<MyBucket, MyScheduler, Ts> {
         let bucket = MyBucket::new();
         let scheduler = make_scheduler_with_2_devices();
-        Engine::builder()
+        GEngine::builder()
             .end_step(end_step)
             .streaming_interval(stream_step)
             .bucket(bucket)

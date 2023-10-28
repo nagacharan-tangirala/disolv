@@ -7,7 +7,7 @@ pub trait LinkFeatures: Clone + Debug + Default {}
 
 /// A struct that represents a link between two nodes defined by the features F.
 #[derive(Debug, Clone, Default, TypedBuilder)]
-pub struct Link<F, I>
+pub struct GLink<F, I>
 where
     F: LinkFeatures,
     I: Identifier,
@@ -16,7 +16,7 @@ where
     pub properties: F,
 }
 
-impl<F, I> Link<F, I>
+impl<F, I> GLink<F, I>
 where
     F: LinkFeatures,
     I: Identifier,
@@ -29,15 +29,15 @@ where
 /// A struct that represents a set of links between a node and other nodes at a given time.
 /// User can write strategies to select the best link to use.
 #[derive(Debug, Clone, Default)]
-pub struct LinkOptions<F, I>
+pub struct GLinkOptions<F, I>
 where
     F: LinkFeatures,
     I: Identifier,
 {
-    pub links: Vec<Link<F, I>>,
+    pub links: Vec<GLink<F, I>>,
 }
 
-impl<F, I> LinkOptions<F, I>
+impl<F, I> GLinkOptions<F, I>
 where
     F: LinkFeatures,
     I: Identifier,
@@ -45,7 +45,7 @@ where
     pub fn new(targets: Vec<I>, properties: F) -> Self {
         let links = targets
             .into_iter()
-            .map(|target| Link::new(target, properties.clone()))
+            .map(|target| GLink::new(target, properties.clone()))
             .collect();
         Self { links }
     }

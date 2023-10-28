@@ -1,7 +1,7 @@
 use crate::bucket::{Bucket, TimeStamp};
-use crate::engine::Engine;
+use crate::engine::GEngine;
 use crate::entity::{Entity, Identifier, Kind, Tier};
-use crate::scheduler::NodeScheduler;
+use crate::scheduler::GNodeScheduler;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::state::State;
 use std::fmt;
@@ -9,7 +9,7 @@ use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Default)]
-pub struct Node<B, E, I, K, T, Ts>
+pub struct GNode<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -24,7 +24,7 @@ where
     _marker: std::marker::PhantomData<fn() -> (B, T, Ts)>,
 }
 
-impl<B, E, I, K, T, Ts> Agent for Node<B, E, I, K, T, Ts>
+impl<B, E, I, K, T, Ts> Agent for GNode<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -34,9 +34,9 @@ where
     Ts: TimeStamp,
 {
     fn step(&mut self, state: &mut dyn State) {
-        let engine: &mut Engine<B, NodeScheduler<B, E, I, K, T, Ts>, Ts> = state
+        let engine: &mut GEngine<B, GNodeScheduler<B, E, I, K, T, Ts>, Ts> = state
             .as_any_mut()
-            .downcast_mut::<Engine<B, NodeScheduler<B, E, I, K, T, Ts>, Ts>>()
+            .downcast_mut::<GEngine<B, GNodeScheduler<B, E, I, K, T, Ts>, Ts>>()
             .unwrap();
         self.entity.uplink_stage(&mut engine.bucket);
     }
@@ -44,7 +44,7 @@ where
     fn after_step(&mut self, state: &mut dyn State) {
         let engine = state
             .as_any_mut()
-            .downcast_mut::<Engine<B, NodeScheduler<B, E, I, K, T, Ts>, Ts>>()
+            .downcast_mut::<GEngine<B, GNodeScheduler<B, E, I, K, T, Ts>, Ts>>()
             .unwrap();
         self.entity.downlink_stage(&mut engine.bucket);
     }
@@ -54,7 +54,7 @@ where
     }
 }
 
-impl<B, E, I, K, T, Ts> Node<B, E, I, K, T, Ts>
+impl<B, E, I, K, T, Ts> GNode<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -73,7 +73,7 @@ where
     }
 }
 
-impl<B, E, I, K, T, Ts> Hash for Node<B, E, I, K, T, Ts>
+impl<B, E, I, K, T, Ts> Hash for GNode<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -90,7 +90,7 @@ where
     }
 }
 
-impl<B, E, I, K, T, Ts> Display for Node<B, E, I, K, T, Ts>
+impl<B, E, I, K, T, Ts> Display for GNode<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -104,7 +104,7 @@ where
     }
 }
 
-impl<B, E, I, K, T, Ts> PartialEq for Node<B, E, I, K, T, Ts>
+impl<B, E, I, K, T, Ts> PartialEq for GNode<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -113,12 +113,12 @@ where
     T: Tier,
     Ts: TimeStamp,
 {
-    fn eq(&self, other: &Node<B, E, I, K, T, Ts>) -> bool {
+    fn eq(&self, other: &GNode<B, E, I, K, T, Ts>) -> bool {
         self.node_id == other.node_id
     }
 }
 
-impl<B, E, I, K, T, Ts> Eq for Node<B, E, I, K, T, Ts>
+impl<B, E, I, K, T, Ts> Eq for GNode<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -133,13 +133,13 @@ where
 pub(crate) mod tests {
     use crate::bucket::tests::{MyBucket, Ts};
     use crate::entity::tests::{make_device, DeviceType, Level, Nid, TDevice};
-    use crate::node::Node;
+    use crate::node::GNode;
 
-    pub(crate) type MyNode = Node<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
+    pub(crate) type MyNode = GNode<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
 
     pub(crate) fn as_node(device: TDevice) -> MyNode {
         let device_type = device.device_type.clone();
-        Node::new(device.id, device, device_type)
+        GNode::new(device.id, device, device_type)
     }
 
     #[test]

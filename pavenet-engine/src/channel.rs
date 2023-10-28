@@ -1,5 +1,5 @@
 use crate::bucket::TimeStamp;
-use crate::payload::{Payload, PayloadContent, PayloadMetadata};
+use crate::payload::{GPayload, PayloadContent, PayloadMetadata};
 use crate::response::Queryable;
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
@@ -64,7 +64,7 @@ where
 /// be used for metrics that are not cumulative in nature. For example, latency. The latency is
 /// different for different payloads. Hence, the latency value is not required to be cumulative.
 #[derive(Default, Clone, Copy, Debug)]
-pub struct RadioMeasurement<C, M, P, V>
+pub struct GRadioMeasurement<C, M, P, V>
 where
     C: VariantConfig<M>,
     M: Metric,
@@ -76,7 +76,7 @@ where
     _phantom: std::marker::PhantomData<fn() -> (C, P)>,
 }
 
-impl<C, M, P, V> RadioMeasurement<C, M, P, V>
+impl<C, M, P, V> GRadioMeasurement<C, M, P, V>
 where
     C: VariantConfig<M>,
     M: Metric,
@@ -102,13 +102,13 @@ where
                 Feasibility::Infeasible(measured)
             }
             None => Feasibility::Feasible(measured),
-        }
+        };
     }
 }
 
 /// A generic struct containing the resource availability and the consumed resource.
 #[derive(Default, Clone, Copy, Debug)]
-pub struct RadioResource<C, M, P, V>
+pub struct GRadioResource<C, M, P, V>
 where
     C: VariantConfig<M>,
     M: Metric,
@@ -121,7 +121,7 @@ where
     _phantom: std::marker::PhantomData<fn() -> (C, P)>,
 }
 
-impl<C, M, P, V> RadioResource<C, M, P, V>
+impl<C, M, P, V> GRadioResource<C, M, P, V>
 where
     C: VariantConfig<M>,
     M: Metric,
@@ -164,7 +164,7 @@ where
 
 /// A trait that represents a radio that can be used to transfer data. It performs the actual
 /// data transfer and can be used to measure the radio usage.
-pub trait Radio<C, M, P, Q, T>
+pub trait GRadio<C, M, P, Q, T>
 where
     C: PayloadContent<Q>,
     M: Metric,
@@ -172,9 +172,9 @@ where
     Q: Queryable,
     T: TimeStamp,
 {
-    fn can_transfer(&mut self, payloads: Vec<Payload<C, P, Q>>) -> Vec<Payload<C, P, Q>>;
-    fn can_forward(&mut self, payloads: Vec<Payload<C, P, Q>>) -> Vec<Payload<C, P, Q>>;
-    fn consume(&mut self, payload: &Payload<C, P, Q>);
+    fn can_transfer(&mut self, payloads: Vec<GPayload<C, P, Q>>) -> Vec<GPayload<C, P, Q>>;
+    fn can_forward(&mut self, payloads: Vec<GPayload<C, P, Q>>) -> Vec<GPayload<C, P, Q>>;
+    fn consume(&mut self, payload: &GPayload<C, P, Q>);
 }
 
 /// A trait to represent a type that holds statistics of the radio usage for incoming data.

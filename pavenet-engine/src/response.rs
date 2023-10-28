@@ -19,7 +19,7 @@ pub trait ResponseMetadata: Clone + Send + Sync {}
 /// Queries can be optionally included in the response to control the content that is
 /// being transferred.
 #[derive(Clone, Debug, Default)]
-pub struct Response<C, M, Q>
+pub struct GResponse<C, M, Q>
 where
     C: ResponseContent<Q>,
     M: ResponseMetadata,
@@ -30,7 +30,7 @@ where
     _phantom: std::marker::PhantomData<fn() -> Q>,
 }
 
-impl<C, M, Q> Response<C, M, Q>
+impl<C, M, Q> GResponse<C, M, Q>
 where
     C: ResponseContent<Q>,
     M: ResponseMetadata,
@@ -56,8 +56,8 @@ where
     Q: Queryable,
     T: TimeStamp,
 {
-    fn receive(&mut self, bucket: &mut B) -> Response<C, M, Q>;
-    fn process(&mut self, response: Response<C, M, Q>);
-    fn create_response(&mut self, bucket: &mut B) -> Response<C, M, Q>;
+    fn receive(&mut self, bucket: &mut B) -> GResponse<C, M, Q>;
+    fn process(&mut self, response: GResponse<C, M, Q>);
+    fn create_response(&mut self, bucket: &mut B) -> GResponse<C, M, Q>;
     fn respond(&mut self, bucket: &mut B);
 }

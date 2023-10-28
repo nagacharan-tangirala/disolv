@@ -1,9 +1,9 @@
 use crate::node_info::kind::NodeType;
 use crate::payload::{DataType, TransferStatus};
-use pavenet_engine::response::{Response, ResponseContent, ResponseMetadata};
+use pavenet_engine::response::{GResponse, ResponseContent, ResponseMetadata};
 use serde::Deserialize;
 
-pub type TResponse = Response<DataSource, TransferMetrics, DataType>;
+pub type TResponse = GResponse<DataSource, TransferMetrics, DataType>;
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub struct DataSource {

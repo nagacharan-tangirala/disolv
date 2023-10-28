@@ -1,6 +1,6 @@
 use crate::bucket::{Bucket, TimeStamp};
 use crate::entity::{Entity, Identifier, Kind, Tier};
-use crate::node::Node;
+use crate::node::GNode;
 use krabmaga::engine::schedule::Schedule;
 use std::collections::HashMap;
 
@@ -19,7 +19,7 @@ where
 /// A struct that represents a scheduler for nodes. This is used to schedule nodes when they are
 /// added or removed from the network.
 #[derive(Default, Clone)]
-pub struct NodeScheduler<B, E, I, K, T, Ts>
+pub struct GNodeScheduler<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -28,12 +28,12 @@ where
     T: Tier,
     Ts: TimeStamp,
 {
-    nodes: HashMap<I, Node<B, E, I, K, T, Ts>>,
+    nodes: HashMap<I, GNode<B, E, I, K, T, Ts>>,
     to_pop: Vec<I>,
     to_add: Vec<I>,
 }
 
-impl<B, E, I, K, T, Ts> NodeScheduler<B, E, I, K, T, Ts>
+impl<B, E, I, K, T, Ts> GNodeScheduler<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -42,7 +42,7 @@ where
     T: Tier,
     Ts: TimeStamp,
 {
-    pub fn new(entities: HashMap<I, Node<B, E, I, K, T, Ts>>) -> Self {
+    pub fn new(entities: HashMap<I, GNode<B, E, I, K, T, Ts>>) -> Self {
         Self {
             nodes: entities,
             to_pop: Vec::new(),
@@ -59,7 +59,7 @@ where
     }
 }
 
-impl<B, E, I, K, T, Ts> Scheduler<Ts> for NodeScheduler<B, E, I, K, T, Ts>
+impl<B, E, I, K, T, Ts> Scheduler<Ts> for GNodeScheduler<B, E, I, K, T, Ts>
 where
     B: Bucket<Ts>,
     E: Entity<B, T, Ts>,
@@ -115,7 +115,7 @@ pub(crate) mod tests {
     use crate::entity::tests::{make_device, DeviceType, Level, Nid, TDevice};
     use crate::node::tests::as_node;
 
-    pub(crate) type MyScheduler = NodeScheduler<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
+    pub(crate) type MyScheduler = GNodeScheduler<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
 
     pub(crate) fn make_scheduler_with_2_devices() -> MyScheduler {
         let mut nodes = HashMap::new();
