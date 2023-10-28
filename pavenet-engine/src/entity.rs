@@ -287,6 +287,13 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn test_ts_addition() {
+        let mut ts = Ts::from(1);
+        ts += Ts::from(1);
+        assert_eq!(ts, Ts::from(2));
+    }
+
+    #[test]
     fn test_device_comparison() {
         let device_a = make_device(Nid::from(1), DeviceType::TypeA, 1);
         let device_b = make_device(Nid::from(2), DeviceType::TypeB, 2);
