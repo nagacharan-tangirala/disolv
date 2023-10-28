@@ -60,38 +60,38 @@ where
 }
 
 /// A generic struct that can be used to contain a metric data related to a radio that can be
-/// measured. A user can define a constraint to evaluate the feasibility of the metric.
+/// measured. A user can define a constraint to evaluate the feasibility of the metric. This can
+/// be used for metrics that are not cumulative in nature. For example, latency. The latency is
+/// different for different payloads. Hence, the latency value is not required to be cumulative.
 #[derive(Default, Clone, Copy, Debug)]
-pub struct RadioMeasurement<M, N, P, V>
+pub struct RadioMeasurement<C, M, P, V>
 where
+    C: VariantConfig<M>,
     M: Metric,
-    N: MetricName,
     P: PayloadMetadata,
-    V: MetricVariant<M, P>,
+    V: MetricVariant<C, M, P>,
 {
-    pub name: N,
     constraint: Option<M>,
     variant: V,
     _phantom: std::marker::PhantomData<fn() -> P>,
 }
 
-impl<M, N, P, V> RadioMeasurement<M, N, P, V>
+impl<C, M, P, V> RadioMeasurement<C, M, P, V>
 where
+    C: VariantConfig<M>,
     M: Metric,
-    N: MetricName,
     P: PayloadMetadata,
-    V: MetricVariant<M, P>,
+    V: MetricVariant<C, M, P>,
 {
-    pub fn new(metric_type: N, variant: V, constraint: Option<M>) -> Self {
+    pub fn new(variant: V, constraint: Option<M>) -> Self {
         Self {
-            name: metric_type,
             constraint,
             variant,
             _phantom: std::marker::PhantomData,
         }
     }
 
-    pub fn check_feasibility(&mut self, metadata: &Vec<P>) -> Feasibility<M> {
+    pub fn check_feasibility(&mut self, metadata: &P) -> Feasibility<M> {
         let measured = self.variant.measure(metadata);
         return match self.constraint {
             Some(constraint) => {
@@ -107,30 +107,28 @@ where
 
 /// A generic struct containing the resource availability and the consumed resource.
 #[derive(Default, Clone, Copy, Debug)]
-pub struct RadioResource<M, N, P, V>
+pub struct RadioResource<C, M, P, V>
 where
+    C: VariantConfig<M>,
     M: Metric,
-    N: MetricName,
     P: PayloadMetadata,
-    V: MetricVariant<M, P>,
+    V: MetricVariant<C, M, P>,
 {
-    pub name: N,
     available: M,
     variant: V,
     pub used: M,
     _phantom: std::marker::PhantomData<fn() -> P>,
 }
 
-impl<M, N, P, V> RadioResource<M, N, P, V>
+impl<C, M, P, V> RadioResource<C, M, P, V>
 where
+    C: VariantConfig<M>,
     M: Metric,
-    N: MetricName,
     P: PayloadMetadata,
-    V: MetricVariant<M, P>,
+    V: MetricVariant<C, M, P>,
 {
-    pub fn new(metric_type: N, available: M, variant: V) -> Self {
+    pub fn new(available: M, variant: V) -> Self {
         Self {
-            name: metric_type,
             available,
             variant,
             used: M::default(),
@@ -150,7 +148,7 @@ where
         self.used += used;
     }
 
-    pub fn check_feasibility(&mut self, metadata: &Vec<P>) -> Feasibility<M> {
+    pub fn check_feasibility(&mut self, metadata: &P) -> Feasibility<M> {
         let measured = self.variant.measure(metadata);
         let updated_used = self.used + measured;
         return if self.available >= updated_used {
@@ -164,11 +162,10 @@ where
 
 /// A trait that represents a radio that can be used to transfer data. It performs the actual
 /// data transfer and can be used to measure the radio usage.
-pub trait Radio<C, M, N, P, Q, T>
+pub trait Radio<C, M, P, Q, T>
 where
     C: PayloadContent<Q>,
     M: Metric,
-    N: MetricName,
     P: PayloadMetadata,
     Q: Queryable,
     T: TimeStamp,
