@@ -11,9 +11,9 @@ readme = "README.md"
 [dependencies]
 pavenet-core = { path = "../pavenet-core" }
 pavenet-engine = { path = "../pavenet-engine" }
-hashbrown = "0.14.1"
-typed-builder = "0.17.0"
+hashbrown = "0.14.2"
+typed-builder = "0.18.0"
 
 [dependencies.polars]
-version = "0.33.2"
+version = "0.34.2"
 features = ["parquet", "lazy", "performant"]

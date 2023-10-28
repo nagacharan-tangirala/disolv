@@ -1,5 +1,5 @@
 [package]
-name = "pavenet-node"
+name = "pavenet-entity"
 version = "0.0.0"
 authors = [
     "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
