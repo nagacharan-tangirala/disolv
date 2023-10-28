@@ -1,6 +1,4 @@
 use super::bucket::{Bucket, TimeStamp};
-use crate::payload::Transmitter;
-use crate::response::Responder;
 use std::fmt::Display;
 use std::hash::Hash;
 
@@ -90,8 +88,7 @@ where
 /// Starting at this trait will guide you to the other traits that you need to implement for the
 /// device to be simulation-ready.
 /// [tier]: Tier
-pub trait Entity<B, T, Ts>:
-    Schedulable<Ts> + Tiered<T> + Transmitter<B, Ts> + Responder<B, Ts> + Clone + Send + Sync + 'static
+pub trait Entity<B, T, Ts>: Schedulable<Ts> + Tiered<T> + Clone + Send + Sync + 'static
 where
     B: Bucket<Ts>,
     T: Tier,
@@ -107,8 +104,6 @@ pub(crate) mod tests {
     use crate::bucket::tests::{MyBucket, Ts};
     use crate::bucket::TimeStamp;
     use crate::node::tests::as_node;
-    use crate::payload::Transmitter;
-    use crate::response::Responder;
     use krabmaga::engine::schedule::Schedule;
     use std::fmt::{Debug, Display, Formatter};
 
@@ -245,18 +240,6 @@ pub(crate) mod tests {
 
         fn set_tier(&mut self, tier: Level) {
             self.order = tier;
-        }
-    }
-
-    impl Transmitter<MyBucket, Ts> for TDevice {
-        fn transmit(&mut self, bucket: &mut MyBucket) {
-            println!("Transmitting to bucket {}", bucket.step);
-        }
-    }
-
-    impl Responder<MyBucket, Ts> for TDevice {
-        fn respond(&mut self, bucket: &mut MyBucket) {
-            println!("Responding to bucket {}", bucket.step);
         }
     }
 
