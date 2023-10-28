@@ -8,3 +8,7 @@ pavenet-engine = { version="0.0.0", path = "../pavenet-engine" }
 hashbrown = "0.14.2"
 serde = { version = "1.0.190", features = ["derive"] }
 typed-builder = "0.18.0"
+rand = "0.8.5"
+statrs = "0.16.0"
+serde_with = "3.4.0"
+anyhow = "1.0.75"
