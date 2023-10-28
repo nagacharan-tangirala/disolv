@@ -41,7 +41,7 @@ impl RandomLatency {
 
 impl Measurable<Latency, PayloadInfo> for RandomLatency {
     fn measure(&mut self, _payload: &PayloadInfo) -> Latency {
-        let latency_factor = self.sampler.sample() as f32;
+        let latency_factor = self.sampler.sample();
         return self.min_latency
             + Latency::from((self.max_latency - self.min_latency).as_f32() * latency_factor);
     }

@@ -25,12 +25,6 @@ pub mod latency {
         }
     }
 
-    impl Into<f64> for Latency {
-        fn into(self) -> f64 {
-            self.0 as f64
-        }
-    }
-
     impl Add for Latency {
         type Output = Self;
 
