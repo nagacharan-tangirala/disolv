@@ -4,11 +4,6 @@ use crate::response::Queryable;
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-/// A trait to represent the name of the metric that can quantify the radio usage. This is used to
-/// identify the various types of metrics that can be used. It is recommended to use an enum to
-/// implement this trait.
-pub trait MetricName: Default + Copy + Clone + Send + Sync {}
-
 /// A trait that measures some quantity of the radio. It could be a struct or a simple named type.
 /// Any number of metrics can be used to measure the radio usage. The name should be unique and
 /// must be added to the enum that implements the <code>MetricName</code> trait.
