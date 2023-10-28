@@ -13,24 +13,38 @@ pub trait Metric:
     fn as_f32(&self) -> f32;
 }
 
-/// A trait that can be used to contain the measurement process of a metric. It is applied on the
-/// variant of the metric so that different variants can have different methods of measurement.
+/// A trait that can be used to contain the measurement process of a metric. It must be applied on
+/// each individual variant of the metric.
 pub trait Measurable<M, P>
 where
     M: Metric,
     P: PayloadMetadata,
 {
-    fn measure(&mut self, metadata: &Vec<P>) -> M;
+    fn measure(&mut self, metadata: &P) -> M;
+}
+
+/// A trait that contains possible parameters with which a metric variant can be configured. This
+/// can be used to mark the struct that contains the configuration parameters applicable to all
+/// the variants. Use this to mark a struct that can be read from a configuration file.
+pub trait VariantConfig<M>
+where
+    M: Metric,
+{
 }
 
 /// A trait that represents a variant of a metric. This is used to implement the variations of the
 /// metric that may involve different methods of measurement. For example, a metric can be latency
 /// and the variants can be the different methods of measuring the latency (constant, linear, etc.).
-pub trait MetricVariant<M, P>: Measurable<M, P> + Default + Copy + Clone + Send + Sync
+/// It is recommended to use an enum to implement this trait. The measure method can be used inside
+/// a match statement to call the appropriate method of measurement.
+pub trait MetricVariant<C, M, P>: Copy + Clone + Send + Sync
 where
+    C: VariantConfig<M>,
     M: Metric,
     P: PayloadMetadata,
 {
+    fn new(variant_config: C) -> Self;
+    fn measure(&mut self, metadata: &P) -> M;
 }
 
 /// An enum that represents the feasibility of a metric. This is used as return type of the
