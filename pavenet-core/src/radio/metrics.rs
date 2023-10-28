@@ -1,6 +1,3 @@
-use pavenet_engine::channel::Metric;
-use std::ops::{Add, AddAssign};
-
 #[derive(Debug, Clone, Copy)]
 pub enum RadioMetrics {
     Latency,
@@ -10,9 +7,10 @@ pub enum RadioMetrics {
 
 pub mod latency {
     use pavenet_engine::channel::Metric;
-    use std::ops::{Add, AddAssign};
+    use serde::Deserialize;
+    use std::ops::{Add, AddAssign, Mul, Sub};
 
-    #[derive(Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
+    #[derive(Deserialize, Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
     pub struct Latency(u32);
 
     impl Latency {
@@ -27,9 +25,9 @@ pub mod latency {
         }
     }
 
-    impl From<f64> for Latency {
-        fn from(value: f64) -> Self {
-            Self(value as u32)
+    impl Into<f64> for Latency {
+        fn into(self) -> f64 {
+            self.0 as f64
         }
     }
 
@@ -41,6 +39,22 @@ pub mod latency {
         }
     }
 
+    impl Sub for Latency {
+        type Output = Self;
+
+        fn sub(self, other: Self) -> Self::Output {
+            Self(self.0 - other.0)
+        }
+    }
+
+    impl Mul for Latency {
+        type Output = Self;
+
+        fn mul(self, other: Self) -> Self::Output {
+            Self(self.0 * other.0)
+        }
+    }
+
     impl AddAssign for Latency {
         fn add_assign(&mut self, other: Self) {
             self.0 += other.0;
@@ -49,7 +63,7 @@ pub mod latency {
 
     impl Metric for Latency {
         fn as_f32(&self) -> f32 {
-            self.0.into()
+            self.0 as f32
         }
     }
 }
@@ -77,7 +91,7 @@ pub mod throughput {
 
     impl Metric for Throughput {
         fn as_f32(&self) -> f32 {
-            self.0.into()
+            self.0 as f32
         }
     }
 }
@@ -105,7 +119,7 @@ pub mod bandwidth {
 
     impl Metric for Bandwidth {
         fn as_f32(&self) -> f32 {
-            self.0.into()
+            self.0 as f32
         }
     }
 }

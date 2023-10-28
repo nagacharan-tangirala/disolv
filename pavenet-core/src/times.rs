@@ -1,6 +1,6 @@
 pub mod ts {
     use pavenet_engine::bucket::TimeStamp;
-    use serde_derive::Deserialize;
+    use serde::Deserialize;
     use std::fmt::Display;
     use std::ops::{Add, AddAssign};
     use std::str::FromStr;
@@ -42,9 +42,6 @@ pub mod ts {
         pub fn as_i64(&self) -> i64 {
             self.0 as i64
         }
-        pub fn as_f32(&self) -> f32 {
-            self.0 as f32
-        }
     }
 
     impl Add for TimeS {
@@ -60,7 +57,11 @@ pub mod ts {
         }
     }
 
-    impl TimeStamp for TimeS {}
+    impl TimeStamp for TimeS {
+        fn as_f32(&self) -> f32 {
+            self.0 as f32
+        }
+    }
 }
 
 pub mod ms {

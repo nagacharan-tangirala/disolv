@@ -2,13 +2,13 @@ use crate::dist::{DistParams, RngSampler};
 use crate::payload::PayloadInfo;
 use crate::radio::metrics::latency::Latency;
 use anyhow::Result;
-use pavenet_engine::channel::{Measurable, MetricVariant, VariantConfig};
+use pavenet_engine::channel::{Measurable, Metric, MetricVariant, VariantConfig};
 use serde::Deserialize;
 
 /// All the latency configuration parameters are optional, but at least one of them must be present.
 /// Name of the variant is mandatory.
 #[serde_with::skip_serializing_none]
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct LatencyConfig {
     pub variant: String,
     pub constant_term: Option<Latency>,
@@ -22,7 +22,7 @@ impl VariantConfig<Latency> for LatencyConfig {}
 
 /// Random latency is sampled from a distribution of user's choice. Distribution parameters are
 /// mandatory and must be valid for the chosen distribution.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct RandomLatency {
     pub min_latency: Latency,
     pub max_latency: Latency,
@@ -41,8 +41,9 @@ impl RandomLatency {
 
 impl Measurable<Latency, PayloadInfo> for RandomLatency {
     fn measure(&mut self, _payload: &PayloadInfo) -> Latency {
-        let latency_factor = self.sampler.sample();
-        let latency = self.min_latency + (self.max_latency - self.min_latency) * latency_factor;
+        let latency_factor = self.sampler.sample() as f32;
+        return self.min_latency
+            + Latency::from((self.max_latency - self.min_latency).as_f32() * latency_factor);
     }
 }
 
@@ -96,7 +97,7 @@ impl OrderedLatency {
 impl Measurable<Latency, PayloadInfo> for OrderedLatency {
     fn measure(&mut self, payload: &PayloadInfo) -> Latency {
         let order_factor = match payload.tx_order {
-            Some(distance) => distance * self.factor,
+            Some(distance) => (distance as f32) * self.factor,
             None => 0.0,
         };
         return self.const_param + Latency::from(order_factor);
@@ -105,7 +106,7 @@ impl Measurable<Latency, PayloadInfo> for OrderedLatency {
 
 /// Latency variant is a wrapper around all the possible latency variants. It is used to
 /// instantiate the correct variant based on the configuration.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum LatencyVariant {
     Constant(Latency),
     Random(RandomLatency),
@@ -131,9 +132,7 @@ impl LatencyVariant {
         let dist_params = config
             .dist_params
             .ok_or(anyhow::anyhow!("Missing distribution parameters"))?;
-        let dist_name = config
-            .variant
-            .ok_or(anyhow::anyhow!("Missing distribution name"))?;
+        let dist_name = config.variant;
         Ok(Self::Random(RandomLatency::new(
             min_latency,
             max_latency,
@@ -159,7 +158,7 @@ impl LatencyVariant {
     }
 }
 
-impl MetricVariant<LatencyConfig, LatencyVariant, Latency> for LatencyVariant {
+impl MetricVariant<LatencyConfig, Latency, PayloadInfo> for LatencyVariant {
     fn new(variant_config: LatencyConfig) -> Self {
         match variant_config.variant.as_str() {
             "constant" => match Self::build_constant(variant_config) {
