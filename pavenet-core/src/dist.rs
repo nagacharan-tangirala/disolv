@@ -13,7 +13,7 @@ pub enum DistType {
 }
 
 #[serde_with::skip_serializing_none]
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DistParams {
     pub dist_name: String,
     pub mean: Option<f64>,
@@ -54,36 +54,40 @@ impl DistType {
     }
 
     fn build_uniform(dist_params: DistParams) -> Result<Self> {
-        let min: f64 = dist_params.min?;
-        let max: f64 = dist_params.max?;
+        let min: f64 = dist_params.min.ok_or(anyhow::anyhow!("Missing min"))?;
+        let max: f64 = dist_params.max.ok_or(anyhow::anyhow!("Missing max"))?;
         Ok(Self::Uniform(Uniform::new(min, max)?))
     }
 
     fn build_normal(dist_params: DistParams) -> Result<Self> {
-        let mean: f64 = dist_params.mean?;
-        let std_dev: f64 = dist_params.std_dev?;
+        let mean: f64 = dist_params.mean.ok_or(anyhow::anyhow!("Missing mean"))?;
+        let std_dev: f64 = dist_params
+            .std_dev
+            .ok_or(anyhow::anyhow!("Missing std_dev"))?;
         Ok(Self::Normal(Normal::new(mean, std_dev)?))
     }
 
     fn build_lognormal(dist_params: DistParams) -> Result<Self> {
-        let mean: f64 = dist_params.mean?;
-        let std_dev: f64 = dist_params.std_dev?;
+        let mean: f64 = dist_params.mean.ok_or(anyhow::anyhow!("Missing mean"))?;
+        let std_dev: f64 = dist_params
+            .std_dev
+            .ok_or(anyhow::anyhow!("Missing std_dev"))?;
         Ok(Self::LogNormal(LogNormal::new(mean, std_dev)?))
     }
 
     fn build_exponential(dist_params: DistParams) -> Result<Self> {
-        let rate: f64 = dist_params.rate?;
+        let rate: f64 = dist_params.rate.ok_or(anyhow::anyhow!("Missing rate"))?;
         Ok(Self::Exponential(Exp::new(rate)?))
     }
 
     fn build_gamma(dist_params: DistParams) -> Result<Self> {
-        let shape: f64 = dist_params.shape?;
-        let scale: f64 = dist_params.scale?;
+        let shape: f64 = dist_params.shape.ok_or(anyhow::anyhow!("Missing shape"))?;
+        let scale: f64 = dist_params.scale.ok_or(anyhow::anyhow!("Missing scale"))?;
         Ok(Self::Gamma(Gamma::new(shape, scale)?))
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct RngSampler {
     pub dist: DistType,
     pub rng: rand::rngs::ThreadRng,
