@@ -15,7 +15,8 @@ where
 }
 
 /// A trait that represents the metadata of a payload. Extend this to a custom type (e.g. struct)
-/// that contains the metadata such as the size, count, etc. of a payload.
+/// that contains the metadata such as the size, count, etc. of a payload. The struct extending
+/// this trait must contain information that is useful to evaluate if the transmission is feasible.
 pub trait PayloadMetadata: Clone + Send + Sync {}
 
 /// A generic struct that represents a payload of a device. A message exchange between two devices
@@ -53,10 +54,16 @@ where
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
 /// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
 /// This should be called in the <code>uplink_stage</code> method of the entity.
-pub trait Transmitter<B, T>
+pub trait Transmitter<B, C, M, Q, T>
 where
     B: Bucket<T>,
+    C: PayloadContent<Q>,
+    M: PayloadMetadata,
+    Q: Queryable,
     T: TimeStamp,
 {
-    fn transmit(&mut self, bucket: &mut B);
+    fn collect(&mut self, bucket: &mut B) -> Vec<Payload<C, M, Q>>;
+    fn payloads_to_forward(&mut self, payloads: Vec<Payload<C, M, Q>>) -> Vec<Payload<C, M, Q>>;
+    fn compose(&mut self, payloads: Vec<Payload<C, M, Q>>) -> Payload<C, M, Q>;
+    fn transmit(&mut self, payload: Payload<C, M, Q>, bucket: &mut B);
 }

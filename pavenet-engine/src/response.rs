@@ -47,13 +47,17 @@ where
 
 /// A trait that an entity must implement to respond to payloads. Transmission of payloads
 /// can be flexibly handled by the entity transfer payloads to devices of any tier.
-/// This should be called in the <code>uplink_stage</code> method of the entity if the entity is
-/// a source of data. If the entity is a sink of data, then this should be called in the
-/// <code>downlink_stage</code> method of the entity.
-pub trait Responder<B, T>
+/// This should be called in the <code>downlink_stage</code> method of the entity.
+pub trait Responder<B, C, M, Q, T>
 where
     B: Bucket<T>,
+    C: ResponseContent<Q>,
+    M: ResponseMetadata,
+    Q: Queryable,
     T: TimeStamp,
 {
+    fn receive(&mut self, bucket: &mut B) -> Response<C, M, Q>;
+    fn process(&mut self, response: Response<C, M, Q>);
+    fn create_response(&mut self, bucket: &mut B) -> Response<C, M, Q>;
     fn respond(&mut self, bucket: &mut B);
 }
