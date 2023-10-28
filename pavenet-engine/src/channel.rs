@@ -15,7 +15,7 @@ pub trait Metric:
 
 /// A trait that can be used to contain the measurement process of a metric. It must be applied on
 /// each individual variant of the metric.
-pub trait Measurable<M, P>
+pub trait Measurable<M, P>: Clone + Send + Sync
 where
     M: Metric,
     P: PayloadMetadata,
@@ -26,7 +26,7 @@ where
 /// A trait that contains possible parameters with which a metric variant can be configured. This
 /// can be used to mark the struct that contains the configuration parameters applicable to all
 /// the variants. Use this to mark a struct that can be read from a configuration file.
-pub trait VariantConfig<M>
+pub trait VariantConfig<M>: Clone + Send + Sync
 where
     M: Metric,
 {
@@ -37,7 +37,7 @@ where
 /// and the variants can be the different methods of measuring the latency (constant, linear, etc.).
 /// It is recommended to use an enum to implement this trait. The measure method can be used inside
 /// a match statement to call the appropriate method of measurement.
-pub trait MetricVariant<C, M, P>: Copy + Clone + Send + Sync
+pub trait MetricVariant<C, M, P>: Clone + Send + Sync
 where
     C: VariantConfig<M>,
     M: Metric,
@@ -73,7 +73,7 @@ where
 {
     constraint: Option<M>,
     variant: V,
-    _phantom: std::marker::PhantomData<fn() -> P>,
+    _phantom: std::marker::PhantomData<fn() -> (C, P)>,
 }
 
 impl<C, M, P, V> RadioMeasurement<C, M, P, V>
@@ -83,7 +83,8 @@ where
     P: PayloadMetadata,
     V: MetricVariant<C, M, P>,
 {
-    pub fn new(variant: V, constraint: Option<M>) -> Self {
+    pub fn new(variant_config: C, constraint: Option<M>) -> Self {
+        let variant = V::new(variant_config);
         Self {
             constraint,
             variant,
@@ -101,7 +102,7 @@ where
                 Feasibility::Infeasible(measured)
             }
             None => Feasibility::Feasible(measured),
-        };
+        }
     }
 }
 
@@ -117,7 +118,7 @@ where
     available: M,
     variant: V,
     pub used: M,
-    _phantom: std::marker::PhantomData<fn() -> P>,
+    _phantom: std::marker::PhantomData<fn() -> (C, P)>,
 }
 
 impl<C, M, P, V> RadioResource<C, M, P, V>
@@ -127,7 +128,8 @@ where
     P: PayloadMetadata,
     V: MetricVariant<C, M, P>,
 {
-    pub fn new(available: M, variant: V) -> Self {
+    pub fn new(variant_config: C, available: M) -> Self {
+        let variant = V::new(variant_config);
         Self {
             available,
             variant,
