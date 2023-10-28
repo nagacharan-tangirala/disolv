@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign};
 /// A trait used to represent time stamps. Use this to define your own time stamp type.
 /// All the engine parameters should be defined using this type.
 pub trait TimeStamp:
-    Default + Copy + AddAssign + Clone + Ord + Add + Send + Sync + From<u64> + 'static
+    Default + Copy + AddAssign + Clone + Ord + Add<Output = Self> + Send + Sync + From<u64> + 'static
 {
     fn as_f32(&self) -> f32;
 }
