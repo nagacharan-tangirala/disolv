@@ -1,29 +1,30 @@
 use anyhow::Result;
-use rand::distributions::Distribution;
+use rand_distr::{Distribution, Exp, Gamma, LogNormal, Normal, Uniform};
+use rand_pcg::Pcg64Mcg;
 use serde::Deserialize;
-use statrs::distribution::{Exp, Gamma, LogNormal, Normal, Uniform};
 
 #[derive(Debug, Clone, Copy)]
 pub enum DistType {
-    Uniform(Uniform),
-    Normal(Normal),
-    LogNormal(LogNormal),
-    Exponential(Exp),
-    Gamma(Gamma),
+    Uniform(Uniform<f32>),
+    Normal(Normal<f32>),
+    LogNormal(LogNormal<f32>),
+    Exponential(Exp<f32>),
+    Gamma(Gamma<f32>),
 }
 
 #[serde_with::skip_serializing_none]
 #[derive(Debug, Clone, Deserialize)]
 pub struct DistParams {
     pub dist_name: String,
-    pub mean: Option<f64>,
-    pub std_dev: Option<f64>,
-    pub location: Option<f64>,
-    pub scale: Option<f64>,
-    pub shape: Option<f64>,
-    pub rate: Option<f64>,
-    pub min: Option<f64>,
-    pub max: Option<f64>,
+    pub seed: Option<u128>,
+    pub mean: Option<f32>,
+    pub std_dev: Option<f32>,
+    pub location: Option<f32>,
+    pub scale: Option<f32>,
+    pub shape: Option<f32>,
+    pub rate: Option<f32>,
+    pub min: Option<f32>,
+    pub max: Option<f32>,
 }
 
 impl DistType {
@@ -54,35 +55,35 @@ impl DistType {
     }
 
     fn build_uniform(dist_params: DistParams) -> Result<Self> {
-        let min: f64 = dist_params.min.ok_or(anyhow::anyhow!("Missing min"))?;
-        let max: f64 = dist_params.max.ok_or(anyhow::anyhow!("Missing max"))?;
-        Ok(Self::Uniform(Uniform::new(min, max)?))
+        let min = dist_params.min.ok_or(anyhow::anyhow!("Missing min"))?;
+        let max = dist_params.max.ok_or(anyhow::anyhow!("Missing max"))?;
+        Ok(Self::Uniform(Uniform::new(min, max)))
     }
 
     fn build_normal(dist_params: DistParams) -> Result<Self> {
-        let mean: f64 = dist_params.mean.ok_or(anyhow::anyhow!("Missing mean"))?;
-        let std_dev: f64 = dist_params
+        let mean = dist_params.mean.ok_or(anyhow::anyhow!("Missing mean"))?;
+        let std_dev = dist_params
             .std_dev
             .ok_or(anyhow::anyhow!("Missing std_dev"))?;
         Ok(Self::Normal(Normal::new(mean, std_dev)?))
     }
 
     fn build_lognormal(dist_params: DistParams) -> Result<Self> {
-        let mean: f64 = dist_params.mean.ok_or(anyhow::anyhow!("Missing mean"))?;
-        let std_dev: f64 = dist_params
+        let mean = dist_params.mean.ok_or(anyhow::anyhow!("Missing mean"))?;
+        let std_dev = dist_params
             .std_dev
             .ok_or(anyhow::anyhow!("Missing std_dev"))?;
         Ok(Self::LogNormal(LogNormal::new(mean, std_dev)?))
     }
 
     fn build_exponential(dist_params: DistParams) -> Result<Self> {
-        let rate: f64 = dist_params.rate.ok_or(anyhow::anyhow!("Missing rate"))?;
+        let rate = dist_params.rate.ok_or(anyhow::anyhow!("Missing rate"))?;
         Ok(Self::Exponential(Exp::new(rate)?))
     }
 
     fn build_gamma(dist_params: DistParams) -> Result<Self> {
-        let shape: f64 = dist_params.shape.ok_or(anyhow::anyhow!("Missing shape"))?;
-        let scale: f64 = dist_params.scale.ok_or(anyhow::anyhow!("Missing scale"))?;
+        let shape = dist_params.shape.ok_or(anyhow::anyhow!("Missing shape"))?;
+        let scale = dist_params.scale.ok_or(anyhow::anyhow!("Missing scale"))?;
         Ok(Self::Gamma(Gamma::new(shape, scale)?))
     }
 }
@@ -90,19 +91,20 @@ impl DistType {
 #[derive(Debug, Clone)]
 pub struct RngSampler {
     pub dist: DistType,
-    pub rng: rand::rngs::ThreadRng,
+    pub rng: Pcg64Mcg,
 }
 
 impl RngSampler {
     pub fn new(dist_name: String, params: DistParams) -> Self {
+        let seed = params.seed.unwrap_or(0u128);
         let dist = DistType::new(dist_name, params);
         Self {
             dist,
-            rng: rand::thread_rng(),
+            rng: Pcg64Mcg::new(seed),
         }
     }
 
-    pub fn sample(&mut self) -> f64 {
+    pub fn sample(&mut self) -> f32 {
         match self.dist {
             DistType::Uniform(ref mut dist) => dist.sample(&mut self.rng),
             DistType::Normal(ref mut dist) => dist.sample(&mut self.rng),
