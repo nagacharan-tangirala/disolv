@@ -3,7 +3,7 @@ use crate::mobility::MapState;
 use crate::node_info::id::NodeId;
 use crate::node_info::kind::NodeType;
 use crate::node_info::NodeInfo;
-use hashbrown::HashMap;
+use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::link::Link;
 use pavenet_engine::payload::{Payload, PayloadContent, PayloadMetadata, PayloadStatus};
 use pavenet_engine::response::Queryable;

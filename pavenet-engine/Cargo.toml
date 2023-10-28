@@ -12,6 +12,7 @@ readme = "README.md"
 krabmaga = { version = "0.4.1", path= "../../krABMaga" }
 typed-builder = "0.18.0"
 hashbrown = "0.14.2"
+anyhow = "1.0.75"
 
 [features]
 visualization = ["krabmaga/visualization"]

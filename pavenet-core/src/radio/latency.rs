@@ -1,7 +1,7 @@
 use crate::dist::{DistParams, RngSampler};
 use crate::payload::PayloadInfo;
 use crate::radio::metrics::latency::Latency;
-use anyhow::Result;
+use pavenet_engine::anyhow::{anyhow, Result};
 use pavenet_engine::channel::{Measurable, Metric, MetricVariant, VariantConfig};
 use serde::Deserialize;
 
@@ -118,20 +118,20 @@ impl LatencyVariant {
     fn build_constant(config: LatencyConfig) -> Result<Self> {
         let constant_latency = config
             .constant_term
-            .ok_or(anyhow::anyhow!("Missing constant term"))?;
+            .ok_or(anyhow!("Missing constant term"))?;
         Ok(Self::Constant(constant_latency))
     }
 
     fn build_random(config: LatencyConfig) -> Result<Self> {
         let min_latency = config
             .min_latency
-            .ok_or(anyhow::anyhow!("Missing minimum latency"))?;
+            .ok_or(anyhow!("Missing minimum latency"))?;
         let max_latency = config
             .max_latency
-            .ok_or(anyhow::anyhow!("Missing maximum latency"))?;
+            .ok_or(anyhow!("Missing maximum latency"))?;
         let dist_params = config
             .dist_params
-            .ok_or(anyhow::anyhow!("Missing distribution parameters"))?;
+            .ok_or(anyhow!("Missing distribution parameters"))?;
         let dist_name = config.variant;
         Ok(Self::Random(RandomLatency::new(
             min_latency,
@@ -144,16 +144,16 @@ impl LatencyVariant {
     fn build_distance(config: LatencyConfig) -> Result<Self> {
         let constant_term = config
             .constant_term
-            .ok_or(anyhow::anyhow!("Missing constant term"))?;
-        let factor = config.factor.ok_or(anyhow::anyhow!("Missing factor"))?;
+            .ok_or(anyhow!("Missing constant term"))?;
+        let factor = config.factor.ok_or(anyhow!("Missing factor"))?;
         Ok(Self::Distance(DistanceLatency::new(constant_term, factor)))
     }
 
     fn build_ordered(config: LatencyConfig) -> Result<Self> {
         let constant_term = config
             .constant_term
-            .ok_or(anyhow::anyhow!("Missing constant term"))?;
-        let factor = config.factor.ok_or(anyhow::anyhow!("Missing factor"))?;
+            .ok_or(anyhow!("Missing constant term"))?;
+        let factor = config.factor.ok_or(anyhow!("Missing factor"))?;
         Ok(Self::Ordered(OrderedLatency::new(constant_term, factor)))
     }
 }

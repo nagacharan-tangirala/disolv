@@ -1,4 +1,4 @@
-use anyhow::Result;
+use pavenet_engine::anyhow::{anyhow, Result};
 use rand_distr::{Distribution, Exp, Gamma, LogNormal, Normal, Uniform};
 use rand_pcg::Pcg64Mcg;
 use serde::Deserialize;
@@ -55,35 +55,35 @@ impl DistType {
     }
 
     fn build_uniform(dist_params: DistParams) -> Result<Self> {
-        let min = dist_params.min.ok_or(anyhow::anyhow!("Missing min"))?;
-        let max = dist_params.max.ok_or(anyhow::anyhow!("Missing max"))?;
+        let min = dist_params.min.ok_or(anyhow!("Missing min"))?;
+        let max = dist_params.max.ok_or(anyhow!("Missing max"))?;
         Ok(Self::Uniform(Uniform::new(min, max)))
     }
 
     fn build_normal(dist_params: DistParams) -> Result<Self> {
-        let mean = dist_params.mean.ok_or(anyhow::anyhow!("Missing mean"))?;
+        let mean = dist_params.mean.ok_or(anyhow!("Missing mean"))?;
         let std_dev = dist_params
             .std_dev
-            .ok_or(anyhow::anyhow!("Missing std_dev"))?;
+            .ok_or(anyhow!("Missing std_dev"))?;
         Ok(Self::Normal(Normal::new(mean, std_dev)?))
     }
 
     fn build_lognormal(dist_params: DistParams) -> Result<Self> {
-        let mean = dist_params.mean.ok_or(anyhow::anyhow!("Missing mean"))?;
+        let mean = dist_params.mean.ok_or(anyhow!("Missing mean"))?;
         let std_dev = dist_params
             .std_dev
-            .ok_or(anyhow::anyhow!("Missing std_dev"))?;
+            .ok_or(anyhow!("Missing std_dev"))?;
         Ok(Self::LogNormal(LogNormal::new(mean, std_dev)?))
     }
 
     fn build_exponential(dist_params: DistParams) -> Result<Self> {
-        let rate = dist_params.rate.ok_or(anyhow::anyhow!("Missing rate"))?;
+        let rate = dist_params.rate.ok_or(anyhow!("Missing rate"))?;
         Ok(Self::Exponential(Exp::new(rate)?))
     }
 
     fn build_gamma(dist_params: DistParams) -> Result<Self> {
-        let shape = dist_params.shape.ok_or(anyhow::anyhow!("Missing shape"))?;
-        let scale = dist_params.scale.ok_or(anyhow::anyhow!("Missing scale"))?;
+        let shape = dist_params.shape.ok_or(anyhow!("Missing shape"))?;
+        let scale = dist_params.scale.ok_or(anyhow!("Missing scale"))?;
         Ok(Self::Gamma(Gamma::new(shape, scale)?))
     }
 }
