@@ -164,10 +164,9 @@ where
 
 /// A trait that represents a radio that can be used to transfer data. It performs the actual
 /// data transfer and can be used to measure the radio usage.
-pub trait GRadio<C, M, P, Q, T>
+pub trait Channel<C, P, Q, T>
 where
     C: PayloadContent<Q>,
-    M: Metric,
     P: PayloadMetadata,
     Q: Queryable,
     T: TimeStamp,
