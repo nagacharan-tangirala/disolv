@@ -1,4 +1,4 @@
-use crate::models::channel::Channel;
+use crate::models::channel::Radio;
 use crate::models::compose::{BasicComposer, Composer, ComposerSettings, StatusComposer};
 use crate::models::power::PowerManager;
 use crate::models::respond::{Responder, ResponderSettings, StatsResponder};
@@ -16,7 +16,7 @@ pub struct DeviceModel {
     pub composer: Composer,
     pub responder: Responder,
     pub selector: Selector,
-    pub channel: Channel,
+    pub channel: Radio,
     pub power: PowerManager,
 }
 
@@ -31,7 +31,7 @@ pub struct ModelBuilder {
     pub composer: Composer,
     pub responder: Responder,
     pub selector: Selector,
-    pub channel: Channel,
+    pub channel: Radio,
     pub power: PowerManager,
 }
 
@@ -66,7 +66,7 @@ impl ModelBuilder {
         self
     }
 
-    pub fn with_channel(mut self, channel: Channel) -> Self {
+    pub fn with_channel(mut self, channel: Radio) -> Self {
         self.channel = channel;
         self
     }
