@@ -1,8 +1,6 @@
-use crate::node_info::id::NodeId;
-use pavenet_engine::link::{Link, LinkFeatures};
+use crate::entity::id::NodeId;
+use pavenet_engine::link::{GLink, GLinkOptions, LinkFeatures};
 use typed_builder::TypedBuilder;
-
-pub type TLink = Link<LinkProperties, NodeId>;
 
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct LinkProperties {

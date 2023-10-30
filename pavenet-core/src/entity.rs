@@ -1,7 +1,7 @@
-use crate::node_info::class::Class;
-use crate::node_info::id::NodeId;
-use crate::node_info::kind::NodeType;
-use crate::node_info::order::Order;
+use crate::entity::class::Class;
+use crate::entity::id::NodeId;
+use crate::entity::kind::NodeType;
+use crate::entity::order::Order;
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
