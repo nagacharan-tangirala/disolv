@@ -1,4 +1,4 @@
-use crate::entity::kind::NodeType;
+use crate::entity::class::NodeClass;
 use crate::entity::NodeInfo;
 use crate::link::DLink;
 use crate::mobility::MapState;
@@ -63,15 +63,16 @@ impl PayloadInfo {
     pub fn apply_rule(&mut self, tx_rule: &DTxRule) {
         match tx_rule.action {
             Actions::Consume => self.consume(&tx_rule.query_type),
+            Actions::ForwardToTier(node_tier) => {
+                self.tx_info
+                    .fwd_actions
+                    .insert(tx_rule.query_type, Actions::ForwardToTier(node_tier));
+                self.tx_info.next_hop = node_tier;
+            }
             Actions::ForwardToKind(node_type) => {
                 self.tx_info
                     .fwd_actions
                     .insert(tx_rule.query_type, Actions::ForwardToKind(node_type));
-            }
-            Actions::ForwardToTier(tier) => {
-                self.tx_info
-                    .fwd_actions
-                    .insert(tx_rule.query_type, Actions::ForwardToTier(tier));
             }
         };
     }
@@ -84,4 +85,4 @@ impl PayloadInfo {
     }
 }
 
-impl PayloadMetadata for PayloadInfo {}
+impl PayloadMetadata<DataType> for PayloadInfo {}

@@ -1,5 +1,5 @@
+use crate::entity::class::NodeClass;
 use crate::entity::kind::NodeType;
-use crate::entity::order::Order;
 use crate::payload::{DPayload, DataType, NodeContent, PayloadInfo};
 use pavenet_engine::rules::{GTxRule, GTxRules, RuleAction, TxRuleEnforcer};
 
@@ -8,13 +8,13 @@ pub enum Actions {
     #[default]
     Consume,
     ForwardToKind(NodeType),
-    ForwardToTier(Order),
+    ForwardToTier(NodeClass),
 }
 
-impl RuleAction<NodeType, Order> for Actions {}
+impl RuleAction<NodeClass> for Actions {}
 
-pub type DTxRule = GTxRule<NodeType, DataType, Actions, Order>;
-pub type DTxRules = GTxRules<NodeType, DataType, Actions, Order>;
+pub type DTxRule = GTxRule<DataType, Actions, NodeClass>;
+pub type DTxRules = GTxRules<DataType, Actions, NodeClass>;
 
 #[derive(Clone, Debug)]
 pub struct Rules {
@@ -27,9 +27,9 @@ impl Rules {
     }
 }
 
-impl TxRuleEnforcer<NodeContent, NodeType, PayloadInfo, DataType, Actions, Order> for Rules {
-    fn enforce_tx_rules(&self, target: &NodeType, mut payload: DPayload) -> DPayload {
-        let source = &payload.content.node_info.node_type;
+impl TxRuleEnforcer<NodeContent, PayloadInfo, DataType, Actions, NodeClass> for Rules {
+    fn enforce_tx_rules(&self, target: &NodeClass, mut payload: DPayload) -> DPayload {
+        let source = &payload.content.node_info.node_class;
         let tx_rules: Vec<&DTxRule> = match self.tx_rules.get_rule(target, source) {
             Some(rules) => rules,
             None => return payload,

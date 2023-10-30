@@ -1,4 +1,4 @@
-use crate::payload::PayloadInfo;
+use crate::payload::{DataType, PayloadInfo};
 use crate::radio::metrics::latency::Latency;
 use pavenet_engine::radio::{IncomingStats, Metric, OutgoingStats};
 
@@ -30,7 +30,7 @@ impl InDataStats {
     }
 }
 
-impl IncomingStats<PayloadInfo> for InDataStats {
+impl IncomingStats<PayloadInfo, DataType> for InDataStats {
     fn add_attempted(&mut self, metadata: &PayloadInfo) {
         self.attempted.node_count += 1;
         self.attempted.data_size += metadata.total_size;
@@ -55,7 +55,7 @@ impl OutDataStats {
     }
 }
 
-impl OutgoingStats<PayloadInfo> for OutDataStats {
+impl OutgoingStats<PayloadInfo, DataType> for OutDataStats {
     fn update(&mut self, metadata: &PayloadInfo) {
         self.out_counts.node_count += 1;
         self.out_counts.data_size += metadata.total_size;
