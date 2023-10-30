@@ -1,4 +1,4 @@
-use crate::entity::{Kind, Tier};
+use crate::entity::Tier;
 use crate::payload::{GPayload, PayloadContent, PayloadMetadata};
 use crate::response::Queryable;
 use crate::rules::{RuleAction, TxRuleEnforcer};
@@ -16,10 +16,11 @@ pub trait Metric:
 
 /// A trait that can be used to contain the measurement process of a metric. It must be applied on
 /// each individual variant of the metric.
-pub trait Measurable<M, P>: Clone + Send + Sync
+pub trait Measurable<M, P, Q>: Clone + Send + Sync
 where
     M: Metric,
-    P: PayloadMetadata,
+    P: PayloadMetadata<Q>,
+    Q: Queryable,
 {
     fn measure(&mut self, metadata: &P) -> M;
 }
@@ -39,11 +40,12 @@ where
 /// and the variants can be the different methods of measuring the latency (constant, linear, etc.).
 /// It is recommended to use an enum to implement this trait. The measure method can be used inside
 /// a match statement to call the appropriate method of measurement.
-pub trait MetricVariant<C, M, P>: Clone + Send + Sync
+pub trait MetricVariant<C, M, P, Q>: Clone + Send + Sync
 where
     C: VariantConfig<M>,
     M: Metric,
-    P: PayloadMetadata,
+    P: PayloadMetadata<Q>,
+    Q: Queryable,
 {
     fn new(variant_config: C) -> Self;
     fn measure(&mut self, metadata: &P) -> M;
@@ -66,24 +68,26 @@ where
 /// be used for metrics that are not cumulative in nature. For example, latency. The latency is
 /// different for different payloads. Hence, the latency value is not required to be cumulative.
 #[derive(Default, Clone, Copy, Debug)]
-pub struct GRadioMeasurement<C, M, P, V>
+pub struct GRadioMeasurement<C, M, P, Q, V>
 where
     C: VariantConfig<M>,
     M: Metric,
-    P: PayloadMetadata,
-    V: MetricVariant<C, M, P>,
+    P: PayloadMetadata<Q>,
+    V: MetricVariant<C, M, P, Q>,
+    Q: Queryable,
 {
     constraint: Option<M>,
     variant: V,
-    _phantom: std::marker::PhantomData<fn() -> (C, P)>,
+    _phantom: std::marker::PhantomData<fn() -> (C, P, Q)>,
 }
 
-impl<C, M, P, V> GRadioMeasurement<C, M, P, V>
+impl<C, M, P, Q, V> GRadioMeasurement<C, M, P, Q, V>
 where
     C: VariantConfig<M>,
     M: Metric,
-    P: PayloadMetadata,
-    V: MetricVariant<C, M, P>,
+    P: PayloadMetadata<Q>,
+    V: MetricVariant<C, M, P, Q>,
+    Q: Queryable,
 {
     pub fn new(variant_config: C) -> Self {
         let constraint = variant_config.constraint();
@@ -111,25 +115,27 @@ where
 
 /// A generic struct containing the resource availability and the consumed resource.
 #[derive(Default, Clone, Copy, Debug)]
-pub struct GRadioResource<C, M, P, V>
+pub struct GRadioResource<C, M, P, Q, V>
 where
     C: VariantConfig<M>,
     M: Metric,
-    P: PayloadMetadata,
-    V: MetricVariant<C, M, P>,
+    P: PayloadMetadata<Q>,
+    V: MetricVariant<C, M, P, Q>,
+    Q: Queryable,
 {
     available: M,
     variant: V,
     pub used: M,
-    _phantom: std::marker::PhantomData<fn() -> (C, P)>,
+    _phantom: std::marker::PhantomData<fn() -> (C, P, Q)>,
 }
 
-impl<C, M, P, V> GRadioResource<C, M, P, V>
+impl<C, M, P, Q, V> GRadioResource<C, M, P, Q, V>
 where
     C: VariantConfig<M>,
     M: Metric,
-    P: PayloadMetadata,
-    V: MetricVariant<C, M, P>,
+    P: PayloadMetadata<Q>,
+    V: MetricVariant<C, M, P, Q>,
+    Q: Queryable,
 {
     pub fn new(variant_config: C, available: M) -> Self {
         let variant = V::new(variant_config);
@@ -167,15 +173,14 @@ where
 
 /// A trait that represents a radio that can be used to transfer data. It performs the actual
 /// data transfer and can be used to measure the radio usage.
-pub trait Channel<C, K, P, Q, R, T, Tx>
+pub trait Channel<C, P, Q, R, T, Tx>
 where
-    C: PayloadContent<Q>,
-    K: Kind,
-    P: PayloadMetadata,
+    C: PayloadContent,
+    P: PayloadMetadata<Q>,
     Q: Queryable,
-    R: RuleAction<K, T>,
+    R: RuleAction<T>,
     T: Tier,
-    Tx: TxRuleEnforcer<C, K, P, Q, R, T>,
+    Tx: TxRuleEnforcer<C, P, Q, R, T>,
 {
     fn reset(&mut self);
     fn can_transfer(&mut self, payloads: Vec<GPayload<C, P, Q>>) -> Vec<GPayload<C, P, Q>>;
@@ -188,18 +193,20 @@ where
 }
 
 /// A trait to represent a type that holds statistics of the radio usage for incoming data.
-pub trait IncomingStats<P>: Clone + Copy + Debug
+pub trait IncomingStats<P, Q>: Clone + Copy + Debug
 where
-    P: PayloadMetadata,
+    P: PayloadMetadata<Q>,
+    Q: Queryable,
 {
     fn add_attempted(&mut self, metadata: &P);
     fn add_feasible(&mut self, metadata: &P);
 }
 
 /// A trait to represent a type that holds statistics of the radio usage for outgoing data.
-pub trait OutgoingStats<P>: Clone + Copy + Debug
+pub trait OutgoingStats<P, Q>: Clone + Copy + Debug
 where
-    P: PayloadMetadata,
+    P: PayloadMetadata<Q>,
+    Q: Queryable,
 {
     fn update(&mut self, metadata: &P);
 }
