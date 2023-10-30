@@ -57,12 +57,14 @@ pub trait MobilityInfo: Copy + Clone {}
 
 /// A trait to get and set the mobility information of an entity. Must extend this for
 /// both the static and mobile entities.
-pub trait Movable<M>
+pub trait Movable<B, M, T>
 where
+    B: Bucket<T>,
     M: MobilityInfo,
+    T: TimeStamp,
 {
     fn mobility(&self) -> &M;
-    fn set_mobility(&mut self, mobility_info: M);
+    fn set_mobility(&mut self, bucket: &mut B);
 }
 
 /// A trait that allows an entity to be scheduled for simulation.
