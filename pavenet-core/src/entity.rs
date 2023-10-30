@@ -61,35 +61,54 @@ pub mod id {
     }
 }
 
-pub mod order {
+pub mod class {
     use pavenet_engine::entity::Tier;
     use serde::Deserialize;
     use std::fmt::Display;
 
-    #[derive(Deserialize, Debug, Clone, Copy, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
-    pub struct Order(i32);
+    #[derive(Deserialize, Default, Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+    pub enum NodeClass {
+        #[default]
+        None = 0,
+        Vehicle5G = 1,
+        RSU5G = 2,
+        BaseStation5G = 3,
+        Controller = 4,
+    }
 
-    impl Display for Order {
+    impl Display for NodeClass {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{:03}", self.0)
+            match self {
+                NodeClass::None => write!(f, "None"),
+                NodeClass::Vehicle5G => write!(f, "Vehicle5G"),
+                NodeClass::BaseStation5G => write!(f, "BaseStation5G"),
+                NodeClass::RSU5G => write!(f, "RSU5G"),
+                NodeClass::Controller => write!(f, "Controller"),
+            }
         }
     }
 
-    impl From<i32> for Order {
-        fn from(value: i32) -> Self {
-            Self(value)
-        }
-    }
-
-    impl Order {
+    impl NodeClass {
         pub fn as_u32(&self) -> u32 {
-            self.0 as u32
+            match self {
+                NodeClass::None => 0,
+                NodeClass::Vehicle5G => 1,
+                NodeClass::BaseStation5G => 2,
+                NodeClass::RSU5G => 3,
+                NodeClass::Controller => 4,
+            }
         }
     }
 
-    impl Tier for Order {
+    impl Tier for NodeClass {
         fn as_i32(&self) -> i32 {
-            self.0
+            match self {
+                NodeClass::None => 0,
+                NodeClass::Vehicle5G => 1,
+                NodeClass::BaseStation5G => 2,
+                NodeClass::RSU5G => 3,
+                NodeClass::Controller => 4,
+            }
         }
     }
 }
