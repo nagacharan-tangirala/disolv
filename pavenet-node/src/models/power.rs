@@ -1,4 +1,4 @@
-use pavenet_recipe::times::ts::TimeS;
+use pavenet_core::times::ts::TimeS;
 
 #[derive(Clone, Default, Copy, Debug, PartialEq)]
 pub enum PowerState {
@@ -10,13 +10,13 @@ pub enum PowerState {
 pub const SCHEDULE_SIZE: usize = 20;
 
 #[derive(Clone, Default, Copy, Debug, PartialEq)]
-pub struct PowerSchedule {
+pub struct PowerManager {
     pub on_times: [Option<TimeS>; SCHEDULE_SIZE],
     pub off_times: [Option<TimeS>; SCHEDULE_SIZE],
     array_idx: usize,
 }
 
-impl PowerSchedule {
+impl PowerManager {
     pub fn new(
         on_times: [Option<TimeS>; SCHEDULE_SIZE],
         off_times: [Option<TimeS>; SCHEDULE_SIZE],
