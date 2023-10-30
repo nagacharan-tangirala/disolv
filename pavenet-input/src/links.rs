@@ -158,7 +158,8 @@ pub(super) mod df {
                     let distances: Vec<Vec<f32>> = to_vec_of_f32_vec(&distance_series)?;
                     for (idx, distance_vec) in distances.into_iter().enumerate() {
                         for (idx2, distance) in distance_vec.into_iter().enumerate() {
-                            link_options_vec[idx].links[idx2].properties.distance = Some(distance);
+                            link_options_vec[idx].link_opts[idx2].properties.distance =
+                                Some(distance);
                         }
                     }
                 }
@@ -167,7 +168,7 @@ pub(super) mod df {
                     let load_factors: Vec<Vec<f32>> = to_vec_of_f32_vec(&lf_series)?;
                     for (idx, distance_vec) in load_factors.into_iter().enumerate() {
                         for (idx2, distance) in distance_vec.into_iter().enumerate() {
-                            link_options_vec[idx].links[idx2].properties.load_factor =
+                            link_options_vec[idx].link_opts[idx2].properties.load_factor =
                                 Some(distance);
                         }
                     }
