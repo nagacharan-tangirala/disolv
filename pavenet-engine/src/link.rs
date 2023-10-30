@@ -21,8 +21,11 @@ where
     F: LinkFeatures,
     I: Identifier,
 {
-    pub fn new(target: I, properties: F) -> Self {
-        Self { target, properties }
+    pub fn new(target: I) -> Self {
+        Self {
+            target,
+            properties: F::default(),
+        }
     }
 }
 
@@ -42,10 +45,10 @@ where
     F: LinkFeatures,
     I: Identifier,
 {
-    pub fn new(targets: Vec<I>, properties: F) -> Self {
+    pub fn new(targets: Vec<I>) -> Self {
         let links = targets
             .into_iter()
-            .map(|target| GLink::new(target, properties.clone()))
+            .map(|target| GLink::new(target))
             .collect();
         Self { links }
     }
