@@ -1,6 +1,7 @@
-use crate::bucket::TimeStamp;
+use crate::entity::{Kind, Tier};
 use crate::payload::{GPayload, PayloadContent, PayloadMetadata};
 use crate::response::Queryable;
+use crate::rules::{RuleAction, TxRuleEnforcer};
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
@@ -30,6 +31,7 @@ pub trait VariantConfig<M>: Clone + Send + Sync
 where
     M: Metric,
 {
+    fn constraint(&self) -> Option<M>;
 }
 
 /// A trait that represents a variant of a metric. This is used to implement the variations of the
@@ -83,7 +85,8 @@ where
     P: PayloadMetadata,
     V: MetricVariant<C, M, P>,
 {
-    pub fn new(variant_config: C, constraint: Option<M>) -> Self {
+    pub fn new(variant_config: C) -> Self {
+        let constraint = variant_config.constraint();
         let variant = V::new(variant_config);
         Self {
             constraint,
@@ -164,30 +167,39 @@ where
 
 /// A trait that represents a radio that can be used to transfer data. It performs the actual
 /// data transfer and can be used to measure the radio usage.
-pub trait Channel<C, P, Q, T>
+pub trait Channel<C, K, P, Q, R, T, Tx>
 where
     C: PayloadContent<Q>,
+    K: Kind,
     P: PayloadMetadata,
     Q: Queryable,
-    T: TimeStamp,
+    R: RuleAction<K, T>,
+    T: Tier,
+    Tx: TxRuleEnforcer<C, K, P, Q, R, T>,
 {
+    fn reset(&mut self);
     fn can_transfer(&mut self, payloads: Vec<GPayload<C, P, Q>>) -> Vec<GPayload<C, P, Q>>;
-    fn can_forward(&mut self, payloads: Vec<GPayload<C, P, Q>>) -> Vec<GPayload<C, P, Q>>;
+    fn apply_tx_rules(
+        &mut self,
+        tx_enforcer: &Tx,
+        payloads: Vec<GPayload<C, P, Q>>,
+    ) -> Vec<GPayload<C, P, Q>>;
     fn consume(&mut self, payload: &GPayload<C, P, Q>);
 }
 
 /// A trait to represent a type that holds statistics of the radio usage for incoming data.
-pub trait IncomingStats<M>: Clone + Copy + Debug
+pub trait IncomingStats<P>: Clone + Copy + Debug
 where
-    M: PayloadMetadata,
+    P: PayloadMetadata,
 {
-    fn update(&mut self, metadata: &Vec<M>);
+    fn add_attempted(&mut self, metadata: &P);
+    fn add_feasible(&mut self, metadata: &P);
 }
 
 /// A trait to represent a type that holds statistics of the radio usage for outgoing data.
-pub trait OutgoingStats<M>: Clone + Copy + Debug
+pub trait OutgoingStats<P>: Clone + Copy + Debug
 where
-    M: PayloadMetadata,
+    P: PayloadMetadata,
 {
-    fn update(&mut self, metadata: &M);
+    fn update(&mut self, metadata: &P);
 }
