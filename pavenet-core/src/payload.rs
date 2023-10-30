@@ -1,15 +1,15 @@
-use crate::link::LinkProperties;
+use crate::entity::kind::NodeType;
+use crate::entity::NodeInfo;
+use crate::link::DLink;
 use crate::mobility::MapState;
-use crate::node_info::id::NodeId;
-use crate::node_info::kind::NodeType;
-use crate::node_info::NodeInfo;
+use crate::rules::{Actions, DTxRule};
 use pavenet_engine::hashbrown::HashMap;
-use pavenet_engine::link::Link;
-use pavenet_engine::payload::{Payload, PayloadContent, PayloadMetadata, PayloadStatus};
+use pavenet_engine::payload::{GPayload, PayloadContent, PayloadMetadata, PayloadStatus};
 use pavenet_engine::response::Queryable;
 use serde::Deserialize;
+use typed_builder::TypedBuilder;
 
-pub type DPayload = Payload<NodeContent, PayloadInfo, DataType>;
+pub type DPayload = GPayload<NodeContent, PayloadInfo, DataType>;
 
 #[derive(Deserialize, Debug, Hash, Copy, Clone, PartialEq, Eq)]
 pub enum DataType {
@@ -40,16 +40,51 @@ pub struct NodeContent {
 
 impl PayloadContent<DataType> for NodeContent {}
 
+#[derive(Clone, Debug, Default, TypedBuilder)]
+pub struct PayloadTxInfo {
+    pub selected_link: DLink,
+    pub tx_order: Option<u32>,
+    pub status: TransferStatus,
+    pub next_hop: NodeType,
+    pub final_target: NodeType,
+    pub fwd_actions: HashMap<DataType, Actions>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct PayloadInfo {
     pub total_size: f32,
     pub total_count: u32,
     pub size_by_type: HashMap<DataType, f32>,
     pub count_by_type: HashMap<DataType, u32>,
-    pub status: TransferStatus,
-    pub intended_target: NodeType,
-    pub tx_order: Option<u32>,
-    pub selected_link: Link<LinkProperties, NodeId>,
+    pub tx_info: PayloadTxInfo,
+}
+
+impl PayloadInfo {
+    pub fn apply_rule(&mut self, tx_rule: &DTxRule) {
+        for data_type in self.size_by_type.keys() {
+            match tx_rule.action_for(&data_type) {
+                Actions::Consume => self.consume(*data_type),
+                Actions::ForwardToKind(node_type) => {
+                    self.tx_info
+                        .fwd_actions
+                        .insert(*data_type, Actions::ForwardToKind(node_type));
+                }
+                Actions::ForwardToTier(tier) => {
+                    self.tx_info
+                        .fwd_actions
+                        .insert(*data_type, Actions::ForwardToTier(tier));
+                }
+                Actions::default() => {}
+            }
+        }
+    }
+
+    fn consume(&mut self, data_type: DataType) {
+        self.total_size -= self.size_by_type.get(&data_type).unwrap();
+        self.total_count -= self.count_by_type.get(&data_type).unwrap();
+        self.size_by_type.remove(&data_type);
+        self.count_by_type.remove(&data_type);
+    }
 }
 
 impl PayloadMetadata for PayloadInfo {}
