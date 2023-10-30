@@ -1,5 +1,6 @@
 use crate::entity::kind::NodeType;
 use crate::payload::{DataType, TransferStatus};
+use crate::radio::metrics::latency::Latency;
 use pavenet_engine::response::{GResponse, ResponseContent, ResponseMetadata};
 use serde::Deserialize;
 
@@ -19,14 +20,14 @@ impl ResponseContent<DataType> for DataSource {}
 
 #[derive(Debug, Clone, Default, Copy)]
 pub struct TransferMetrics {
-    pub latency: f32,
+    pub latency: Latency,
     pub transfer_status: TransferStatus,
 }
 
 impl ResponseMetadata for TransferMetrics {}
 
 impl TransferMetrics {
-    pub fn new(latency: f32) -> Self {
+    pub fn new(latency: Latency) -> Self {
         Self {
             latency,
             ..Default::default()

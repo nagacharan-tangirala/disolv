@@ -57,7 +57,7 @@ pub mod latency {
 
     impl Metric for Latency {
         fn as_f32(&self) -> f32 {
-            self.0 as f32
+            self.0
         }
     }
 }
