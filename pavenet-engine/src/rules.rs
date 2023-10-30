@@ -40,14 +40,6 @@ where
             _phantom: std::marker::PhantomData,
         }
     }
-
-    pub fn action_for(&self, query_type: &Q) -> R {
-        if self.query_type == *query_type {
-            self.action
-        } else {
-            R::default()
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default)]
