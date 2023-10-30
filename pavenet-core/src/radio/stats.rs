@@ -1,6 +1,6 @@
 use crate::payload::PayloadInfo;
 use crate::radio::metrics::latency::Latency;
-use pavenet_engine::radio::{IncomingStats, OutgoingStats};
+use pavenet_engine::radio::{IncomingStats, Metric, OutgoingStats};
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Counts {
@@ -23,10 +23,10 @@ impl InDataStats {
 
     pub fn update_latency(&mut self, latencies: Vec<Latency>) {
         let mut total = Latency::default();
-        for latency in latencies.into_iter() {
-            total += latency;
+        for latency in latencies.iter() {
+            total += *latency;
         }
-        self.avg_latency = total * (Latency::from(1. / latencies.len() as f32));
+        self.avg_latency = Latency::from(total.as_f32() / latencies.len() as f32);
     }
 }
 

@@ -10,7 +10,7 @@ pub mod latency {
     use serde::Deserialize;
     use std::ops::{Add, AddAssign, Mul, Sub};
 
-    #[derive(Deserialize, Debug, Clone, Div, PartialEq, PartialOrd, Default, Copy)]
+    #[derive(Deserialize, Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
     pub struct Latency(f32);
 
     impl Latency {
