@@ -36,7 +36,10 @@ pub trait Tier: Default + Copy + Clone + Hash + PartialEq + Eq + Send + Sync + '
 /// with different transmission ranges). Each of these types can have their own struct that
 /// implements the [Entity] trait. However, all these types must be documented in a single enum.
 /// Such enum should implement this trait.
-pub trait Kind: Default + Display + Clone + Copy + PartialEq + Eq + Send + Sync + 'static {}
+pub trait Kind:
+    Default + Display + Clone + Copy + PartialEq + Eq + Hash + Send + Sync + 'static
+{
+}
 
 /// A trait to get and set the tier of an entity.
 pub trait Tiered<T>
