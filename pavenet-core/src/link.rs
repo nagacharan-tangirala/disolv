@@ -11,3 +11,6 @@ pub struct LinkProperties {
 }
 
 impl LinkFeatures for LinkProperties {}
+
+pub type DLink = GLink<LinkProperties, NodeId>;
+pub type DLinkOptions = GLinkOptions<LinkProperties, NodeId>;
