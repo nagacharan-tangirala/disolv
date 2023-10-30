@@ -1,11 +1,11 @@
 use hashbrown::HashMap;
-use pavenet_core::node_info::id::NodeId;
+use pavenet_core::entity::id::NodeId;
 use pavenet_core::payload::DPayload;
-use pavenet_core::response::TResponse;
+use pavenet_core::response::DResponse;
 use typed_builder::TypedBuilder;
 
 pub type PayloadMap = HashMap<NodeId, Vec<DPayload>>; // TargetNodeId -> Payloads
-pub type ResponseMap = HashMap<NodeId, TResponse>; // TargetNodeId -> Response
+pub type ResponseMap = HashMap<NodeId, DResponse>; // TargetNodeId -> Response
 
 #[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct DataLake {
@@ -25,14 +25,14 @@ impl DataLake {
             .push(payload);
     }
 
-    pub fn responses_for(&mut self, node_id: NodeId) -> TResponse {
+    pub fn response_for(&mut self, node_id: NodeId) -> DResponse {
         match self.responses.remove(&node_id) {
             Some(response) => response,
             None => panic!("No response for node_id: {:?}", node_id),
         }
     }
 
-    pub fn add_response_to(&mut self, node_id: NodeId, response: TResponse) {
+    pub fn add_response_to(&mut self, node_id: NodeId, response: DResponse) {
         self.responses.entry(node_id).or_insert(response);
     }
 }

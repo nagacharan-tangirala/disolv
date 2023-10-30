@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use pavenet_core::payload::DPayload;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct ResponderSettings {
@@ -22,7 +23,7 @@ impl StatsResponder {
 
     pub fn respond_to_vehicles(
         &self,
-        veh_payloads: &Vec<Payload>,
+        veh_payloads: &Vec<DPayload>,
         rsu_counts: usize,
     ) -> HashMap<NodeId, DownlinkPayload> {
         let mut veh_ids: Vec<NodeId> = veh_payloads
