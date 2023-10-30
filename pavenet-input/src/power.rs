@@ -1,9 +1,9 @@
 pub mod data {
     use crate::file_reader::read_file;
     use crate::power::df::extract_power_schedule;
-    use hashbrown::HashMap;
-    use pavenet_recipe::node_info::id::NodeId;
-    use pavenet_recipe::times::ts::TimeS;
+    use pavenet_core::bucket::TimeS;
+    use pavenet_core::entity::id::NodeId;
+    use pavenet_engine::hashbrown::HashMap;
     use std::path::PathBuf;
 
     pub type PowerTimes = (Vec<TimeS>, Vec<TimeS>);
@@ -20,8 +20,8 @@ pub(super) mod df {
     use crate::converter::list_series::to_vec_of_timestamp_vec;
     use crate::converter::series::to_nodeid_vec;
     use crate::power::data::PowerTimes;
-    use hashbrown::HashMap;
-    use pavenet_recipe::node_info::id::NodeId;
+    use pavenet_core::entity::id::NodeId;
+    use pavenet_engine::hashbrown::HashMap;
     use polars::prelude::{col, DataFrame, IntoLazy};
 
     pub(crate) fn extract_power_schedule(
