@@ -1,6 +1,6 @@
 use crate::bucket::{Bucket, TimeStamp};
+use crate::engine::GNode;
 use crate::entity::{Entity, Identifier, Kind, Tier};
-use crate::node::GNode;
 use krabmaga::engine::schedule::Schedule;
 use std::collections::HashMap;
 
@@ -112,8 +112,8 @@ where
 pub(crate) mod tests {
     use super::*;
     use crate::bucket::tests::{MyBucket, Ts};
+    use crate::engine::tests::as_node;
     use crate::entity::tests::{make_device, DeviceType, Level, Nid, TDevice};
-    use crate::node::tests::as_node;
 
     pub(crate) type MyScheduler = GNodeScheduler<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
 

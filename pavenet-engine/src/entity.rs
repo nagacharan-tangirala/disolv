@@ -108,7 +108,7 @@ pub(crate) mod tests {
     use super::{Entity, Identifier, Kind, MobilityInfo, Movable, Schedulable, Tier, Tiered};
     use crate::bucket::tests::{MyBucket, Ts};
     use crate::bucket::TimeStamp;
-    use crate::node::tests::as_node;
+    use crate::engine::tests::as_node;
     use krabmaga::engine::schedule::Schedule;
     use std::fmt::{Debug, Display, Formatter};
 
@@ -132,24 +132,14 @@ pub(crate) mod tests {
         mobility: Mobility,
     }
 
-    impl Movable<Mobility> for Device {
+    impl Movable<MyBucket, Mobility, Ts> for Device {
         fn mobility(&self) -> &Mobility {
             &self.mobility
         }
 
-        fn set_mobility(&mut self, mobility_info: Mobility) {
-            self.mobility = mobility_info;
+        fn set_mobility(&mut self, my_bucket: &mut MyBucket) {
+            todo!("Read from bucket");
         }
-    }
-
-    #[test]
-    fn test_mobility() {
-        let mut device = Device::default();
-        let mobility = Mobility::new(1.0, 2.0, 3.0);
-        device.set_mobility(mobility);
-        assert_eq!(device.mobility().x, 1.0);
-        assert_eq!(device.mobility().y, 2.0);
-        assert_eq!(device.mobility().velocity, 3.0);
     }
 
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash)]
