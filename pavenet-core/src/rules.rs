@@ -34,7 +34,6 @@ impl TxRuleEnforcer<NodeContent, NodeType, PayloadInfo, DataType, Actions, Order
             Some(rules) => rules,
             None => return payload,
         };
-        let mut payload = payload;
         for rule in tx_rules.into_iter() {
             payload.metadata.apply_rule(rule);
         }
