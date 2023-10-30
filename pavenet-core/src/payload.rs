@@ -38,15 +38,15 @@ pub struct NodeContent {
     pub map_state: MapState,
 }
 
-impl PayloadContent<DataType> for NodeContent {}
+impl PayloadContent for NodeContent {}
 
 #[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct PayloadTxInfo {
     pub selected_link: DLink,
     pub tx_order: Option<u32>,
     pub status: TransferStatus,
-    pub next_hop: NodeType,
-    pub final_target: NodeType,
+    pub next_hop: NodeClass,
+    pub final_target: NodeClass,
     pub fwd_actions: HashMap<DataType, Actions>,
 }
 
