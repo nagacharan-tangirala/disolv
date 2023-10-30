@@ -6,22 +6,22 @@ pub enum RadioMetrics {
 }
 
 pub mod latency {
-    use pavenet_engine::channel::Metric;
+    use pavenet_engine::radio::Metric;
     use serde::Deserialize;
     use std::ops::{Add, AddAssign, Mul, Sub};
 
-    #[derive(Deserialize, Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
-    pub struct Latency(u32);
+    #[derive(Deserialize, Debug, Clone, Div, PartialEq, PartialOrd, Default, Copy)]
+    pub struct Latency(f32);
 
     impl Latency {
-        pub fn new(value: u32) -> Self {
+        pub fn new(value: f32) -> Self {
             Self(value)
         }
     }
 
     impl From<f32> for Latency {
         fn from(value: f32) -> Self {
-            Self(value as u32)
+            Self(value)
         }
     }
 
@@ -63,7 +63,7 @@ pub mod latency {
 }
 
 pub mod throughput {
-    use pavenet_engine::channel::Metric;
+    use pavenet_engine::radio::Metric;
     use std::ops::{Add, AddAssign};
 
     #[derive(Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
@@ -91,7 +91,7 @@ pub mod throughput {
 }
 
 pub mod bandwidth {
-    use pavenet_engine::channel::Metric;
+    use pavenet_engine::radio::Metric;
     use std::ops::{Add, AddAssign};
 
     #[derive(Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
