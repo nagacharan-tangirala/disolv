@@ -1,7 +1,7 @@
 use crate::bucket::{Bucket, TimeStamp};
 
 /// A trait to represent a type that can be used to query content from other devices.
-pub trait Queryable: Copy + Clone + Send + Sync {}
+pub trait Queryable: Copy + Clone + PartialEq + Eq + Send + Sync {}
 
 /// A trait to indicate a type that can be used represent the content of a response. The content
 /// can contain queries that can be read by other devices.
