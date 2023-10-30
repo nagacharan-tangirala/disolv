@@ -37,7 +37,7 @@ where
     F: LinkFeatures,
     I: Identifier,
 {
-    pub links: Vec<GLink<F, I>>,
+    pub link_opts: Vec<GLink<F, I>>,
 }
 
 impl<F, I> GLinkOptions<F, I>
@@ -50,6 +50,10 @@ where
             .into_iter()
             .map(|target| GLink::new(target))
             .collect();
-        Self { links }
+        Self { link_opts: links }
+    }
+
+    pub fn utilize_link_at(&mut self, index: usize) -> GLink<F, I> {
+        self.link_opts.remove(index)
     }
 }
