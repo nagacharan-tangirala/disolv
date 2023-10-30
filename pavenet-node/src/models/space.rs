@@ -1,73 +1,33 @@
-use crate::model::PoolModel;
-use hashbrown::{HashMap, HashSet};
-use log::error;
-use pavenet_core::enums::MobilityType;
-use pavenet_core::node::ids::cell::CellId;
-use pavenet_core::structs::{MapState, Point2D};
-use pavenet_core::types::{NodeId, TimeStamp};
-use pavenet_input::input::mobility::{
-    MapFetcher, MapReaderType, MapStateReader, MapStateStreamer, TraceMap,
+use crate::d_model::BucketModel;
+use pavenet_core::bucket::TimeS;
+use pavenet_core::entity::id::NodeId;
+use pavenet_core::mobility::cell::CellId;
+use pavenet_core::mobility::{MapState, MobilityType, Point2D};
+use pavenet_engine::hashbrown::{HashMap, HashSet};
+use pavenet_input::mobility::data::{
+    MapFetcher, MapReader, MapStateReader, MapStateStreamer, TraceMap,
 };
 use serde::Deserialize;
 use std::path::PathBuf;
 
-#[derive(Deserialize, Debug, Clone, Default)]
-pub struct FieldSettings {
-    pub width: f32,
-    pub height: f32,
-    pub cell_size: f32,
-}
-
-#[derive(Deserialize, Debug, Clone, Default)]
-pub struct SpaceSettings {
-    pub mobility_type: MobilityType,
-    pub is_streaming: bool,
-    pub trace_file: String,
-}
-
+#[derive(Clone, Debug)]
 pub struct Space {
     width: f32,
     height: f32,
     cell_size: f32,
-    reader: MapReaderType,
-    pub map_states: TraceMap,
-    pub map_cache: HashMap<NodeId, MapState>,
     cell2node: HashMap<CellId, HashSet<NodeId>>,
     node2cell: HashMap<NodeId, CellId>,
 }
 
-impl PoolModel for Space {
-    fn init(&mut self, step: TimeStamp) {
-        self.map_states = match self.reader {
-            MapReaderType::File(ref mut reader) => {
-                reader.fetch_traffic_data(step).unwrap_or_default()
-            }
-            MapReaderType::Stream(ref mut reader) => {
-                reader.fetch_traffic_data(step).unwrap_or_default()
-            }
-        };
-    }
-
-    fn stream_data(&mut self, step: TimeStamp) {
-        match self.reader {
-            MapReaderType::Stream(ref mut reader) => {
-                self.map_states = reader.fetch_traffic_data(step).unwrap_or_default();
-            }
-            _ => {}
-        }
-    }
-
-    fn refresh_cache(&mut self, step: TimeStamp) {
-        self.map_cache = match self.map_states.remove(&step) {
-            Some(traces) => traces,
-            None => HashMap::new(),
-        };
-    }
-}
-
 impl Space {
-    pub fn builder(config_path: &PathBuf) -> SpaceBuilder {
-        SpaceBuilder::new(config_path.clone())
+    pub fn new(width: f32, height: f32, cell_size: f32) -> Self {
+        Self {
+            width,
+            height,
+            cell_size,
+            cell2node: HashMap::new(),
+            node2cell: HashMap::new(),
+        }
     }
 
     pub fn add_node(&mut self, node_id: NodeId, location: &Point2D) {
@@ -106,15 +66,73 @@ impl Space {
     }
 }
 
-#[derive(Default)]
-pub struct SpaceBuilder {
-    config_path: PathBuf,
-    streaming_step: TimeStamp,
-    field_settings: FieldSettings,
-    space_settings: SpaceSettings,
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct FieldSettings {
+    pub width: f32,
+    pub height: f32,
+    pub cell_size: f32,
 }
 
-impl SpaceBuilder {
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct MapperSettings {
+    pub mobility_type: MobilityType,
+    pub is_streaming: bool,
+    pub trace_file: String,
+}
+
+#[derive(Clone)]
+pub(crate) struct Mapper {
+    reader: MapReader,
+    map_states: TraceMap,
+    map_cache: HashMap<NodeId, MapState>,
+}
+
+impl BucketModel for Mapper {
+    fn init(&mut self, step: TimeS) {
+        self.map_states = match self.reader {
+            MapReader::File(ref mut reader) => reader.fetch_traffic_data(step).unwrap_or_default(),
+            MapReader::Stream(ref mut reader) => {
+                reader.fetch_traffic_data(step).unwrap_or_default()
+            }
+        };
+    }
+
+    fn stream_data(&mut self, step: TimeS) {
+        match self.reader {
+            MapReader::Stream(ref mut reader) => {
+                self.map_states = reader.fetch_traffic_data(step).unwrap_or_default();
+            }
+            _ => {}
+        }
+    }
+
+    fn refresh_cache(&mut self, step: TimeS) {
+        self.map_cache = match self.map_states.remove(&step) {
+            Some(traces) => traces,
+            None => HashMap::new(),
+        };
+    }
+}
+
+impl Mapper {
+    pub fn builder(config_path: &PathBuf) -> MapperBuilder {
+        MapperBuilder::new(config_path.clone())
+    }
+
+    pub fn map_state_of(&mut self, node_id: NodeId) -> Option<MapState> {
+        self.map_cache.remove(&node_id)
+    }
+}
+
+#[derive(Default)]
+pub struct MapperBuilder {
+    config_path: PathBuf,
+    streaming_step: TimeS,
+    field_settings: FieldSettings,
+    space_settings: MapperSettings,
+}
+
+impl MapperBuilder {
     pub fn new(config_path: PathBuf) -> Self {
         Self {
             config_path,
@@ -122,7 +140,7 @@ impl SpaceBuilder {
         }
     }
 
-    pub fn streaming_step(mut self, streaming_step: TimeStamp) -> Self {
+    pub fn streaming_step(mut self, streaming_step: TimeS) -> Self {
         self.streaming_step = streaming_step;
         self
     }
@@ -132,37 +150,32 @@ impl SpaceBuilder {
         self
     }
 
-    pub fn space_settings(mut self, space_settings: SpaceSettings) -> Self {
+    pub fn space_settings(mut self, space_settings: MapperSettings) -> Self {
         self.space_settings = space_settings;
         self
     }
 
-    pub fn build(self) -> Space {
+    pub fn build(self) -> Mapper {
         let file_path = self.config_path.join(&self.space_settings.trace_file);
 
-        let map_state_reader: MapReaderType = match self.space_settings.is_streaming {
-            true => MapReaderType::Stream(
+        let map_state_reader: MapReader = match self.space_settings.is_streaming {
+            true => MapReader::Stream(
                 MapStateStreamer::builder()
                     .file_path(PathBuf::from(file_path))
                     .streaming_step(self.streaming_step)
                     .build(),
             ),
-            false => MapReaderType::File(
+            false => MapReader::File(
                 MapStateReader::builder()
                     .file_path(PathBuf::from(file_path))
                     .build(),
             ),
         };
 
-        Space {
-            width: self.field_settings.width,
-            height: self.field_settings.height,
-            cell_size: self.field_settings.cell_size,
+        Mapper {
             reader: map_state_reader,
             map_states: HashMap::default(),
             map_cache: HashMap::default(),
-            cell2node: HashMap::default(),
-            node2cell: HashMap::default(),
         }
     }
 }
@@ -170,8 +183,8 @@ impl SpaceBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pavenet_core::structs::Point2D;
-    use pavenet_core::types::{RoadId, Velocity};
+    use pavenet_core::mobility::road::RoadId;
+    use pavenet_core::mobility::velocity::Velocity;
 
     #[test]
     fn default_map_state() {
