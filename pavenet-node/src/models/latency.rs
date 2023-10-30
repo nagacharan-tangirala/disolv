@@ -1,9 +1,12 @@
-use crate::dist::{DistParams, RngSampler};
-use crate::payload::PayloadInfo;
-use crate::radio::metrics::latency::Latency;
+use pavenet_core::dist::{DistParams, RngSampler};
+use pavenet_core::payload::{DataType, PayloadInfo};
+use pavenet_core::radio::metrics::latency::Latency;
 use pavenet_engine::anyhow::{anyhow, Result};
-use pavenet_engine::channel::{Measurable, Metric, MetricVariant, VariantConfig};
+use pavenet_engine::radio::{GRadioMeasurement, Measurable, Metric, MetricVariant, VariantConfig};
 use serde::Deserialize;
+
+pub type DLatencyModel =
+    GRadioMeasurement<LatencyConfig, Latency, PayloadInfo, DataType, LatencyVariant>;
 
 /// All the latency configuration parameters are optional, but at least one of them must be present.
 /// Name of the variant is mandatory.
@@ -11,6 +14,7 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]
 pub struct LatencyConfig {
     pub variant: String,
+    pub constraint: Option<Latency>,
     pub constant_term: Option<Latency>,
     pub min_latency: Option<Latency>,
     pub max_latency: Option<Latency>,
@@ -18,7 +22,11 @@ pub struct LatencyConfig {
     pub dist_params: Option<DistParams>,
 }
 
-impl VariantConfig<Latency> for LatencyConfig {}
+impl VariantConfig<Latency> for LatencyConfig {
+    fn constraint(&self) -> Option<Latency> {
+        self.constraint
+    }
+}
 
 /// Random latency is sampled from a distribution of user's choice. Distribution parameters are
 /// mandatory and must be valid for the chosen distribution.
@@ -39,7 +47,7 @@ impl RandomLatency {
     }
 }
 
-impl Measurable<Latency, PayloadInfo> for RandomLatency {
+impl Measurable<Latency, PayloadInfo, DataType> for RandomLatency {
     fn measure(&mut self, _payload: &PayloadInfo) -> Latency {
         let latency_factor = self.sampler.sample();
         return self.min_latency
@@ -66,9 +74,9 @@ impl DistanceLatency {
     }
 }
 
-impl Measurable<Latency, PayloadInfo> for DistanceLatency {
+impl Measurable<Latency, PayloadInfo, DataType> for DistanceLatency {
     fn measure(&mut self, payload: &PayloadInfo) -> Latency {
-        let distance_factor = match payload.selected_link.properties.distance {
+        let distance_factor = match payload.tx_info.selected_link.properties.distance {
             Some(distance) => distance * self.factor,
             None => 0.0,
         };
@@ -94,9 +102,9 @@ impl OrderedLatency {
     }
 }
 
-impl Measurable<Latency, PayloadInfo> for OrderedLatency {
+impl Measurable<Latency, PayloadInfo, DataType> for OrderedLatency {
     fn measure(&mut self, payload: &PayloadInfo) -> Latency {
-        let order_factor = match payload.tx_order {
+        let order_factor = match payload.tx_info.tx_order {
             Some(distance) => (distance as f32) * self.factor,
             None => 0.0,
         };
@@ -158,7 +166,7 @@ impl LatencyVariant {
     }
 }
 
-impl MetricVariant<LatencyConfig, Latency, PayloadInfo> for LatencyVariant {
+impl MetricVariant<LatencyConfig, Latency, PayloadInfo, DataType> for LatencyVariant {
     fn new(variant_config: LatencyConfig) -> Self {
         match variant_config.variant.as_str() {
             "constant" => match Self::build_constant(variant_config) {
@@ -180,6 +188,7 @@ impl MetricVariant<LatencyConfig, Latency, PayloadInfo> for LatencyVariant {
             _ => panic!("Invalid latency variant name"),
         }
     }
+
     fn measure(&mut self, payload: &PayloadInfo) -> Latency {
         match self {
             LatencyVariant::Constant(constant) => *constant,
