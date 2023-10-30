@@ -61,29 +61,26 @@ pub struct PayloadInfo {
 
 impl PayloadInfo {
     pub fn apply_rule(&mut self, tx_rule: &DTxRule) {
-        for data_type in self.size_by_type.keys() {
-            match tx_rule.action_for(&data_type) {
-                Actions::Consume => self.consume(*data_type),
-                Actions::ForwardToKind(node_type) => {
-                    self.tx_info
-                        .fwd_actions
-                        .insert(*data_type, Actions::ForwardToKind(node_type));
-                }
-                Actions::ForwardToTier(tier) => {
-                    self.tx_info
-                        .fwd_actions
-                        .insert(*data_type, Actions::ForwardToTier(tier));
-                }
-                Actions::default() => {}
+        match tx_rule.action {
+            Actions::Consume => self.consume(&tx_rule.query_type),
+            Actions::ForwardToKind(node_type) => {
+                self.tx_info
+                    .fwd_actions
+                    .insert(tx_rule.query_type, Actions::ForwardToKind(node_type));
             }
-        }
+            Actions::ForwardToTier(tier) => {
+                self.tx_info
+                    .fwd_actions
+                    .insert(tx_rule.query_type, Actions::ForwardToTier(tier));
+            }
+        };
     }
 
-    fn consume(&mut self, data_type: DataType) {
-        self.total_size -= self.size_by_type.get(&data_type).unwrap();
-        self.total_count -= self.count_by_type.get(&data_type).unwrap();
-        self.size_by_type.remove(&data_type);
-        self.count_by_type.remove(&data_type);
+    fn consume(&mut self, data_type: &DataType) {
+        self.total_size -= self.size_by_type.get(data_type).unwrap();
+        self.total_count -= self.count_by_type.get(data_type).unwrap();
+        self.size_by_type.remove(data_type);
+        self.count_by_type.remove(data_type);
     }
 }
 
