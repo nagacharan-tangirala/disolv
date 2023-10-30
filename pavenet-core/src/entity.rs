@@ -1,15 +1,14 @@
-use crate::entity::class::Class;
+use crate::entity::class::NodeClass;
 use crate::entity::id::NodeId;
 use crate::entity::kind::NodeType;
-use crate::entity::order::Order;
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct NodeInfo {
     pub id: NodeId,
     pub node_type: NodeType,
-    pub node_class: Class,
-    pub order: Order,
+    pub node_class: NodeClass,
+    pub order: NodeClass,
 }
 
 pub mod id {
@@ -139,30 +138,4 @@ pub mod kind {
     }
 
     impl Kind for NodeType {}
-}
-
-pub mod class {
-    use serde::Deserialize;
-    use std::fmt::Display;
-
-    #[derive(Debug, Deserialize, Hash, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-    pub struct Class(u32);
-
-    impl Display for Class {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{:03}", self.0)
-        }
-    }
-
-    impl From<u32> for Class {
-        fn from(value: u32) -> Self {
-            Self(value)
-        }
-    }
-
-    impl Class {
-        pub fn as_u32(&self) -> u32 {
-            self.0
-        }
-    }
 }
