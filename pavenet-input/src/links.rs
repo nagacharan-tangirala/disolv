@@ -1,16 +1,16 @@
 pub mod data {
     use crate::file_reader::{read_file, stream_parquet_in_interval};
     use crate::links::df::extract_link_traces;
-    use hashbrown::HashMap;
-    use pavenet_recipe::link::Link;
-    use pavenet_recipe::node_info::id::NodeId;
-    use pavenet_recipe::times::ts::TimeS;
+    use pavenet_core::bucket::TimeS;
+    use pavenet_core::entity::id::NodeId;
+    use pavenet_core::link::DLinkOptions;
+    use pavenet_engine::hashbrown::HashMap;
     use polars::prelude::DataFrame;
     use std::error::Error;
     use std::path::PathBuf;
     use typed_builder::TypedBuilder;
 
-    pub type LinkMap = HashMap<TimeS, HashMap<NodeId, Link>>;
+    pub type LinkMap = HashMap<TimeS, HashMap<NodeId, DLinkOptions>>;
 
     #[derive(Clone)]
     pub enum LinkReader {
@@ -56,10 +56,10 @@ pub(super) mod df {
     use crate::converter::list_series::{to_vec_of_f32_vec, to_vec_of_nodeid_vec};
     use crate::converter::series::{to_nodeid_vec, to_timestamp_vec};
     use crate::links::data::LinkMap;
-    use hashbrown::HashMap;
-    use pavenet_recipe::link::Link;
-    use pavenet_recipe::node_info::id::NodeId;
-    use pavenet_recipe::times::ts::TimeS;
+    use pavenet_core::bucket::TimeS;
+    use pavenet_core::entity::id::NodeId;
+    use pavenet_core::link::DLinkOptions;
+    use pavenet_engine::hashbrown::HashMap;
     use polars::error::ErrString;
     use polars::prelude::{col, lit, DataFrame, IntoLazy, PolarsError, PolarsResult, Series};
 
@@ -99,15 +99,13 @@ pub(super) mod df {
 
             let id_series: &Series = ts_df.column(NODE_ID)?;
             let node_ids: Vec<NodeId> = to_nodeid_vec(id_series)?;
+            let link_vec: Vec<DLinkOptions> = build_links_data(&ts_df)?;
 
-            let mut link_vec: Vec<Link> = extract_mandatory_data(&ts_df)?;
-            add_optional_data(&ts_df, &mut link_vec)?;
-
-            let mut link_map: HashMap<NodeId, Link> = HashMap::with_capacity(node_ids.len());
-            for (idx, node_link) in link_vec.into_iter().enumerate() {
-                link_map.insert(node_ids[idx], node_link);
+            let mut link_map_entry = HashMap::with_capacity(node_ids.len());
+            for (idx, node_id) in node_ids.into_iter().zip(link_vec.into_iter()) {
+                link_map_entry.insert(idx, node_id);
             }
-            links.entry(*time_stamp).or_insert(link_map);
+            links.entry(*time_stamp).or_insert(link_map_entry);
         }
         return Ok(links);
     }
@@ -144,42 +142,40 @@ pub(super) mod df {
         return Ok(filtered_df);
     }
 
-    fn extract_mandatory_data(df: &DataFrame) -> Result<Vec<Link>, Box<dyn std::error::Error>> {
+    fn build_links_data(df: &DataFrame) -> Result<Vec<DLinkOptions>, Box<dyn std::error::Error>> {
         let target_id_series: &Series = df.column(TARGET_ID)?;
         let target_ids: Vec<Vec<NodeId>> = to_vec_of_nodeid_vec(&target_id_series)?;
-
-        let links: Vec<Link> = target_ids
+        let mut link_options_vec: Vec<DLinkOptions> = target_ids
             .into_iter()
-            .map(|target_id| Link::new())
+            .map(|target_id_vec| DLinkOptions::new(target_id_vec))
             .collect();
-        return Ok(links);
-    }
 
-    fn add_optional_data(
-        df: &DataFrame,
-        links: &mut Vec<Link>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
         let optional_columns = get_optional_columns(df);
         for optional_col in optional_columns.into_iter() {
             match optional_col {
                 DISTANCE => {
                     let distance_series: &Series = df.column(DISTANCE)?;
                     let distances: Vec<Vec<f32>> = to_vec_of_f32_vec(&distance_series)?;
-                    for (idx, distance) in distances.into_iter().enumerate() {
-                        links[idx].distance = Some(distance);
+                    for (idx, distance_vec) in distances.into_iter().enumerate() {
+                        for (idx2, distance) in distance_vec.into_iter().enumerate() {
+                            link_options_vec[idx].links[idx2].properties.distance = Some(distance);
+                        }
                     }
                 }
                 LOAD_FACTOR => {
                     let lf_series: &Series = df.column(LOAD_FACTOR)?;
                     let load_factors: Vec<Vec<f32>> = to_vec_of_f32_vec(&lf_series)?;
-                    for (idx, load_factor) in load_factors.into_iter().enumerate() {
-                        links[idx].load_factor = Some(load_factor);
+                    for (idx, distance_vec) in load_factors.into_iter().enumerate() {
+                        for (idx2, distance) in distance_vec.into_iter().enumerate() {
+                            link_options_vec[idx].links[idx2].properties.load_factor =
+                                Some(distance);
+                        }
                     }
                 }
                 _ => return Err("Invalid column name".into()),
             }
         }
-        return Ok(());
+        return Ok(link_options_vec);
     }
 
     fn get_optional_columns(df: &DataFrame) -> Vec<&str> {
