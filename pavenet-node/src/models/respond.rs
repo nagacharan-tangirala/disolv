@@ -1,5 +1,5 @@
+use pavenet_core::response::{DResponse, TransferMetrics};
 use serde::Deserialize;
-use pavenet_core::payload::DPayload;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct ResponderSettings {
@@ -11,7 +11,24 @@ pub enum Responder {
     Stats(StatsResponder),
 }
 
-impl Responder {}
+impl Responder {
+    pub fn new(responder_settings: ResponderSettings) -> Self {
+        match responder_settings.name.as_str() {
+            "basic" => Responder::Stats(StatsResponder::default()),
+            _ => panic!("Unknown responder type"),
+        }
+    }
+
+    pub fn compose_response(
+        &mut self,
+        in_response: DResponse,
+        transfer_stats: TransferMetrics,
+    ) -> DResponse {
+        match self {
+            Responder::Stats(responder) => responder.compose_response(in_response, transfer_stats),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Copy, Default)]
 pub struct StatsResponder {}
@@ -21,26 +38,11 @@ impl StatsResponder {
         Self {}
     }
 
-    pub fn respond_to_vehicles(
-        &self,
-        veh_payloads: &Vec<DPayload>,
-        rsu_counts: usize,
-    ) -> HashMap<NodeId, DownlinkPayload> {
-        let mut veh_ids: Vec<NodeId> = veh_payloads
-            .iter()
-            .map(|p| p.sensor_data.node_info.id)
-            .collect();
-        veh_ids.shuffle(&mut rand::thread_rng());
-        let crowd_latency = rsu_counts + veh_ids.len();
-
-        let mut responses: HashMap<NodeId, DownlinkPayload> = HashMap::with_capacity(veh_ids.len());
-        for (idx, veh_id) in veh_ids.iter().enumerate() {
-            let response = DownlinkPayload {
-                id: *veh_id,
-                latency_factor: crowd_latency - idx,
-            };
-            responses.insert(*veh_id, response);
-        }
-        responses
+    pub(crate) fn compose_response(
+        &mut self,
+        in_response: DResponse,
+        transfer_stats: TransferMetrics,
+    ) -> DResponse {
+        DResponse::new(transfer_stats, in_response.content)
     }
 }
