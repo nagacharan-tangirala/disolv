@@ -9,6 +9,16 @@ pub struct DataHandler {
     pub sampling_factor: f32,
 }
 
+impl DataHandler {
+    pub fn apply(&self, payload: DPayload) -> DPayload {
+        let mut payload = payload;
+        payload.metadata.total_size = payload.metadata.total_size * self.compression;
+        payload.metadata.total_count =
+            (payload.metadata.total_count as f32 * self.sampling_factor).round() as u32;
+        payload
+    }
+}
+
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct ComposerSettings {
     pub name: String,
@@ -78,6 +88,7 @@ impl BasicComposer {
         };
         let updated_stats = self.update_metadata(payload_stats, target_class, gathered_payloads);
         let payload = DPayload::new(content, updated_stats, content_to_fwd);
+        let payload = self.data_handler.apply(payload);
         return payload;
     }
 
