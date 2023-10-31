@@ -15,13 +15,13 @@ pub trait Identifier:
 
 /// A trait that represents the tier of an entity. Extend this to a custom type that represents
 /// the tier of your entity. Only one instance of this type is allowed. A named type masking an
-/// integer is sufficient.
+/// integer is sufficient or an enum is also sufficient.
 ///
 /// This is required to control the order of calling the uplink and downlink stages of the
 /// entities. At each time step, the entities are sorted by their tier. The entities with the
 /// lowest tier are called first and gradually proceeding to the entities with the highest tier.
 /// This allows the entities to be simulated in a tiered fashion.
-pub trait Tier: Copy + Clone + Hash + PartialEq + Eq + Send + Sync + 'static {
+pub trait Tier: Default + Copy + Clone + Hash + PartialEq + Eq + Send + Sync + 'static {
     fn as_i32(&self) -> i32;
 }
 
