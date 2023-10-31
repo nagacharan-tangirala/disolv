@@ -1,6 +1,5 @@
 use pavenet_core::entity::class::NodeClass;
-use pavenet_core::entity::kind::NodeType;
-use pavenet_core::payload::{DPayload, NodeContent, PayloadInfo, PayloadTxInfo};
+use pavenet_core::payload::{DPayload, NodeContent, PayloadInfo};
 use pavenet_core::response::DataSource;
 use serde::Deserialize;
 

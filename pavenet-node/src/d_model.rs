@@ -1,9 +1,10 @@
-use crate::models::channel::Radio;
-use crate::models::compose::{BasicComposer, Composer, ComposerSettings, StatusComposer};
+use crate::models::compose::Composer;
 use crate::models::power::PowerManager;
-use crate::models::respond::{Responder, ResponderSettings, StatsResponder};
-use crate::models::select::{Selector, SelectorSettings};
-use pavenet_recipe::times::ts::TimeS;
+use crate::models::radio::Radio;
+use crate::models::respond::Responder;
+use crate::models::select::Selector;
+use pavenet_core::bucket::TimeS;
+use typed_builder::TypedBuilder;
 
 pub trait BucketModel {
     fn init(&mut self, step: TimeS);

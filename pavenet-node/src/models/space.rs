@@ -81,7 +81,7 @@ pub struct MapperSettings {
 }
 
 #[derive(Clone)]
-pub(crate) struct Mapper {
+pub struct Mapper {
     reader: MapReader,
     map_states: TraceMap,
     map_cache: HashMap<NodeId, MapState>,

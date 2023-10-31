@@ -2,7 +2,6 @@ use crate::models::latency::DLatencyModel;
 use pavenet_core::bucket::TimeS;
 use pavenet_core::entity::class::NodeClass;
 use pavenet_core::entity::id::NodeId;
-use pavenet_core::entity::kind::NodeType;
 use pavenet_core::payload::{DPayload, DataType, NodeContent, PayloadInfo};
 use pavenet_core::radio::stats::{InDataStats, OutDataStats};
 use pavenet_core::rand_pcg::Pcg64Mcg;
