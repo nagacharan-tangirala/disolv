@@ -1,20 +1,22 @@
 use crate::d_model::BucketModel;
 use crate::device::Device;
-use crate::models::channel::InDataStats;
 use crate::models::lake::DataLake;
 use crate::models::linker::Linker;
 use crate::models::space::{Mapper, Space};
-use hashbrown::HashMap;
+use pavenet_core::bucket::TimeS;
+use pavenet_core::entity::class::NodeClass;
+use pavenet_core::entity::id::NodeId;
+use pavenet_core::entity::kind::NodeType;
+use pavenet_core::link::{DLink, DLinkOptions};
 use pavenet_core::mobility::MapState;
-use pavenet_core::node_info::id::NodeId;
-use pavenet_core::node_info::kind::NodeType;
-use pavenet_core::node_info::order::Order;
-use pavenet_core::times::ts::TimeS;
+use pavenet_core::radio::stats::InDataStats;
+use pavenet_core::rules::Rules;
 use pavenet_engine::bucket::Bucket;
-use pavenet_engine::scheduler::NodeScheduler;
+use pavenet_engine::hashbrown::HashMap;
+use pavenet_engine::scheduler::GNodeScheduler;
 use typed_builder::TypedBuilder;
 
-pub type EScheduler = NodeScheduler<DeviceBucket, Device, NodeId, NodeType, Order, TimeS>;
+pub type EScheduler = GNodeScheduler<DeviceBucket, Device, NodeId, NodeType, NodeClass, TimeS>;
 
 #[derive(Clone, TypedBuilder)]
 pub struct DeviceBucket {
@@ -22,14 +24,20 @@ pub struct DeviceBucket {
     transfer_stats: HashMap<NodeId, InDataStats>,
     pub mapper_holder: Vec<(NodeType, Mapper)>,
     pub linker_holder: Vec<(NodeType, Linker)>,
+    pub class_to_type: HashMap<NodeClass, NodeType>,
     pub entity_scheduler: EScheduler,
     pub data_lake: DataLake,
     pub space: Space,
     pub step: TimeS,
+    pub rules: Rules,
 }
 
 impl DeviceBucket {
-    pub(crate) fn links_for(&mut self, node_id: NodeId, target_type: &NodeType) -> Option<Link> {
+    pub(crate) fn link_options_for(
+        &mut self,
+        node_id: NodeId,
+        target_type: &NodeType,
+    ) -> Option<DLinkOptions> {
         self.linker_for(target_type).links_of(node_id)
     }
 
@@ -41,12 +49,19 @@ impl DeviceBucket {
         self.mapper_for(node_type).map_state_of(node_id)
     }
 
-    pub(crate) fn stats_for(&mut self, links: &Link) -> Vec<Option<&InDataStats>> {
-        let mut link_stats = Vec::with_capacity(links.target.len());
-        for target in links.target.iter() {
-            link_stats.push(self.transfer_stats.get(target));
+    pub(crate) fn stats_for(&mut self, link_opts: &Vec<DLink>) -> Vec<Option<&InDataStats>> {
+        let mut link_stats = Vec::with_capacity(link_opts.len());
+        for link_opt in link_opts.iter() {
+            link_stats.push(self.transfer_stats.get(&link_opt.target));
         }
         link_stats
+    }
+
+    pub(crate) fn kind_for(&self, target_class: &NodeClass) -> NodeType {
+        match self.class_to_type.get(target_class) {
+            Some(node_type) => node_type.to_owned(),
+            None => panic!("No node type for class: {:?}", target_class),
+        }
     }
 
     pub fn stop_node(&mut self, node_id: NodeId) {
@@ -76,7 +91,7 @@ impl DeviceBucket {
     fn update_stats(&mut self) {
         self.devices.iter().for_each(|(node_id, device)| {
             self.transfer_stats
-                .insert(*node_id, device.models.channel.in_stats.clone());
+                .insert(*node_id, device.models.radio.in_stats.clone());
         });
     }
 }
@@ -94,6 +109,7 @@ impl Bucket<TimeS> for DeviceBucket {
 
     fn update(&mut self, step: TimeS) {
         self.step = step;
+        self.update_stats();
     }
 
     fn before_uplink(&mut self) {
