@@ -1,4 +1,4 @@
-use pavenet_core::times::ts::TimeS;
+use pavenet_core::bucket::TimeS;
 
 #[derive(Clone, Default, Copy, Debug, PartialEq)]
 pub enum PowerState {
