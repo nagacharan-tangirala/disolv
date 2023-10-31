@@ -1,4 +1,5 @@
 use crate::bucket::{Bucket, TimeStamp};
+use crate::entity::Tier;
 
 /// A trait to represent a type that can be used to query content from other devices.
 pub trait Queryable: Copy + Clone + PartialEq + Eq + Send + Sync {}
@@ -25,7 +26,7 @@ where
     M: ResponseMetadata,
     Q: Queryable,
 {
-    pub query: Option<Vec<C>>,
+    pub content: Option<Vec<C>>,
     pub transfer_stats: M,
     _phantom: std::marker::PhantomData<fn() -> Q>,
 }
@@ -36,10 +37,10 @@ where
     M: ResponseMetadata,
     Q: Queryable,
 {
-    pub fn new(transfer_stats: M) -> Self {
+    pub fn new(transfer_stats: M, content: Option<Vec<C>>) -> Self {
         Self {
             transfer_stats,
-            query: None,
+            content,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -48,16 +49,16 @@ where
 /// A trait that an entity must implement to respond to payloads. Transmission of payloads
 /// can be flexibly handled by the entity transfer payloads to devices of any tier.
 /// This should be called in the <code>downlink_stage</code> method of the entity.
-pub trait Responder<B, C, M, Q, T>
+pub trait Responder<B, C, M, Q, T, Ts>
 where
-    B: Bucket<T>,
+    B: Bucket<Ts>,
     C: ResponseContent<Q>,
     M: ResponseMetadata,
     Q: Queryable,
-    T: TimeStamp,
+    T: Tier,
+    Ts: TimeStamp,
 {
     fn receive(&mut self, bucket: &mut B) -> GResponse<C, M, Q>;
-    fn process(&mut self, response: GResponse<C, M, Q>);
-    fn create_response(&mut self, bucket: &mut B) -> GResponse<C, M, Q>;
-    fn respond(&mut self, bucket: &mut B);
+    fn process(&mut self, response: GResponse<C, M, Q>) -> GResponse<C, M, Q>;
+    fn respond(&mut self, response: GResponse<C, M, Q>, bucket: &mut B);
 }
