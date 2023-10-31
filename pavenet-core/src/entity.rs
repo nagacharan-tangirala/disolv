@@ -67,21 +67,21 @@ pub mod class {
     #[derive(Deserialize, Default, Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
     pub enum NodeClass {
         #[default]
-        None = 0,
-        Vehicle5G = 1,
-        RSU5G = 2,
-        BaseStation5G = 3,
-        Controller = 4,
+        None,
+        Vehicle5G(i32),
+        RSU5G(i32),
+        BaseStation5G(i32),
+        Controller(i32),
     }
 
     impl Display for NodeClass {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
                 NodeClass::None => write!(f, "None"),
-                NodeClass::Vehicle5G => write!(f, "Vehicle5G"),
-                NodeClass::BaseStation5G => write!(f, "BaseStation5G"),
-                NodeClass::RSU5G => write!(f, "RSU5G"),
-                NodeClass::Controller => write!(f, "Controller"),
+                NodeClass::Vehicle5G(_) => write!(f, "Vehicle5G"),
+                NodeClass::RSU5G(_) => write!(f, "RSU5G"),
+                NodeClass::BaseStation5G(_) => write!(f, "BaseStation5G"),
+                NodeClass::Controller(_) => write!(f, "Controller"),
             }
         }
     }
@@ -90,10 +90,10 @@ pub mod class {
         pub fn as_u32(&self) -> u32 {
             match self {
                 NodeClass::None => 0,
-                NodeClass::Vehicle5G => 1,
-                NodeClass::BaseStation5G => 2,
-                NodeClass::RSU5G => 3,
-                NodeClass::Controller => 4,
+                NodeClass::Vehicle5G(x) => *x as u32,
+                NodeClass::RSU5G(x) => *x as u32,
+                NodeClass::BaseStation5G(x) => *x as u32,
+                NodeClass::Controller(x) => *x as u32,
             }
         }
     }
@@ -102,10 +102,10 @@ pub mod class {
         fn as_i32(&self) -> i32 {
             match self {
                 NodeClass::None => 0,
-                NodeClass::Vehicle5G => 1,
-                NodeClass::BaseStation5G => 2,
-                NodeClass::RSU5G => 3,
-                NodeClass::Controller => 4,
+                NodeClass::Vehicle5G(x) => *x,
+                NodeClass::RSU5G(x) => *x,
+                NodeClass::BaseStation5G(x) => *x,
+                NodeClass::Controller(x) => *x,
             }
         }
     }
