@@ -66,6 +66,6 @@ where
         bucket: &mut B,
         payloads: Vec<GPayload<C, M, Q>>,
     ) -> Vec<GPayload<C, M, Q>>;
-    fn compose(&mut self, target_tier: T, to_fwd: &Vec<GPayload<C, M, Q>>) -> GPayload<C, M, Q>;
-    fn transmit(&mut self, target_tier: T, payload: GPayload<C, M, Q>, bucket: &mut B);
+    fn compose(&mut self, target_tier: &T, to_fwd: &Vec<GPayload<C, M, Q>>) -> GPayload<C, M, Q>;
+    fn transmit(&mut self, target_kind: &K, payload: GPayload<C, M, Q>, bucket: &mut B);
 }
