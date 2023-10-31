@@ -25,17 +25,24 @@ pub enum Composer {
 impl Composer {
     pub fn compose_payload(
         &self,
-        target_type: &NodeClass,
+        target_class: &NodeClass,
         content: NodeContent,
         gathered_payloads: &Vec<DPayload>,
     ) -> DPayload {
         match self {
             Composer::Basic(composer) => {
-                composer.compose_payload(target_type, content, gathered_payloads)
+                composer.compose_payload(target_class, content, gathered_payloads)
             }
             Composer::Status(composer) => {
-                composer.compose_payload(target_type, content, gathered_payloads)
+                composer.compose_payload(target_class, content, gathered_payloads)
             }
+        }
+    }
+
+    pub fn update_sources(&mut self, data_sources: &Vec<DataSource>) {
+        match self {
+            Composer::Basic(composer) => composer.update_sources(data_sources),
+            Composer::Status(_) => (),
         }
     }
 }
@@ -54,8 +61,8 @@ impl BasicComposer {
         }
     }
 
-    fn update_sources(&mut self, data_sources: Vec<DataSource>) {
-        self.data_sources = data_sources;
+    pub fn update_sources(&mut self, data_sources: &Vec<DataSource>) {
+        self.data_sources = data_sources.to_owned();
     }
 
     fn compose_payload(
@@ -65,19 +72,20 @@ impl BasicComposer {
         gathered_payloads: &Vec<DPayload>,
     ) -> DPayload {
         let payload_stats = self.compose_metadata(target_class);
-        let updated_stats = self.update_metadata(payload_stats, target_class, gathered_payloads);
         let content_to_fwd = match self.compose_fwd_content(target_class, gathered_payloads) {
             content if content.is_empty() => None,
             content => Some(content),
         };
+        let updated_stats = self.update_metadata(payload_stats, target_class, gathered_payloads);
         let payload = DPayload::new(content, updated_stats, content_to_fwd);
         return payload;
     }
 
-    fn compose_metadata(&self, target_type: &NodeClass) -> PayloadInfo {
+    fn compose_metadata(&self, target_class: &NodeClass) -> PayloadInfo {
         let mut payload_stats = PayloadInfo::default();
+        payload_stats.tx_info.next_hop = *target_class;
         for ds_settings in self.data_sources.iter() {
-            if ds_settings.final_target != *target_type {
+            if ds_settings.node_class != *target_class {
                 continue;
             }
 
@@ -101,30 +109,32 @@ impl BasicComposer {
         incoming: &Vec<DPayload>,
     ) -> PayloadInfo {
         let mut updated_info = payload_stats.clone();
-        let inc_metadata: Vec<PayloadInfo> = incoming.iter().map(|x| x.metadata).collect();
-        let inc_tx_info: Vec<PayloadTxInfo> = incoming.iter().map(|x| x.metadata.tx_info).collect();
+        let inc_classes: Vec<NodeClass> = incoming
+            .iter()
+            .map(|x| x.metadata.tx_info.next_hop)
+            .collect();
 
-        for (inc_stat, inc_tx_info) in inc_metadata.into_iter().zip(inc_tx_info.into_iter()) {
+        for (inc_payload, inc_class) in incoming.iter().zip(inc_classes.into_iter()) {
             // No need to forward if the target is not the intended one
-            if target_class != inc_tx_info.next_hop {
+            if *target_class != inc_class {
                 continue;
             }
-            for (d_type, count) in inc_stat.count_by_type {
+            for (d_type, count) in inc_payload.metadata.count_by_type.iter() {
                 updated_info
                     .count_by_type
-                    .entry(d_type)
+                    .entry(*d_type)
                     .and_modify(|c| *c += count)
-                    .or_insert(count);
+                    .or_insert(*count);
             }
-            for (d_type, count) in inc_stat.size_by_type {
+            for (d_type, count) in inc_payload.metadata.size_by_type.iter() {
                 updated_info
                     .size_by_type
-                    .entry(d_type)
+                    .entry(*d_type)
                     .and_modify(|c| *c += count)
-                    .or_insert(count);
+                    .or_insert(*count);
             }
-            updated_info.total_count += inc_stat.total_count;
-            updated_info.total_size += inc_stat.total_size;
+            updated_info.total_count += inc_payload.metadata.total_count;
+            updated_info.total_size += inc_payload.metadata.total_size;
         }
         return updated_info;
     }
@@ -161,10 +171,29 @@ impl StatusComposer {
 
     fn compose_payload(
         &self,
-        target_type: &NodeClass,
+        target_class: &NodeClass,
         content: NodeContent,
         gathered_payloads: &Vec<DPayload>,
     ) -> DPayload {
-        DPayload::default()
+        DPayload::new(
+            content,
+            PayloadInfo::default(),
+            Some(self.compose_fwd_content(target_class, &gathered_payloads)),
+        )
+    }
+
+    fn compose_fwd_content(
+        &self,
+        target_class: &NodeClass,
+        gathered_payloads: &Vec<DPayload>,
+    ) -> Vec<NodeContent> {
+        let mut fwd_content = Vec::new();
+        for payload in gathered_payloads.iter() {
+            if payload.metadata.tx_info.next_hop != *target_class {
+                continue;
+            }
+            fwd_content.push(payload.content);
+        }
+        return fwd_content;
     }
 }
