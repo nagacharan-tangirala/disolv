@@ -31,14 +31,14 @@ impl Selector {
 
     pub fn select_target(
         &self,
-        mut link_opts: DLinkOptions,
+        link_opts: DLinkOptions,
         stats: &Vec<Option<&InDataStats>>,
     ) -> DLink {
-        if link_opts.is_empty() {
+        if link_opts.link_opts.is_empty() {
             panic!("No target nodes in link: {:?}", link_opts);
         }
-        if link_opts.len() == 1 {
-            return link_opts[0];
+        if link_opts.link_opts.len() == 1 {
+            return link_opts.link_opts[0].clone();
         }
         match self.strategy {
             Strategy::Random => self.a_random(link_opts),
@@ -49,7 +49,7 @@ impl Selector {
     }
 
     fn a_random(&self, mut link_opt: DLinkOptions) -> DLink {
-        let random_idx = rand::thread_rng().gen_range(0..link_opt.len());
+        let random_idx = rand::thread_rng().gen_range(0..link_opt.link_opts.len());
         link_opt.utilize_link_at(random_idx)
     }
 
@@ -59,7 +59,7 @@ impl Selector {
             Some(distance) => distance,
             None => f32::MAX,
         };
-        for link in link_opt {
+        for link in link_opt.link_opts.into_iter() {
             let distance = match link.properties.distance {
                 Some(distance) => distance,
                 None => f32::MAX,
@@ -77,36 +77,40 @@ impl Selector {
         mut link_opt: DLinkOptions,
         stats: &Vec<Option<&InDataStats>>,
     ) -> DLink {
-        let min_tr_count = u32::MAX;
-        let mut selected_idx: Option<usize> = None;
-        for (idx, stat) in stats.iter().enumerate() {
+        let mut selected_link = link_opt.utilize_link_at(0);
+        let min_tr_count = match stats[0] {
+            Some(stat) => stat.attempted.node_count,
+            None => u32::MAX,
+        };
+        for (link, stat) in link_opt.link_opts.into_iter().zip(stats.into_iter()) {
             if stat.is_none() {
                 continue;
             }
             if stat.unwrap().attempted.node_count < min_tr_count {
-                selected_idx = Some(idx);
+                selected_link = link;
             }
         }
-        if let Some(idx) = selected_idx {
-            return link_opt.to_selected_link(idx);
-        }
-        return self.nearest(link_opt);
+        return selected_link;
     }
 
-    fn with_least_data(&self, link_opt: DLinkOptions, stats: &Vec<Option<&InDataStats>>) -> DLink {
-        let min_data = f32::MAX;
-        let mut selected_idx: Option<usize> = None;
-        for (idx, stat) in stats.iter().enumerate() {
+    fn with_least_data(
+        &self,
+        mut link_opt: DLinkOptions,
+        stats: &Vec<Option<&InDataStats>>,
+    ) -> DLink {
+        let mut selected_link = link_opt.utilize_link_at(0);
+        let min_data_size = match stats[0] {
+            Some(stat) => stat.attempted.data_size,
+            None => f32::MAX,
+        };
+        for (link, stat) in link_opt.link_opts.into_iter().zip(stats.into_iter()) {
             if stat.is_none() {
                 continue;
             }
-            if stat.unwrap().attempted.data_size < min_data {
-                selected_idx = Some(idx);
+            if stat.unwrap().attempted.data_size < min_data_size {
+                selected_link = link;
             }
         }
-        if let Some(idx) = selected_idx {
-            return link_opt.to_selected_link(idx);
-        }
-        return self.nearest(link_opt);
+        return selected_link;
     }
 }
