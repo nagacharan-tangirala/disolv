@@ -189,7 +189,6 @@ where
         tx_enforcer: &Tx,
         payloads: Vec<GPayload<C, P, Q>>,
     ) -> Vec<GPayload<C, P, Q>>;
-    fn consume(&mut self, payload: &GPayload<C, P, Q>);
 }
 
 /// A trait to represent a type that holds statistics of the radio usage for incoming data.
