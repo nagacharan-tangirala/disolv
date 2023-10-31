@@ -1,5 +1,5 @@
 use crate::bucket::{Bucket, TimeStamp};
-use crate::entity::Tier;
+use crate::entity::{Kind, Tier};
 use crate::response::Queryable;
 
 /// A trait to indicate a type that can be used to represent the transfer status of a payload.
@@ -51,10 +51,11 @@ where
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
 /// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
 /// This should be called in the <code>uplink_stage</code> method of the entity.
-pub trait Transmitter<B, C, M, Q, T, Ts>
+pub trait Transmitter<B, C, K, M, Q, T, Ts>
 where
     B: Bucket<Ts>,
     C: PayloadContent,
+    K: Kind,
     M: PayloadMetadata<Q>,
     Q: Queryable,
     T: Tier,
