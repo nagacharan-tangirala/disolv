@@ -8,7 +8,6 @@ pub struct NodeInfo {
     pub id: NodeId,
     pub node_type: NodeType,
     pub node_class: NodeClass,
-    pub order: NodeClass,
 }
 
 pub mod id {
