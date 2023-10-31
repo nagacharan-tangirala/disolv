@@ -21,12 +21,10 @@ impl InDataStats {
         InDataStats::default()
     }
 
-    pub fn update_latency(&mut self, latencies: Vec<Latency>) {
-        let mut total = Latency::default();
-        for latency in latencies.iter() {
-            total += *latency;
-        }
-        self.avg_latency = Latency::from(total.as_f32() / latencies.len() as f32);
+    pub fn update_avg_latency(&mut self, latency: Latency) {
+        self.avg_latency += Latency::from(
+            (latency - self.avg_latency).as_f32() / (self.feasible.node_count as f32),
+        );
     }
 }
 
