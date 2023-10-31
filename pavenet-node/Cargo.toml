@@ -17,3 +17,4 @@ log = "0.4.20"
 serde = { version = "1.0.189", features = ["derive"] }
 serde_with = "3.4.0"
 typed-builder = "0.18.0"
+rand = "0.8.5"
