@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 pavenet-engine = { version="0.0.0", path = "../pavenet-engine" }
-serde = { version = "1.0.190", features = ["derive"] }
 rand_distr = "0.4.3"
 rand_pcg = "0.3.1"
-serde_with = "3.4.0"
 typed-builder = "0.18.0"
+serde = { version = "1.0.190", features = ["derive"] }
+serde_with = "3.4.0"

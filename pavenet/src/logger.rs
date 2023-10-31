@@ -1,4 +1,4 @@
-use crate::config::base::LogSettings;
+use crate::base::LogSettings;
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::runtime::ConfigErrors;
