@@ -42,7 +42,10 @@ impl DeviceBucket {
         node_id: NodeId,
         target_type: &NodeType,
     ) -> Option<DLinkOptions> {
-        self.linker_for(target_type).links_of(node_id)
+        match self.linker_for(target_type) {
+            Some(linker) => linker.links_of(node_id),
+            None => None,
+        }
     }
 
     pub(crate) fn positions_for(
@@ -76,12 +79,11 @@ impl DeviceBucket {
         self.scheduler.add(node_id);
     }
 
-    fn linker_for(&mut self, target_type: &NodeType) -> &mut Linker {
+    fn linker_for(&mut self, target_type: &NodeType) -> Option<&mut Linker> {
         self.linker_holder
             .iter_mut()
             .find(|(node_type, _)| *node_type == *target_type)
-            .map(|(_, links)| links)
-            .unwrap_or_else(|| panic!("No Linker for node type: {:?}", target_type))
+            .map(|(_, linker)| linker)
     }
 
     fn mapper_for(&mut self, node_type: &NodeType) -> &mut Mapper {
