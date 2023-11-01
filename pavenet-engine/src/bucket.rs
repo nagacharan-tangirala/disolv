@@ -29,6 +29,7 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{Bucket, TimeStamp};
+    use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
     use std::fmt::Display;
     use std::ops::{Add, AddAssign};
 
@@ -75,18 +76,26 @@ pub(crate) mod tests {
 
     #[derive(Default, Clone)]
     pub(crate) struct MyBucket {
+        pub(crate) scheduler: MyScheduler,
         pub(crate) step: Ts,
     }
 
     impl MyBucket {
         pub(crate) fn new() -> Self {
+            let scheduler = make_scheduler_with_2_devices();
             Self {
+                scheduler,
                 step: Ts::default(),
             }
         }
     }
 
     impl Bucket<Ts> for MyBucket {
+        type SchedulerImpl = MyScheduler;
+        fn scheduler(&mut self) -> &mut MyScheduler {
+            &mut self.scheduler
+        }
+
         fn init(&mut self, step: Ts) {
             self.step = step;
         }
@@ -112,6 +121,7 @@ pub(crate) mod tests {
     #[test]
     fn test_bucket_update() {
         let mut bucket = MyBucket::default();
+        let scheduler = MyScheduler::default();
         let step0 = Ts::from(0);
         bucket.init(step0);
         assert_eq!(bucket.step, Ts::from(0));
