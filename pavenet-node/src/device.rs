@@ -81,7 +81,7 @@ impl Schedulable<TimeS> for Device {
 impl Transmitter<DeviceBucket, NodeContent, NodeType, PayloadInfo, DataType, NodeClass, TimeS>
     for Device
 {
-    fn collect(&mut self, bucket: &mut DeviceBucket) -> Vec<DPayload> {
+    fn collect(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<DPayload>> {
         bucket.data_lake.payloads_for(self.node_info.id)
     }
 
@@ -156,23 +156,26 @@ impl Entity<DeviceBucket, NodeClass, TimeS> for Device {
         self.step = bucket.step;
         self.set_mobility(bucket);
 
-        let incoming = self.collect(bucket);
-        let to_forward = self.payloads_to_forward(bucket, incoming);
+        let to_forward = match self.collect(bucket) {
+            Some(incoming) => self.payloads_to_forward(bucket, incoming),
+            None => Vec::new(),
+        };
 
-        let target_classes: Vec<NodeClass> = self.target_classes.to_owned();
-        let target_types: Vec<NodeType> =
-            target_classes.iter().map(|x| bucket.kind_for(x)).collect();
+        match self.target_classes {
+            Some(ref target_classes) => {
+                let target_classes: Vec<NodeClass> = target_classes.to_owned();
+                let target_types: Vec<NodeType> =
+                    target_classes.iter().map(|x| bucket.kind_for(x)).collect();
 
-        for (target_type, target_class) in target_types.iter().zip(target_classes.iter()) {
-            let payload = self.compose(target_class, &to_forward);
-            self.transmit(target_type, payload, bucket);
+                for (target_type, target_class) in target_types.iter().zip(target_classes.iter()) {
+                    match self.compose(target_class, &to_forward) {
+                        Some(payload) => self.transmit(target_type, payload, bucket),
+                        None => {}
+                    };
+                }
+            }
+            None => {}
         }
-
-        if self.step == self.models.power.peek_time_to_off() {
-            bucket.add_to_schedule(self.node_info.id);
-            bucket.stop_node(self.node_info.id);
-        }
-
         bucket
             .devices
             .entry(self.node_info.id)
