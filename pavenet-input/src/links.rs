@@ -18,6 +18,25 @@ pub mod data {
         Stream(StreamLinks),
     }
 
+    impl LinkReader {
+        pub fn new(
+            links_file: PathBuf,
+            streaming_interval: TimeS,
+            is_streaming: bool,
+        ) -> LinkReader {
+            if is_streaming {
+                LinkReader::Stream(
+                    StreamLinks::builder()
+                        .links_file(links_file)
+                        .streaming_interval(streaming_interval)
+                        .build(),
+                )
+            } else {
+                LinkReader::File(ReadLinks::builder().links_file(links_file).build())
+            }
+        }
+    }
+
     pub trait LinksFetcher {
         fn fetch_links_data(&self, step: TimeS) -> Result<LinkMap, Box<dyn Error>>;
     }
