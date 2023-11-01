@@ -6,6 +6,7 @@ use pavenet_core::link::DLinkOptions;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_input::links::data::{LinkMap, LinkReader, LinksFetcher};
 use serde::Deserialize;
+use typed_builder::TypedBuilder;
 
 #[derive(Deserialize, Clone, Debug, Copy)]
 pub enum TransferMode {
@@ -22,24 +23,16 @@ pub struct LinkerSettings {
     pub is_streaming: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, TypedBuilder)]
 pub struct Linker {
-    pub linker_settings: LinkerSettings,
     pub reader: LinkReader,
+    #[builder(default)]
     pub links: LinkMap,
+    #[builder(default)]
     pub link_cache: HashMap<NodeId, DLinkOptions>,
 }
 
 impl Linker {
-    pub fn new(link_config: LinkerSettings, reader: LinkReader) -> Self {
-        Self {
-            linker_settings: link_config,
-            reader,
-            links: HashMap::new(),
-            link_cache: HashMap::new(),
-        }
-    }
-
     pub fn links_of(&mut self, node_id: NodeId) -> Option<DLinkOptions> {
         self.link_cache.remove(&node_id)
     }
