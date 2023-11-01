@@ -109,7 +109,10 @@ impl Transmitter<DeviceBucket, NodeContent, NodeType, PayloadInfo, DataType, Nod
             None => return,
         };
         let stats = bucket.stats_for(&link_options.link_opts);
-        let target_link = self.models.selector.select_target(link_options, &stats);
+        let target_link = match self.models.selector {
+            Some(ref mut selector) => selector.select_target(link_options, &stats),
+            None => return,
+        };
         self.models.radio.out_stats.update(&payload.metadata);
         bucket.data_lake.add_payload_to(target_link.target, payload)
     }
