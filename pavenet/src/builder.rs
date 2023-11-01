@@ -177,8 +177,8 @@ impl PavenetBuilder {
         Radio::builder()
             .my_class(class_settings.node_class)
             .latency_model(DLatencyModel::new(class_settings.latency.clone()))
-            .step_size(TimeS::from(self.base_config.simulation_settings.sim_step))
-            .rng(Pcg64Mcg::new(self.base_config.simulation_settings.sim_seed))
+            .step_size(TimeS::from(self.sim_step()))
+            .rng(Pcg64Mcg::new(self.sim_seed()))
             .build()
     }
 
@@ -292,15 +292,23 @@ impl PavenetBuilder {
         class_to_type
     }
 
-    pub fn streaming_step(&self) -> TimeS {
+    fn streaming_step(&self) -> TimeS {
         return self.base_config.simulation_settings.sim_streaming_step;
     }
 
-    pub fn duration(&self) -> TimeS {
+    pub(crate) fn duration(&self) -> TimeS {
         return self.base_config.simulation_settings.sim_duration;
     }
 
-    pub fn sim_step(&self) -> TimeS {
-        return self.base_config.simulation_settings.sim_step;
+    fn step_size(&self) -> TimeS {
+        return self.base_config.simulation_settings.sim_step_size;
+    }
+
+    fn sim_step(&self) -> TimeS {
+        return self.base_config.simulation_settings.sim_step_size;
+    }
+
+    fn sim_seed(&self) -> u128 {
+        return u128::from(self.base_config.simulation_settings.sim_seed);
     }
 }
