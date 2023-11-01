@@ -61,12 +61,19 @@ where
     T: Tier,
     Ts: TimeStamp,
 {
-    fn collect(&mut self, bucket: &mut B) -> Vec<GPayload<C, M, Q>>;
+    fn collect(&mut self, bucket: &mut B) -> Option<Vec<GPayload<C, M, Q>>>;
+
     fn payloads_to_forward(
         &mut self,
         bucket: &mut B,
         payloads: Vec<GPayload<C, M, Q>>,
     ) -> Vec<GPayload<C, M, Q>>;
-    fn compose(&mut self, target_tier: &T, to_fwd: &Vec<GPayload<C, M, Q>>) -> GPayload<C, M, Q>;
+
+    fn compose(
+        &mut self,
+        target_tier: &T,
+        to_fwd: &Vec<GPayload<C, M, Q>>,
+    ) -> Option<GPayload<C, M, Q>>;
+
     fn transmit(&mut self, target_kind: &K, payload: GPayload<C, M, Q>, bucket: &mut B);
 }
