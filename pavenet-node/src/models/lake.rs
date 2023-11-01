@@ -24,11 +24,8 @@ impl DataLake {
             .push(payload);
     }
 
-    pub fn response_for(&mut self, node_id: NodeId) -> DResponse {
-        match self.responses.remove(&node_id) {
-            Some(response) => response,
-            None => panic!("No response for node_id: {:?}", node_id),
-        }
+    pub fn response_for(&mut self, node_id: NodeId) -> Option<DResponse> {
+        self.responses.remove(&node_id)
     }
 
     pub fn add_response_to(&mut self, node_id: NodeId, response: DResponse) {
