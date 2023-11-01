@@ -58,7 +58,7 @@ where
     T: Tier,
     Ts: TimeStamp,
 {
-    fn receive(&mut self, bucket: &mut B) -> GResponse<C, M, Q>;
+    fn receive(&mut self, bucket: &mut B) -> Option<GResponse<C, M, Q>>;
     fn process(&mut self, response: GResponse<C, M, Q>) -> GResponse<C, M, Q>;
-    fn respond(&mut self, response: GResponse<C, M, Q>, bucket: &mut B);
+    fn respond(&mut self, response: Option<GResponse<C, M, Q>>, bucket: &mut B);
 }
