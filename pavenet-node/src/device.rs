@@ -126,19 +126,26 @@ impl Responder<DeviceBucket, DataSource, TransferMetrics, DataType, NodeClass, T
     }
 
     fn process(&mut self, response: DResponse) -> DResponse {
-        match response.content {
-            Some(ref queries) => self.models.composer.update_sources(queries),
-            None => (),
+        if response.content.is_none() {
+            return response;
         }
+        match self.models.composer {
+            Some(ref mut composer) => {
+                composer.update_sources(response.content.as_ref().unwrap());
+            }
+            None => (),
+        };
         response
     }
 
     fn respond(&mut self, response: DResponse, bucket: &mut DeviceBucket) {
         for (node_id, transfer_stats) in self.models.radio.transfer_stats().into_iter() {
-            let response = self
-                .models
-                .responder
-                .compose_response(response.clone(), transfer_stats);
+            let response = match self.models.responder {
+                Some(ref mut responder) => {
+                    responder.compose_response(response.clone(), transfer_stats)
+                }
+                None => return,
+            };
             bucket.data_lake.add_response_to(node_id, response);
         }
     }
