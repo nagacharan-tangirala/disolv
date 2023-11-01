@@ -167,5 +167,10 @@ impl Entity<DeviceBucket, NodeClass, TimeS> for Device {
         let response = self.receive(bucket);
         let processed_response = self.process(response);
         self.respond(processed_response, bucket);
+
+        if self.step == self.models.power.peek_time_to_off() {
+            bucket.add_to_schedule(self.node_info.id);
+            bucket.stop_node(self.node_info.id);
+        }
     }
 }
