@@ -9,27 +9,20 @@ use pavenet_input::mobility::data::{
 };
 use serde::Deserialize;
 use std::path::PathBuf;
+use typed_builder::TypedBuilder;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, TypedBuilder)]
 pub struct Space {
     width: f32,
     height: f32,
     cell_size: f32,
+    #[builder(default)]
     cell2node: HashMap<CellId, HashSet<NodeId>>,
+    #[builder(default)]
     node2cell: HashMap<NodeId, CellId>,
 }
 
 impl Space {
-    pub fn new(width: f32, height: f32, cell_size: f32) -> Self {
-        Self {
-            width,
-            height,
-            cell_size,
-            cell2node: HashMap::new(),
-            node2cell: HashMap::new(),
-        }
-    }
-
     pub fn add_node(&mut self, node_id: NodeId, location: &Point2D) {
         let cell_id = self.get_cell_id(location);
         let old_cell_id = self.node2cell.entry(node_id).or_default();
