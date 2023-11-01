@@ -16,20 +16,24 @@ use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::scheduler::GNodeScheduler;
 use typed_builder::TypedBuilder;
 
-pub type EScheduler = GNodeScheduler<DeviceBucket, Device, NodeId, NodeType, NodeClass, TimeS>;
+pub type DNodeScheduler = GNodeScheduler<DeviceBucket, Device, NodeId, NodeType, NodeClass, TimeS>;
 
 #[derive(Clone, TypedBuilder)]
 pub struct DeviceBucket {
-    pub(crate) devices: HashMap<NodeId, Device>,
-    transfer_stats: HashMap<NodeId, InDataStats>,
+    pub space: Space,
+    pub rules: Rules,
+    pub scheduler: DNodeScheduler,
     pub mapper_holder: Vec<(NodeType, Mapper)>,
     pub linker_holder: Vec<(NodeType, Linker)>,
     pub class_to_type: HashMap<NodeClass, NodeType>,
-    pub entity_scheduler: EScheduler,
-    pub data_lake: DataLake,
-    pub space: Space,
+    #[builder(default)]
     pub step: TimeS,
-    pub rules: Rules,
+    #[builder(default)]
+    pub data_lake: DataLake,
+    #[builder(default)]
+    pub(crate) devices: HashMap<NodeId, Device>,
+    #[builder(default)]
+    transfer_stats: HashMap<NodeId, InDataStats>,
 }
 
 impl DeviceBucket {
@@ -65,11 +69,11 @@ impl DeviceBucket {
     }
 
     pub fn stop_node(&mut self, node_id: NodeId) {
-        self.entity_scheduler.pop(node_id);
+        self.scheduler.pop(node_id);
     }
 
     pub fn add_to_schedule(&mut self, node_id: NodeId) {
-        self.entity_scheduler.add(node_id);
+        self.scheduler.add(node_id);
     }
 
     fn linker_for(&mut self, target_type: &NodeType) -> &mut Linker {
@@ -97,6 +101,12 @@ impl DeviceBucket {
 }
 
 impl Bucket<TimeS> for DeviceBucket {
+    type SchedulerImpl = DNodeScheduler;
+
+    fn scheduler(&mut self) -> &mut DNodeScheduler {
+        &mut self.scheduler
+    }
+
     fn init(&mut self, step: TimeS) {
         self.step = step;
         self.mapper_holder.iter_mut().for_each(|(_, space)| {
