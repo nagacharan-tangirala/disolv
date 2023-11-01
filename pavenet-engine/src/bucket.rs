@@ -1,3 +1,4 @@
+use crate::scheduler::Scheduler;
 use std::ops::{Add, AddAssign};
 
 /// A trait used to represent time stamps. Use this to define your own time stamp type.
@@ -15,6 +16,9 @@ pub trait Bucket<T>: Clone + Send + Sync + 'static
 where
     T: TimeStamp,
 {
+    type SchedulerImpl: Scheduler<T>;
+
+    fn scheduler(&mut self) -> &mut Self::SchedulerImpl;
     fn init(&mut self, step: T);
     fn update(&mut self, step: T);
     fn before_uplink(&mut self);
