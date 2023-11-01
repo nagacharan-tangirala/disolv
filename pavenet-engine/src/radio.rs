@@ -14,6 +14,16 @@ pub trait Metric:
     fn as_f32(&self) -> f32;
 }
 
+/// A trait that contains possible parameters with which a metric variant can be configured. This
+/// can be used to mark the struct that contains the configuration parameters applicable to all
+/// the variants. Use this to mark a struct that can be read from a configuration file.
+pub trait VariantConfig<M>: Clone + Send + Sync
+where
+    M: Metric,
+{
+    fn constraint(&self) -> Option<M>;
+}
+
 /// A trait that can be used to contain the measurement process of a metric. It must be applied on
 /// each individual variant of the metric.
 pub trait Measurable<M, P, Q>: Clone + Send + Sync
@@ -23,16 +33,6 @@ where
     Q: Queryable,
 {
     fn measure(&mut self, metadata: &P) -> M;
-}
-
-/// A trait that contains possible parameters with which a metric variant can be configured. This
-/// can be used to mark the struct that contains the configuration parameters applicable to all
-/// the variants. Use this to mark a struct that can be read from a configuration file.
-pub trait VariantConfig<M>: Clone + Send + Sync
-where
-    M: Metric,
-{
-    fn constraint(&self) -> Option<M>;
 }
 
 /// A trait that represents a variant of a metric. This is used to implement the variations of the
@@ -47,7 +47,7 @@ where
     P: PayloadMetadata<Q>,
     Q: Queryable,
 {
-    fn new(variant_config: C) -> Self;
+    fn with_config(variant_config: C) -> Self;
     fn measure(&mut self, metadata: &P) -> M;
 }
 
@@ -91,7 +91,7 @@ where
 {
     pub fn new(variant_config: C) -> Self {
         let constraint = variant_config.constraint();
-        let variant = V::new(variant_config);
+        let variant = V::with_config(variant_config);
         Self {
             constraint,
             variant,
@@ -138,7 +138,7 @@ where
     Q: Queryable,
 {
     pub fn new(variant_config: C, available: M) -> Self {
-        let variant = V::new(variant_config);
+        let variant = V::with_config(variant_config);
         Self {
             available,
             variant,
