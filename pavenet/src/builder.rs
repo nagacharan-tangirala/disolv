@@ -31,7 +31,7 @@ pub struct PavenetBuilder {
 }
 
 impl PavenetBuilder {
-    pub fn new(base_config_file: &str) -> Self {
+    pub(crate) fn new(base_config_file: &str) -> Self {
         if !Path::new(base_config_file).exists() {
             panic!("Configuration file is not found.");
         }
@@ -54,7 +54,7 @@ impl PavenetBuilder {
         }
     }
 
-    pub fn build(&mut self) -> DEngine {
+    pub(crate) fn build(&mut self) -> DEngine {
         logger::initiate_logger(&self.config_path, &self.base_config.log_settings);
 
         info!("Building devices and device pools...");
@@ -69,13 +69,14 @@ impl PavenetBuilder {
             .bucket(bucket)
             .end_step(self.duration())
             .streaming_interval(self.streaming_step())
+            .step_size(self.step_size())
             .build()
     }
 
     fn read_power_schedules(&self, node_type: NodeType) -> HashMap<NodeId, PowerTimes> {
         let node_settings: &NodeSettings = self
             .base_config
-            .node_settings
+            .nodes
             .iter()
             .find(|x| x.node_type == node_type)
             .unwrap_or_else(|| panic!("Invalid node type: {}", node_type));
@@ -108,7 +109,7 @@ impl PavenetBuilder {
         info!("Building devices...");
         let mut device_map = HashMap::new();
 
-        for node_setting in self.base_config.node_settings.clone().iter() {
+        for node_setting in self.base_config.nodes.clone().iter() {
             let mut power_schedules = self.read_power_schedules(node_setting.node_type);
             let node_ids = Self::read_node_ids(&power_schedules);
             let node_count = node_ids.len();
@@ -225,14 +226,14 @@ impl PavenetBuilder {
             .mapper_holder(self.build_mapper_vec())
             .linker_holder(self.build_linker_vec())
             .space(self.build_space())
-            .rules(Rules::new(self.base_config.rule_settings.clone()))
+            .rules(Rules::new(self.base_config.tx_rules.clone()))
             .class_to_type(self.read_class_to_type_map())
             .build()
     }
 
     fn build_mapper_vec(&self) -> Vec<(NodeType, Mapper)> {
         let mut mapper_vec: Vec<(NodeType, Mapper)> = Vec::new();
-        for node_setting in self.base_config.node_settings.iter() {
+        for node_setting in self.base_config.nodes.iter() {
             let node_type = node_setting.node_type;
             let mapper = Mapper::builder(&self.config_path)
                 .streaming_step(self.streaming_step())
@@ -246,7 +247,7 @@ impl PavenetBuilder {
 
     fn build_linker_vec(&self) -> Vec<(NodeType, Linker)> {
         let mut linker_vec: Vec<(NodeType, Linker)> = Vec::new();
-        for node_setting in self.base_config.node_settings.iter() {
+        for node_setting in self.base_config.nodes.iter() {
             let node_type = node_setting.node_type;
             match node_setting.linker {
                 Some(ref linker_settings) => {
@@ -264,7 +265,7 @@ impl PavenetBuilder {
     fn build_linker(&self, link_config: &LinkerSettings) -> Linker {
         let links_file = self.config_path.join(&link_config.links_file);
         if !links_file.exists() {
-            panic!("Link file is not found.");
+            panic!("Link file {} is not found.", links_file.display());
         }
         let link_reader =
             LinkReader::new(links_file, self.streaming_step(), link_config.is_streaming);
@@ -281,7 +282,7 @@ impl PavenetBuilder {
 
     fn read_class_to_type_map(&mut self) -> HashMap<NodeClass, NodeType> {
         let mut class_to_type: HashMap<NodeClass, NodeType> = HashMap::new();
-        for node_setting in self.base_config.node_settings.iter() {
+        for node_setting in self.base_config.nodes.iter() {
             let node_classes: Vec<NodeClass> =
                 node_setting.class.iter().map(|x| x.node_class).collect();
             for node_class in node_classes.iter() {

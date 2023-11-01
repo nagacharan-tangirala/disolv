@@ -18,17 +18,17 @@ pub struct BaseConfig {
     pub field_settings: FieldSettings,
     pub log_settings: LogSettings,
     pub output_settings: OutputSettings,
-    pub node_settings: Vec<NodeSettings>,
-    pub rule_settings: Vec<RuleSettings>,
+    pub nodes: Vec<NodeSettings>,
+    pub tx_rules: Vec<RuleSettings>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SimSettings {
     pub sim_name: String,
     pub sim_duration: TimeS,
-    pub sim_step: TimeS,
+    pub sim_step_size: TimeS,
     pub sim_streaming_step: TimeS,
-    pub sim_seed: u128,
+    pub sim_seed: u64,
 }
 
 #[derive(Deserialize, Debug, Clone)]
