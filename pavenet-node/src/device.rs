@@ -95,12 +95,14 @@ impl Transmitter<DeviceBucket, NodeContent, NodeType, PayloadInfo, DataType, Nod
         return to_forward;
     }
 
-    fn compose(&mut self, target_class: &NodeClass, gathered: &Vec<DPayload>) -> DPayload {
-        return self.models.composer.compose_payload(
-            target_class,
-            self.compose_content(),
-            gathered,
-        );
+    fn compose(&mut self, target_class: &NodeClass, gathered: &Vec<DPayload>) -> Option<DPayload> {
+        let node_content = self.compose_content();
+        return match self.models.composer {
+            Some(ref mut composer) => {
+                Some(composer.compose_payload(target_class, node_content, gathered))
+            }
+            None => None,
+        };
     }
 
     fn transmit(&mut self, target_type: &NodeType, payload: DPayload, bucket: &mut DeviceBucket) {
