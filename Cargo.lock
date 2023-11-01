@@ -3590,6 +3590,8 @@ dependencies = [
  "pavenet-node",
  "pavenet-output",
  "rand",
+ "serde",
+ "serde_with",
  "toml 0.8.6",
  "typed-builder",
 ]
