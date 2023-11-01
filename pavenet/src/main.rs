@@ -11,13 +11,12 @@ use krabmaga::*;
 
 pub static DISCRETIZATION: f32 = 100.0;
 use builder::PavenetBuilder;
-use pavenet_engine::engine::GEngine;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]
 struct CliArgs {
-    #[arg(short = 'b', long, value_name = "BASE_CONFIG_FILE")]
-    base: String,
+    #[arg(short = 'c', long, value_name = "CONFIG_FILE")]
+    config: String,
 }
 
 /*
@@ -26,7 +25,7 @@ Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
     let args = CliArgs::parse();
-    let mut builder = PavenetBuilder::new(&args.base);
+    let mut builder = PavenetBuilder::new(&args.config);
     let sim_engine: DEngine = builder.build();
     let duration = builder.duration().as_u64();
     simulate!(sim_engine, duration, 1);
