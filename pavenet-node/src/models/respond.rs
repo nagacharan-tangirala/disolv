@@ -21,7 +21,7 @@ impl Responder {
 
     pub fn compose_response(
         &mut self,
-        in_response: DResponse,
+        in_response: Option<DResponse>,
         transfer_stats: TransferMetrics,
     ) -> DResponse {
         match self {
@@ -40,9 +40,13 @@ impl StatsResponder {
 
     pub(crate) fn compose_response(
         &mut self,
-        in_response: DResponse,
+        in_response: Option<DResponse>,
         transfer_stats: TransferMetrics,
     ) -> DResponse {
-        DResponse::new(transfer_stats, in_response.content)
+        let content = match in_response {
+            Some(response) => response.content,
+            None => None,
+        };
+        DResponse::new(transfer_stats, content)
     }
 }
