@@ -12,7 +12,7 @@ pub fn setup_logging(log_level: &str, log_file_path: PathBuf) -> Result<Config, 
 
     let log_file = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new(
-            "{d(%Y.%m.%d %H:%M:%S)} | {({l}):5.5} | {({f}:{L}):>30.30} — {m}{n}",
+            "{d(%Y.%m.%d %H:%M:%S)} | {({l}):5.5} | {({f}:{L}):>40.40} — {m}{n}",
         )))
         .build(log_file_path)
         .unwrap();
