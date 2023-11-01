@@ -1,10 +1,20 @@
 use crate::scheduler::Scheduler;
-use std::ops::{Add, AddAssign};
+use std::ops::{Add, AddAssign, Mul};
 
 /// A trait used to represent time stamps. Use this to define your own time stamp type.
 /// All the engine parameters should be defined using this type.
 pub trait TimeStamp:
-    Default + Copy + AddAssign + Clone + Ord + Add<Output = Self> + Send + Sync + From<u64> + 'static
+    Default
+    + Copy
+    + AddAssign
+    + Clone
+    + Ord
+    + Mul<Output = Self>
+    + Add<Output = Self>
+    + Send
+    + Sync
+    + From<u64>
+    + 'static
 {
     fn as_f32(&self) -> f32;
 }
@@ -31,7 +41,7 @@ pub(crate) mod tests {
     use super::{Bucket, TimeStamp};
     use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
     use std::fmt::Display;
-    use std::ops::{Add, AddAssign};
+    use std::ops::{Add, AddAssign, Mul};
 
     #[derive(Default, Clone, Copy, Debug, Ord, PartialOrd, PartialEq, Eq, Hash)]
     pub struct Ts(u32);
@@ -39,6 +49,14 @@ pub(crate) mod tests {
     impl AddAssign for Ts {
         fn add_assign(&mut self, rhs: Self) {
             self.0 += rhs.0;
+        }
+    }
+
+    impl Mul for Ts {
+        type Output = Self;
+
+        fn mul(self, rhs: Self) -> Self::Output {
+            Self(self.0 * rhs.0)
         }
     }
 
