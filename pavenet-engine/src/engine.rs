@@ -139,6 +139,7 @@ where
     streaming_step: T,
     #[builder(default)]
     step: T,
+    step_size: T,
 }
 
 impl<B, T> State for GEngine<B, T>
@@ -172,7 +173,7 @@ where
     fn reset(&mut self) {}
 
     fn update(&mut self, step: u64) {
-        self.step = T::from(step);
+        self.step = T::from(step) * self.step_size;
         self.bucket.update(self.step);
     }
 
@@ -211,13 +212,14 @@ pub(crate) mod tests {
         GNode::new(device.id, device, device_type)
     }
 
-    fn make_engine(end_step: Ts, stream_step: Ts) -> GEngine<MyBucket, Ts> {
+    fn make_engine(end_step: Ts, stream_step: Ts, step_size: Ts) -> GEngine<MyBucket, Ts> {
         let bucket = MyBucket::new();
         let scheduler = make_scheduler_with_2_devices();
         GEngine::builder()
             .end_step(end_step)
             .streaming_interval(stream_step)
             .bucket(bucket)
+            .step_size(step_size)
             .build()
     }
 
@@ -225,7 +227,8 @@ pub(crate) mod tests {
     fn test_engine_making() {
         let end_step = Ts::from(100);
         let stream_step = Ts::from(10);
-        let engine = make_engine(end_step, stream_step);
+        let step_size = Ts::from(1);
+        let engine = make_engine(end_step, stream_step, step_size);
         assert_eq!(engine.step, Ts::default());
         assert_eq!(engine.streaming_step, Ts::default());
         assert_eq!(engine.streaming_interval, Ts::from(10));
@@ -236,7 +239,8 @@ pub(crate) mod tests {
     fn test_simulation() {
         let end_step = Ts::from(100);
         let stream_step = Ts::from(10);
-        let engine = make_engine(end_step, stream_step);
+        let step_size = Ts::from(10);
+        let engine = make_engine(end_step, stream_step, step_size);
         simulate!(engine, end_step.into(), 1);
     }
 
