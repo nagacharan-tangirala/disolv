@@ -1,7 +1,7 @@
 use pavenet_engine::bucket::TimeStamp;
 use serde::Deserialize;
 use std::fmt::Display;
-use std::ops::{Add, AddAssign};
+use std::ops::{Add, AddAssign, Mul};
 use std::str::FromStr;
 
 #[derive(Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -40,6 +40,14 @@ impl TimeS {
     }
     pub fn as_i64(&self) -> i64 {
         self.0 as i64
+    }
+}
+
+impl Mul for TimeS {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0)
     }
 }
 
