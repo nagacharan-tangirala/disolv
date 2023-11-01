@@ -23,7 +23,7 @@ pub struct Selector {
 }
 
 impl Selector {
-    pub fn new(selector_settings: &SelectorSettings) -> Self {
+    pub fn new(selector_settings: SelectorSettings) -> Self {
         Self {
             strategy: selector_settings.strategy,
         }

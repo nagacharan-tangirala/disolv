@@ -1,3 +1,4 @@
+use crate::bucket::TimeS;
 use crate::entity::class::NodeClass;
 use crate::payload::{DataType, TransferStatus};
 use crate::radio::metrics::latency::Latency;
@@ -12,7 +13,7 @@ pub struct DataSource {
     pub node_class: NodeClass,
     pub data_count: u32,
     pub unit_size: f32,
-    pub frequency: u32,
+    pub source_step: TimeS,
 }
 
 impl ResponseContent<DataType> for DataSource {}

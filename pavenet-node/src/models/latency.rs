@@ -167,7 +167,7 @@ impl LatencyVariant {
 }
 
 impl MetricVariant<LatencyConfig, Latency, PayloadInfo, DataType> for LatencyVariant {
-    fn new(variant_config: LatencyConfig) -> Self {
+    fn with_config(variant_config: LatencyConfig) -> Self {
         match variant_config.variant.as_str() {
             "constant" => match Self::build_constant(variant_config) {
                 Ok(dist) => dist,

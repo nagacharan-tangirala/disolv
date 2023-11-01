@@ -74,9 +74,10 @@ pub struct FieldSettings {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
-pub struct MapperSettings {
+pub struct MobilitySettings {
     pub mobility_type: MobilityType,
     pub is_streaming: bool,
+    pub mobility_step: Option<TimeS>,
     pub trace_file: String,
 }
 
@@ -129,7 +130,7 @@ pub struct MapperBuilder {
     config_path: PathBuf,
     streaming_step: TimeS,
     field_settings: FieldSettings,
-    space_settings: MapperSettings,
+    space_settings: MobilitySettings,
 }
 
 impl MapperBuilder {
@@ -150,7 +151,7 @@ impl MapperBuilder {
         self
     }
 
-    pub fn space_settings(mut self, space_settings: MapperSettings) -> Self {
+    pub fn space_settings(mut self, space_settings: MobilitySettings) -> Self {
         self.space_settings = space_settings;
         self
     }

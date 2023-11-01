@@ -34,7 +34,7 @@ impl Responder {
 pub struct StatsResponder {}
 
 impl StatsResponder {
-    pub(crate) fn new(responder_settings: ResponderSettings) -> Self {
+    pub(crate) fn new(_responder_settings: ResponderSettings) -> Self {
         Self {}
     }
 

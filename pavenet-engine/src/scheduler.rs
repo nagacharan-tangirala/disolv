@@ -1,8 +1,8 @@
 use crate::bucket::{Bucket, TimeStamp};
 use crate::engine::GNode;
 use crate::entity::{Entity, Identifier, Kind, Tier};
+use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
-use std::collections::HashMap;
 
 /// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
 /// of calling the scheduler's functions is important to ensure the correct behavior of the engine.

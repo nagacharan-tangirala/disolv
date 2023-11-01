@@ -6,7 +6,7 @@ use pavenet_core::payload::{DPayload, DataType, NodeContent, PayloadInfo};
 use pavenet_core::radio::stats::{InDataStats, OutDataStats};
 use pavenet_core::rand_pcg::Pcg64Mcg;
 use pavenet_core::response::TransferMetrics;
-use pavenet_core::rules::{Actions, Rules};
+use pavenet_core::rules::{Rules, TxAction};
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::radio::{Channel, Feasibility, IncomingStats};
 use pavenet_engine::rules::TxRuleEnforcer;
@@ -50,7 +50,7 @@ impl Radio {
     }
 }
 
-impl Channel<NodeContent, PayloadInfo, DataType, Actions, NodeClass, Rules> for Radio {
+impl Channel<NodeContent, PayloadInfo, DataType, TxAction, NodeClass, Rules> for Radio {
     fn reset(&mut self) {
         self.in_stats = InDataStats::default();
         self.out_stats = OutDataStats::default();
