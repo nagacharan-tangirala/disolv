@@ -62,9 +62,10 @@ pub mod id {
 pub mod class {
     use pavenet_engine::entity::Tier;
     use serde::Deserialize;
-    use std::fmt::Display;
+    use std::fmt::{Debug, Display};
+    use std::hash::Hash;
 
-    #[derive(Deserialize, Default, Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Deserialize, Default, Clone, Eq, Copy, PartialOrd, Ord)]
     #[serde(tag = "class_name", content = "class_order")]
     pub enum NodeClass {
         #[default]
@@ -73,6 +74,30 @@ pub mod class {
         RSU5G(i32),
         BaseStation5G(i32),
         Controller(i32),
+    }
+
+    impl Hash for NodeClass {
+        fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+            self.as_u32().hash(state);
+        }
+    }
+
+    impl Debug for NodeClass {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                NodeClass::None => write!(f, "None"),
+                NodeClass::Vehicle5G(x) => write!(f, "Vehicle5G({})", x),
+                NodeClass::RSU5G(x) => write!(f, "RSU5G({})", x),
+                NodeClass::BaseStation5G(x) => write!(f, "BaseStation5G({})", x),
+                NodeClass::Controller(x) => write!(f, "Controller({})", x),
+            }
+        }
+    }
+
+    impl PartialEq for NodeClass {
+        fn eq(&self, other: &Self) -> bool {
+            self.as_u32() == other.as_u32()
+        }
     }
 
     impl Display for NodeClass {
