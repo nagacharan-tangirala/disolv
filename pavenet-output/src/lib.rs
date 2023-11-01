@@ -1,4 +1,5 @@
-pub mod output;
+pub mod dfs;
+pub mod plots;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

@@ -62,17 +62,13 @@ impl DistType {
 
     fn build_normal(dist_params: DistParams) -> Result<Self> {
         let mean = dist_params.mean.ok_or(anyhow!("Missing mean"))?;
-        let std_dev = dist_params
-            .std_dev
-            .ok_or(anyhow!("Missing std_dev"))?;
+        let std_dev = dist_params.std_dev.ok_or(anyhow!("Missing std_dev"))?;
         Ok(Self::Normal(Normal::new(mean, std_dev)?))
     }
 
     fn build_lognormal(dist_params: DistParams) -> Result<Self> {
         let mean = dist_params.mean.ok_or(anyhow!("Missing mean"))?;
-        let std_dev = dist_params
-            .std_dev
-            .ok_or(anyhow!("Missing std_dev"))?;
+        let std_dev = dist_params.std_dev.ok_or(anyhow!("Missing std_dev"))?;
         Ok(Self::LogNormal(LogNormal::new(mean, std_dev)?))
     }
 
