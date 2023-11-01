@@ -2,7 +2,7 @@ use crate::entity::class::NodeClass;
 use crate::entity::NodeInfo;
 use crate::link::DLink;
 use crate::mobility::MapState;
-use crate::rules::{Actions, DTxRule};
+use crate::rules::{DTxRule, TxAction};
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::payload::{GPayload, PayloadContent, PayloadMetadata, PayloadStatus};
 use pavenet_engine::response::Queryable;
@@ -47,7 +47,7 @@ pub struct PayloadTxInfo {
     pub status: TransferStatus,
     pub next_hop: NodeClass,
     pub final_target: NodeClass,
-    pub fwd_actions: HashMap<DataType, Actions>,
+    pub fwd_actions: HashMap<DataType, TxAction>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -62,17 +62,17 @@ pub struct PayloadInfo {
 impl PayloadInfo {
     pub fn apply_rule(&mut self, tx_rule: &DTxRule) {
         match tx_rule.action {
-            Actions::Consume => self.consume(&tx_rule.query_type),
-            Actions::ForwardToTier(node_tier) => {
+            TxAction::Consume => self.consume(&tx_rule.query_type),
+            TxAction::ForwardToTier(node_tier) => {
                 self.tx_info
                     .fwd_actions
-                    .insert(tx_rule.query_type, Actions::ForwardToTier(node_tier));
+                    .insert(tx_rule.query_type, TxAction::ForwardToTier(node_tier));
                 self.tx_info.next_hop = node_tier;
             }
-            Actions::ForwardToKind(node_type) => {
+            TxAction::ForwardToKind(node_type) => {
                 self.tx_info
                     .fwd_actions
-                    .insert(tx_rule.query_type, Actions::ForwardToKind(node_type));
+                    .insert(tx_rule.query_type, TxAction::ForwardToKind(node_type));
             }
         };
     }
