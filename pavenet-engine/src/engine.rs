@@ -1,7 +1,6 @@
 use super::bucket::Bucket;
 use super::bucket::TimeStamp;
 use crate::entity::{Entity, Identifier, Kind, Tier};
-use crate::scheduler::GNodeScheduler;
 use crate::scheduler::Scheduler;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::{schedule::Schedule, state::State};
@@ -37,18 +36,13 @@ where
     Ts: TimeStamp,
 {
     fn step(&mut self, state: &mut dyn State) {
-        let engine: &mut GEngine<B, GNodeScheduler<B, E, I, K, T, Ts>, Ts> = state
-            .as_any_mut()
-            .downcast_mut::<GEngine<B, GNodeScheduler<B, E, I, K, T, Ts>, Ts>>()
-            .unwrap();
+        let engine: &mut GEngine<B, Ts> =
+            state.as_any_mut().downcast_mut::<GEngine<B, Ts>>().unwrap();
         self.entity.uplink_stage(&mut engine.bucket);
     }
 
     fn after_step(&mut self, state: &mut dyn State) {
-        let engine = state
-            .as_any_mut()
-            .downcast_mut::<GEngine<B, GNodeScheduler<B, E, I, K, T, Ts>, Ts>>()
-            .unwrap();
+        let engine = state.as_any_mut().downcast_mut::<GEngine<B, Ts>>().unwrap();
         self.entity.downlink_stage(&mut engine.bucket);
     }
 
@@ -133,30 +127,27 @@ where
 }
 
 #[derive(TypedBuilder)]
-pub struct GEngine<B, S, T>
+pub struct GEngine<B, T>
 where
     B: Bucket<T>,
-    S: Scheduler<T>,
     T: TimeStamp,
 {
     end_step: T,
     streaming_interval: T,
     pub bucket: B,
-    pub scheduler: S,
     #[builder(default)]
     streaming_step: T,
     #[builder(default)]
     step: T,
 }
 
-impl<B, S, T> State for GEngine<B, S, T>
+impl<B, T> State for GEngine<B, T>
 where
     B: Bucket<T>,
-    S: Scheduler<T>,
     T: TimeStamp,
 {
     fn init(&mut self, schedule: &mut Schedule) {
-        self.scheduler.init(schedule);
+        self.bucket.scheduler().init(schedule);
         self.streaming_step = self.streaming_interval;
         let step = T::from(schedule.step);
         self.bucket.init(step);
@@ -186,7 +177,7 @@ where
     }
 
     fn before_step(&mut self, schedule: &mut Schedule) {
-        self.scheduler.add_to_schedule(schedule);
+        self.bucket.scheduler().add_to_schedule(schedule);
         self.bucket.before_uplink();
         if self.step == self.streaming_step {
             self.bucket.streaming_step(self.step);
@@ -196,7 +187,7 @@ where
 
     fn after_step(&mut self, schedule: &mut Schedule) {
         self.bucket.after_downlink();
-        self.scheduler.remove_from_schedule(schedule);
+        self.bucket.scheduler().remove_from_schedule(schedule);
     }
 
     fn end_condition(&mut self, _schedule: &mut Schedule) -> bool {
@@ -210,7 +201,7 @@ pub(crate) mod tests {
     use super::GNode;
     use crate::bucket::tests::{MyBucket, Ts};
     use crate::entity::tests::{make_device, DeviceType, Level, Nid, TDevice};
-    use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
+    use crate::scheduler::tests::make_scheduler_with_2_devices;
     use krabmaga::simulate;
 
     pub(crate) type MyNode = GNode<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
@@ -220,14 +211,13 @@ pub(crate) mod tests {
         GNode::new(device.id, device, device_type)
     }
 
-    fn make_engine(end_step: Ts, stream_step: Ts) -> GEngine<MyBucket, MyScheduler, Ts> {
+    fn make_engine(end_step: Ts, stream_step: Ts) -> GEngine<MyBucket, Ts> {
         let bucket = MyBucket::new();
         let scheduler = make_scheduler_with_2_devices();
         GEngine::builder()
             .end_step(end_step)
             .streaming_interval(stream_step)
             .bucket(bucket)
-            .scheduler(scheduler)
             .build()
     }
 
