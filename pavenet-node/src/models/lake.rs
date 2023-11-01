@@ -2,20 +2,19 @@ use pavenet_core::entity::id::NodeId;
 use pavenet_core::payload::DPayload;
 use pavenet_core::response::DResponse;
 use pavenet_engine::hashbrown::HashMap;
-use typed_builder::TypedBuilder;
 
 pub type PayloadMap = HashMap<NodeId, Vec<DPayload>>; // TargetNodeId -> Payloads
 pub type ResponseMap = HashMap<NodeId, DResponse>; // TargetNodeId -> Response
 
-#[derive(Clone, Debug, Default, TypedBuilder)]
+#[derive(Clone, Debug, Default)]
 pub struct DataLake {
     pub payloads: PayloadMap,
     pub responses: ResponseMap,
 }
 
 impl DataLake {
-    pub fn payloads_for(&mut self, node_id: NodeId) -> Vec<DPayload> {
-        self.payloads.remove(&node_id).unwrap_or_default()
+    pub fn payloads_for(&mut self, node_id: NodeId) -> Option<Vec<DPayload>> {
+        self.payloads.remove(&node_id)
     }
 
     pub fn add_payload_to(&mut self, node_id: NodeId, payload: DPayload) {
