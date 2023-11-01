@@ -1,35 +1,43 @@
-// Global imports (needed for the simulation to run)
-use crate::model::sea::Sea;
-mod model;
+pub mod base;
+pub mod builder;
+pub mod logger;
+#[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
+pub mod vis;
+
+use clap::Parser;
 
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 use krabmaga::*;
 
+pub static DISCRETIZATION: f32 = 100.0;
+use builder::PavenetBuilder;
+
+#[derive(Parser, Debug)]
+#[command(author, version, long_about = None)]
+struct CliArgs {
+    #[arg(short = 'c', long, value_name = "CONFIG_FILE")]
+    config: String,
+}
+
+/*
+Main used when only the simulation should run, without any visualization.
+*/
+#[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
+fn main() {
+    let args = CliArgs::parse();
+    let mut builder = PavenetBuilder::new(&args.config);
+    let sim_engine: DEngine = builder.build();
+    let duration = builder.duration().as_u64();
+    simulate!(sim_engine, duration, 1);
+}
+
 // Visualization specific imports
+use crate::builder::DEngine;
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 use {
     crate::visualization::sea_vis::SeaVis, krabmaga::bevy::prelude::Color,
     krabmaga::visualization::visualization::Visualization,
 };
-
-#[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
-mod visualization;
-
-pub static DISCRETIZATION: f32 = 10.0 / 1.5;
-pub static TOROIDAL: bool = true;
-
-// Main used when only the simulation should run, without any visualization.
-#[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
-fn main() {
-    let step = 100;
-
-    let num_agents = 20;
-    let dim: (f32, f32) = (400., 400.);
-
-    let state = Sea::new(dim, num_agents);
-
-    simulate!(state, step, 10);
-}
 
 // Main used when a visualization feature is applied.
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]

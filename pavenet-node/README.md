@@ -1,0 +1,1 @@
+This crate demonstrates a node implementation in the form of a Device.

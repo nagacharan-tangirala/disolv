@@ -1,4 +1,7 @@
 /target
 .idea
 /output
-index.html
+/*/test/data/*
+/*/target
+/*/output
+```

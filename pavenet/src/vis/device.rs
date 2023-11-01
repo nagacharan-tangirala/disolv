@@ -9,7 +9,7 @@ use std::f32::consts::PI;
 
 #[derive(Component)]
 pub struct CrabVis {
-    pub(crate) id: u32,
+    pub id: u32,
 }
 
 /// Define how your agent should be rendered here.
