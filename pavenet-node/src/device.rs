@@ -22,10 +22,14 @@ pub type TNode = GNode<DeviceBucket, Device, NodeId, NodeType, NodeClass, TimeS>
 pub struct Device {
     pub node_info: NodeInfo,
     pub models: DeviceModel,
-    pub map_state: MapState,
-    pub power_state: PowerState,
-    pub target_classes: Vec<NodeClass>,
+    #[builder(default)]
+    pub target_classes: Option<Vec<NodeClass>>,
+    #[builder(default)]
     pub step: TimeS,
+    #[builder(default)]
+    pub power_state: PowerState,
+    #[builder(default)]
+    pub map_state: MapState,
 }
 
 impl Device {
