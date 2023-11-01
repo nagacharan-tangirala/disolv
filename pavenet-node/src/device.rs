@@ -1,6 +1,7 @@
 use crate::bucket::DeviceBucket;
 use crate::d_model::DeviceModel;
 use crate::models::power::PowerState;
+use log::debug;
 use pavenet_core::bucket::TimeS;
 use pavenet_core::entity::class::NodeClass;
 use pavenet_core::entity::id::NodeId;
@@ -121,7 +122,7 @@ impl Transmitter<DeviceBucket, NodeContent, NodeType, PayloadInfo, DataType, Nod
 }
 
 impl Responder<DeviceBucket, DataSource, TransferMetrics, DataType, NodeClass, TimeS> for Device {
-    fn receive(&mut self, bucket: &mut DeviceBucket) -> DResponse {
+    fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<DResponse> {
         bucket.data_lake.response_for(self.node_info.id)
     }
 
@@ -138,7 +139,7 @@ impl Responder<DeviceBucket, DataSource, TransferMetrics, DataType, NodeClass, T
         response
     }
 
-    fn respond(&mut self, response: DResponse, bucket: &mut DeviceBucket) {
+    fn respond(&mut self, response: Option<DResponse>, bucket: &mut DeviceBucket) {
         for (node_id, transfer_stats) in self.models.radio.transfer_stats().into_iter() {
             let response = match self.models.responder {
                 Some(ref mut responder) => {
@@ -154,6 +155,11 @@ impl Responder<DeviceBucket, DataSource, TransferMetrics, DataType, NodeClass, T
 impl Entity<DeviceBucket, NodeClass, TimeS> for Device {
     fn uplink_stage(&mut self, bucket: &mut DeviceBucket) {
         self.step = bucket.step;
+        self.power_state = PowerState::On;
+        debug!(
+            "Device: {} is uplinking at {}",
+            self.node_info.id, self.step
+        );
         self.set_mobility(bucket);
 
         let to_forward = match self.collect(bucket) {
@@ -179,14 +185,19 @@ impl Entity<DeviceBucket, NodeClass, TimeS> for Device {
         bucket
             .devices
             .entry(self.node_info.id)
-            .or_insert(self.clone());
+            .and_modify(|device| *device = self.clone());
     }
 
     fn downlink_stage(&mut self, bucket: &mut DeviceBucket) {
-        let response = self.receive(bucket);
-        let processed_response = self.process(response);
+        debug!(
+            "Device: {} is downlinking at {}",
+            self.node_info.id, self.step
+        );
+        let processed_response = match self.receive(bucket) {
+            Some(response) => Some(self.process(response)),
+            None => None,
+        };
         self.respond(processed_response, bucket);
-
         if self.step == self.models.power.peek_time_to_off() {
             bucket.add_to_schedule(self.node_info.id);
             bucket.stop_node(self.node_info.id);
