@@ -1,5 +1,6 @@
-mod config;
-mod scenario;
+pub mod base;
+pub mod builder;
+pub mod logger;
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 pub mod vis;
 
@@ -9,8 +10,8 @@ use clap::Parser;
 use krabmaga::*;
 
 pub static DISCRETIZATION: f32 = 100.0;
-use pavenet_engine::engine::engine::Engine;
-use scenario::builder::PavenetBuilder;
+use builder::PavenetBuilder;
+use pavenet_engine::engine::GEngine;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]
@@ -26,12 +27,13 @@ Main used when only the simulation should run, without any visualization.
 fn main() {
     let args = CliArgs::parse();
     let mut builder = PavenetBuilder::new(&args.base);
-    let sim_engine: Engine = builder.build();
-    let duration = builder.get_duration();
+    let sim_engine: DEngine = builder.build();
+    let duration = builder.duration().as_u64();
     simulate!(sim_engine, duration, 1);
 }
 
 // Visualization specific imports
+use crate::builder::DEngine;
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 use {
     crate::visualization::sea_vis::SeaVis, krabmaga::bevy::prelude::Color,
