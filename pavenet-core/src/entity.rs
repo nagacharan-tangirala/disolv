@@ -65,6 +65,7 @@ pub mod class {
     use std::fmt::Display;
 
     #[derive(Deserialize, Default, Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+    #[serde(tag = "class_name", content = "class_order")]
     pub enum NodeClass {
         #[default]
         None,
