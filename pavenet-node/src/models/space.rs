@@ -88,7 +88,6 @@ impl BucketModel for Mapper {
             MapReader::File(ref mut reader) => reader.fetch_traffic_data(step),
             MapReader::Stream(ref mut reader) => reader.fetch_traffic_data(step),
         };
-        debug!("Mapper has {} map states", self.map_states.len());
     }
 
     fn stream_data(&mut self, step: TimeS) {

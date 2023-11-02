@@ -3,6 +3,7 @@ use crate::device::Device;
 use crate::models::lake::DataLake;
 use crate::models::linker::Linker;
 use crate::models::space::{Mapper, Space};
+use log::debug;
 use pavenet_core::bucket::TimeS;
 use pavenet_core::entity::class::NodeClass;
 use pavenet_core::entity::id::NodeId;
@@ -26,6 +27,7 @@ pub struct DeviceBucket {
     pub mapper_holder: Vec<(NodeType, Mapper)>,
     pub linker_holder: Vec<(NodeType, Linker)>,
     pub class_to_type: HashMap<NodeClass, NodeType>,
+    pub output_step: TimeS,
     #[builder(default)]
     pub step: TimeS,
     #[builder(default)]
@@ -111,8 +113,8 @@ impl Bucket<TimeS> for DeviceBucket {
 
     fn init(&mut self, step: TimeS) {
         self.step = step;
-        self.mapper_holder.iter_mut().for_each(|(_, space)| {
-            space.init(self.step);
+        self.mapper_holder.iter_mut().for_each(|(_, mapper)| {
+            mapper.init(self.step);
         });
         self.linker_holder.iter_mut().for_each(|(_, linker)| {
             linker.init(self.step);
@@ -125,8 +127,8 @@ impl Bucket<TimeS> for DeviceBucket {
     }
 
     fn before_uplink(&mut self) {
-        self.mapper_holder.iter_mut().for_each(|(_, space)| {
-            space.refresh_cache(self.step);
+        self.mapper_holder.iter_mut().for_each(|(_, mapper)| {
+            mapper.refresh_cache(self.step);
         });
         self.linker_holder.iter_mut().for_each(|(_, linker)| {
             linker.refresh_cache(self.step);
