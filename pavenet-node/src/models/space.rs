@@ -1,4 +1,5 @@
 use crate::d_model::BucketModel;
+use log::debug;
 use pavenet_core::bucket::TimeS;
 use pavenet_core::entity::id::NodeId;
 use pavenet_core::mobility::cell::CellId;
@@ -84,17 +85,16 @@ pub struct Mapper {
 impl BucketModel for Mapper {
     fn init(&mut self, step: TimeS) {
         self.map_states = match self.reader {
-            MapReader::File(ref mut reader) => reader.fetch_traffic_data(step).unwrap_or_default(),
-            MapReader::Stream(ref mut reader) => {
-                reader.fetch_traffic_data(step).unwrap_or_default()
-            }
+            MapReader::File(ref mut reader) => reader.fetch_traffic_data(step),
+            MapReader::Stream(ref mut reader) => reader.fetch_traffic_data(step),
         };
+        debug!("Mapper has {} map states", self.map_states.len());
     }
 
     fn stream_data(&mut self, step: TimeS) {
         match self.reader {
             MapReader::Stream(ref mut reader) => {
-                self.map_states = reader.fetch_traffic_data(step).unwrap_or_default();
+                self.map_states = reader.fetch_traffic_data(step);
             }
             _ => {}
         }
