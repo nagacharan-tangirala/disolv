@@ -12,6 +12,7 @@ readme = "README.md"
 pavenet-core = { version = "0.0.0", path= "../pavenet-core" }
 pavenet-engine = { version = "0.0.0", path= "../pavenet-engine" }
 pavenet-input = { version = "0.0.0", path= "../pavenet-input" }
+pavenet-output = { version = "0.0.0", path= "../pavenet-output" }
 log4rs = "1.2.0"
 log = "0.4.20"
 rand = "0.8.5"

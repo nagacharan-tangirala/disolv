@@ -3622,6 +3622,7 @@ dependencies = [
 name = "pavenet-input"
 version = "0.0.0"
 dependencies = [
+ "log",
  "pavenet-core",
  "pavenet-engine",
  "polars",
@@ -3637,6 +3638,7 @@ dependencies = [
  "pavenet-core",
  "pavenet-engine",
  "pavenet-input",
+ "pavenet-output",
  "rand",
  "serde",
  "serde_with",
@@ -3648,6 +3650,9 @@ name = "pavenet-output"
 version = "0.0.0"
 dependencies = [
  "krabmaga",
+ "pavenet-core",
+ "pavenet-engine",
+ "serde",
 ]
 
 [[package]]

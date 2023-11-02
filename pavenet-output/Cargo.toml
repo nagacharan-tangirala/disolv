@@ -4,4 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+pavenet-core = { path = "../pavenet-core" }
+pavenet-engine = { path = "../pavenet-engine" }
 krabmaga = { version = "0.4.1", path= "../../krABMaga" }
+serde = { version = "1.0.190", features = ["derive"] }
