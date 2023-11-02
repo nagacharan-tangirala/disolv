@@ -89,9 +89,9 @@ impl DeviceBucket {
     fn mapper_for(&mut self, node_type: &NodeType) -> &mut Mapper {
         self.mapper_holder
             .iter_mut()
-            .find(|(node_type, _)| *node_type == *node_type)
-            .map(|(_, space)| space)
-            .unwrap_or_else(|| panic!("No mapper for node type: {:?}", node_type))
+            .find(|(n_type, _)| *n_type == *node_type)
+            .map(|(_, mapper)| mapper)
+            .expect("No mapper for node type")
     }
 
     fn update_stats(&mut self) {
