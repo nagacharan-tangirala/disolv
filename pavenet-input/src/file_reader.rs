@@ -14,7 +14,7 @@ pub(crate) fn stream_parquet_in_interval(
 ) -> PolarsResult<DataFrame> {
     let args = ScanArgsParquet::default();
     LazyFrame::scan_parquet(file_name, args)?
-        .filter(col(TIME_STEP).gt(lit(interval_begin.as_u64())))
+        .filter(col(TIME_STEP).gt_eq(lit(interval_begin.as_u64())))
         .filter(col(TIME_STEP).lt(lit(interval_end.as_u64())))
         .collect()
 }
