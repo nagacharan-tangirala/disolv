@@ -1,6 +1,7 @@
 pub mod data {
     use crate::file_reader::{read_file, stream_parquet_in_interval};
     use crate::mobility::df::extract_map_states;
+    use log::debug;
     use pavenet_core::bucket::TimeS;
     use pavenet_core::entity::id::NodeId;
     use pavenet_core::mobility::MapState;
@@ -17,7 +18,7 @@ pub mod data {
     }
 
     pub trait MapFetcher {
-        fn fetch_traffic_data(&self, step: TimeS) -> Result<TraceMap, Box<dyn std::error::Error>>;
+        fn fetch_traffic_data(&self, step: TimeS) -> TraceMap;
     }
 
     #[derive(Clone, Debug, TypedBuilder)]
@@ -26,9 +27,22 @@ pub mod data {
     }
 
     impl MapFetcher for MapStateReader {
-        fn fetch_traffic_data(&self, _step: TimeS) -> Result<TraceMap, Box<dyn std::error::Error>> {
-            let trace_df = read_file(&self.file_path)?;
-            extract_map_states(&trace_df)
+        fn fetch_traffic_data(&self, _step: TimeS) -> TraceMap {
+            let trace_df = match read_file(&self.file_path) {
+                Ok(df) => df,
+                Err(e) => {
+                    debug!("Error reading file: {:?}", e);
+                    panic!("Error reading file: {:?}", e)
+                }
+            };
+            let trace_map = match extract_map_states(&trace_df) {
+                Ok(map) => map,
+                Err(e) => {
+                    debug!("Error extracting map states: {:?}", e);
+                    panic!("Error extracting map states: {:?}", e)
+                }
+            };
+            trace_map
         }
     }
 
@@ -39,12 +53,25 @@ pub mod data {
     }
 
     impl MapFetcher for MapStateStreamer {
-        fn fetch_traffic_data(&self, step: TimeS) -> Result<TraceMap, Box<dyn std::error::Error>> {
+        fn fetch_traffic_data(&self, step: TimeS) -> TraceMap {
             let start_interval: TimeS = step;
             let end_interval: TimeS = step + self.streaming_step;
-            let trace_data_df =
-                stream_parquet_in_interval(&self.file_path, start_interval, end_interval)?;
-            extract_map_states(&trace_data_df)
+            let trace_df =
+                match stream_parquet_in_interval(&self.file_path, start_interval, end_interval) {
+                    Ok(df) => df,
+                    Err(e) => {
+                        debug!("Error reading file: {:?}", e);
+                        panic!("Error reading file: {:?}", e)
+                    }
+                };
+            let trace_map = match extract_map_states(&trace_df) {
+                Ok(map) => map,
+                Err(e) => {
+                    debug!("Error extracting map states: {:?}", e);
+                    panic!("Error extracting map states: {:?}", e)
+                }
+            };
+            trace_map
         }
     }
 }
@@ -98,8 +125,8 @@ pub(super) mod df {
                 continue;
             }
 
-            let node_id_series = ts_df.column(NODE_ID)?;
-            let node_ids: Vec<NodeId> = to_nodeid_vec(node_id_series)?;
+            let node_id_series = ts_df.column(NODE_ID)?.explode()?;
+            let node_ids: Vec<NodeId> = to_nodeid_vec(&node_id_series)?;
 
             let mut map_states: Vec<MapState> = extract_mandatory_data(&ts_df)?;
             add_optional_data(&ts_df, &mut map_states)?;
@@ -144,10 +171,10 @@ pub(super) mod df {
     }
 
     fn extract_mandatory_data(df: &DataFrame) -> Result<Vec<MapState>, Box<dyn std::error::Error>> {
-        let x_series = df.column(COORD_X)?;
-        let x_positions: Vec<f32> = to_f32_vec(x_series)?;
-        let y_series = df.column(COORD_Y)?;
-        let y_positions: Vec<f32> = to_f32_vec(y_series)?;
+        let x_series = df.column(COORD_X)?.explode()?;
+        let x_positions: Vec<f32> = to_f32_vec(&x_series)?;
+        let y_series = df.column(COORD_Y)?.explode()?;
+        let y_positions: Vec<f32> = to_f32_vec(&y_series)?;
 
         let map_states: Vec<MapState> = x_positions
             .iter()
@@ -165,8 +192,8 @@ pub(super) mod df {
         for optional_col in optional_columns.into_iter() {
             match optional_col {
                 COORD_Z => {
-                    let z_series = df.column(COORD_Z)?;
-                    let z_positions: Vec<f32> = to_f32_vec(z_series)?;
+                    let z_series = df.column(COORD_Z)?.explode()?;
+                    let z_positions: Vec<f32> = to_f32_vec(&z_series)?;
                     map_states
                         .iter_mut()
                         .enumerate()
@@ -175,8 +202,8 @@ pub(super) mod df {
                         });
                 }
                 VELOCITY => {
-                    let vel_series = df.column(VELOCITY)?;
-                    let velocities: Vec<Velocity> = to_velocity_vec(vel_series)?;
+                    let vel_series = df.column(VELOCITY)?.explode()?;
+                    let velocities: Vec<Velocity> = to_velocity_vec(&vel_series)?;
                     map_states
                         .iter_mut()
                         .enumerate()
@@ -185,8 +212,8 @@ pub(super) mod df {
                         });
                 }
                 ROAD_ID => {
-                    let road_id_series = df.column(ROAD_ID)?;
-                    let road_ids: Vec<RoadId> = to_roadid_vec(road_id_series)?;
+                    let road_id_series = df.column(ROAD_ID)?.explode()?;
+                    let road_ids: Vec<RoadId> = to_roadid_vec(&road_id_series)?;
                     map_states
                         .iter_mut()
                         .enumerate()
