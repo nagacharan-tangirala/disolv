@@ -228,6 +228,7 @@ impl PavenetBuilder {
             .space(self.build_space())
             .rules(Rules::new(self.base_config.tx_rules.clone()))
             .class_to_type(self.read_class_to_type_map())
+            .output_step(self.output_step())
             .build()
     }
 
@@ -310,5 +311,9 @@ impl PavenetBuilder {
 
     fn sim_seed(&self) -> u128 {
         return u128::from(self.base_config.simulation_settings.sim_seed);
+    }
+
+    fn output_step(&self) -> TimeS {
+        return self.base_config.output_settings.output_step;
     }
 }

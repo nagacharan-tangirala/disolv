@@ -43,6 +43,7 @@ pub struct LogSettings {
 pub struct OutputSettings {
     pub output_path: String,
     pub output_type: String,
+    pub output_step: TimeS,
 }
 
 #[derive(Deserialize, Debug, Clone)]
