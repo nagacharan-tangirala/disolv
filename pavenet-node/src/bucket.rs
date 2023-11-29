@@ -6,14 +6,14 @@ use crate::models::result::Resultant;
 use crate::models::space::{Mapper, Space};
 use log::{debug, info};
 use pavenet_core::entity::class::NodeClass;
-use pavenet_engine::entity::NodeId;
 use pavenet_core::entity::kind::NodeType;
-use pavenet_core::link::{DLink, DLinkOptions};
+use pavenet_core::link::DLink;
 use pavenet_core::mobility::MapState;
 use pavenet_core::radio::stats::InDataStats;
 use pavenet_core::rules::Rules;
-use pavenet_engine::bucket::TimeS;
 use pavenet_engine::bucket::Bucket;
+use pavenet_engine::bucket::TimeS;
+use pavenet_engine::entity::NodeId;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::result::Saveable;
 use pavenet_engine::scheduler::GNodeScheduler;
@@ -46,7 +46,7 @@ impl DeviceBucket {
         &mut self,
         node_id: NodeId,
         target_type: &NodeType,
-    ) -> Option<DLinkOptions> {
+    ) -> Option<Vec<DLink>> {
         match self.linker_for(target_type) {
             Some(linker) => linker.links_of(node_id),
             None => None,

@@ -1,7 +1,7 @@
-use pavenet_engine::link::{GLink, GLinkOptions, LinkFeatures};
+use pavenet_engine::link::{GLink, LinkFeatures};
 use typed_builder::TypedBuilder;
 
-#[derive(Debug, Clone, Default, TypedBuilder)]
+#[derive(Debug, Copy, Clone, Default, TypedBuilder)]
 pub struct LinkProperties {
     #[builder(default = None)]
     pub distance: Option<f32>,
@@ -12,4 +12,3 @@ pub struct LinkProperties {
 impl LinkFeatures for LinkProperties {}
 
 pub type DLink = GLink<LinkProperties>;
-pub type DLinkOptions = GLinkOptions<LinkProperties>;
