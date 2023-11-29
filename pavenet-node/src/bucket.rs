@@ -30,6 +30,7 @@ pub struct DeviceBucket {
     pub linker_holder: Vec<(NodeType, Linker)>,
     pub class_to_type: HashMap<NodeClass, NodeType>,
     pub output_step: TimeS,
+    pub resultant: Resultant,
     #[builder(default)]
     pub step: TimeS,
     #[builder(default)]
@@ -139,6 +140,12 @@ impl Bucket for DeviceBucket {
 
     fn after_downlink(&mut self) {
         self.transfer_stats.clear();
+        self.save_device_stats(self.step);
+        self.save_data_stats(self.step);
+        if self.step == self.output_step {
+            self.resultant.result_writer.write_output(self.step);
+            self.output_step += self.output_step;
+        }
     }
 
     fn streaming_step(&mut self, step: TimeS) {
@@ -148,5 +155,23 @@ impl Bucket for DeviceBucket {
         self.linker_holder.iter_mut().for_each(|(_, linker)| {
             linker.stream_data(step);
         });
+    }
+}
+
+impl Saveable for DeviceBucket {
+    fn save_device_stats(&mut self, step: TimeS) {
+        for (node_id, device) in self.devices.iter() {
+            self.resultant
+                .result_writer
+                .add_node_pos(step, *node_id, &device.map_state);
+        }
+    }
+
+    fn save_data_stats(&mut self, step: TimeS) {
+        for (node_id, device) in self.devices.iter() {
+            self.resultant
+                .result_writer
+                .add_rx_data(step, *node_id, &device.models.radio.in_stats);
+        }
     }
 }
