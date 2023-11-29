@@ -107,15 +107,17 @@ impl BasicComposer {
                 continue;
             }
 
-            let data_type = ds_settings.data_type;
-            let mut data_counts = ds_settings.data_count;
-            let mut data_size = ds_settings.unit_size * data_counts as f32;
+            if self.step.as_u32() % ds_settings.source_step.as_u32() != TimeS::default().as_u32() {
+                continue;
+            }
 
-            data_counts = (data_counts as f32 * self.data_handler.sampling_factor).round() as u32;
+            let data_type = ds_settings.data_type;
+            let mut data_size = ds_settings.data_size;
+
             data_size = data_size * self.data_handler.compression;
 
             payload_stats.size_by_type.insert(data_type, data_size);
-            payload_stats.count_by_type.insert(data_type, data_counts);
+            payload_stats.count_by_type.insert(data_type, 1);
         }
         return payload_stats;
     }

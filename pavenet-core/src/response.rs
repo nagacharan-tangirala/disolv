@@ -11,8 +11,7 @@ pub type DResponse = GResponse<DataSource, TransferMetrics, DataType>;
 pub struct DataSource {
     pub data_type: DataType,
     pub node_class: NodeClass,
-    pub data_count: u32,
-    pub unit_size: f32,
+    pub data_size: f32,
     pub source_step: TimeS,
 }
 
