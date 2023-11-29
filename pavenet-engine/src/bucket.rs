@@ -1,101 +1,118 @@
 use crate::scheduler::Scheduler;
-use std::ops::{Add, AddAssign, Mul};
+use serde::Deserialize;
+use std::fmt::Display;
+use std::ops::{Add, AddAssign, Div, Mul};
+use std::str::FromStr;
 
-/// A trait used to represent time stamps. Use this to define your own time stamp type.
-/// All the engine parameters should be defined using this type.
-pub trait TimeStamp:
-    Default
-    + Copy
-    + AddAssign
-    + Clone
-    + Ord
-    + Mul<Output = Self>
-    + Add<Output = Self>
-    + Send
-    + Sync
-    + From<u64>
-    + 'static
-{
-    fn as_f32(&self) -> f32;
+#[derive(Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct TimeS(pub u64);
+
+impl Display for TimeS {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:09}", self.0)
+    }
+}
+
+impl FromStr for TimeS {
+    type Err = std::num::ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let id = s.parse::<u64>()?;
+        Ok(Self(id))
+    }
+}
+
+impl From<u64> for TimeS {
+    fn from(f: u64) -> Self {
+        Self(f)
+    }
+}
+
+impl From<i32> for TimeS {
+    fn from(f: i32) -> Self {
+        Self(f as u64)
+    }
+}
+
+impl From<i64> for TimeS {
+    fn from(f: i64) -> Self {
+        Self(f as u64)
+    }
+}
+
+impl TimeS {
+    pub fn as_u64(&self) -> u64 {
+        self.0
+    }
+    pub fn as_u32(&self) -> u32 {
+        self.0 as u32
+    }
+    pub fn as_i64(&self) -> i64 {
+        self.0 as i64
+    }
+    pub fn as_f64(&self) -> f64 {
+        self.0 as f64
+    }
+    pub fn as_f32(&self) -> f32 {
+        self.0 as f32
+    }
+}
+
+impl Mul for TimeS {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0)
+    }
+}
+
+impl Div for TimeS {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        Self(self.0 / rhs.0)
+    }
+}
+
+impl Add for TimeS {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+impl AddAssign for TimeS {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+    }
 }
 
 /// A trait passed to the entity so that an entity can access other entities. Any common models
 /// applicable to all the entities irrespective of type should be assigned to a struct that
 /// implements this trait.
-pub trait Bucket<T>: Clone + Send + Sync + 'static
-where
-    T: TimeStamp,
-{
-    type SchedulerImpl: Scheduler<T>;
+pub trait Bucket: Clone + Send + Sync + 'static {
+    type SchedulerImpl: Scheduler;
 
     fn scheduler(&mut self) -> &mut Self::SchedulerImpl;
-    fn init(&mut self, step: T);
-    fn update(&mut self, step: T);
+    fn init(&mut self, step: TimeS);
+    fn update(&mut self, step: TimeS);
     fn before_uplink(&mut self);
     fn after_downlink(&mut self);
-    fn streaming_step(&mut self, step: T);
+    fn streaming_step(&mut self, step: TimeS);
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{Bucket, TimeStamp};
+    use super::Bucket;
+    use super::TimeS;
+    use crate::result::Saveable;
     use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
     use std::fmt::Display;
-    use std::ops::{Add, AddAssign, Mul};
-
-    #[derive(Default, Clone, Copy, Debug, Ord, PartialOrd, PartialEq, Eq, Hash)]
-    pub struct Ts(u32);
-
-    impl AddAssign for Ts {
-        fn add_assign(&mut self, rhs: Self) {
-            self.0 += rhs.0;
-        }
-    }
-
-    impl Mul for Ts {
-        type Output = Self;
-
-        fn mul(self, rhs: Self) -> Self::Output {
-            Self(self.0 * rhs.0)
-        }
-    }
-
-    impl Add for Ts {
-        type Output = Self;
-
-        fn add(self, rhs: Self) -> Self::Output {
-            Self(self.0 + rhs.0)
-        }
-    }
-
-    impl From<u64> for Ts {
-        fn from(value: u64) -> Self {
-            Self(value as u32)
-        }
-    }
-
-    impl Into<u64> for Ts {
-        fn into(self) -> u64 {
-            self.0 as u64
-        }
-    }
-
-    impl TimeStamp for Ts {
-        fn as_f32(&self) -> f32 {
-            self.0 as f32
-        }
-    }
-
-    impl Display for Ts {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.0)
-        }
-    }
 
     #[derive(Default, Clone)]
     pub(crate) struct MyBucket {
         pub(crate) scheduler: MyScheduler,
-        pub(crate) step: Ts,
+        pub(crate) step: TimeS,
     }
 
     impl MyBucket {
@@ -103,22 +120,31 @@ pub(crate) mod tests {
             let scheduler = make_scheduler_with_2_devices();
             Self {
                 scheduler,
-                step: Ts::default(),
+                step: TimeS::default(),
             }
         }
     }
 
-    impl Bucket<Ts> for MyBucket {
+    impl Saveable for MyBucket {
+        fn save_device_stats(&mut self, time: TimeS) {
+            todo!()
+        }
+        fn save_data_stats(&mut self, time: TimeS) {
+            todo!()
+        }
+    }
+
+    impl Bucket for MyBucket {
         type SchedulerImpl = MyScheduler;
         fn scheduler(&mut self) -> &mut MyScheduler {
             &mut self.scheduler
         }
 
-        fn init(&mut self, step: Ts) {
+        fn init(&mut self, step: TimeS) {
             self.step = step;
         }
 
-        fn update(&mut self, step: Ts) {
+        fn update(&mut self, step: TimeS) {
             self.step = step;
             println!("Update in MyBucket at {}", step);
         }
@@ -131,7 +157,7 @@ pub(crate) mod tests {
             println!("after_downlink in MyBucket");
         }
 
-        fn streaming_step(&mut self, step: Ts) {
+        fn streaming_step(&mut self, step: TimeS) {
             println!("Streaming step in bucket at {}", step);
         }
     }
@@ -140,14 +166,14 @@ pub(crate) mod tests {
     fn test_bucket_update() {
         let mut bucket = MyBucket::default();
         let scheduler = MyScheduler::default();
-        let step0 = Ts::from(0);
+        let step0 = TimeS::from(0i64);
         bucket.init(step0);
-        assert_eq!(bucket.step, Ts::from(0));
-        let step1 = Ts::from(1);
+        assert_eq!(bucket.step, TimeS::from(0i64));
+        let step1 = TimeS::from(1i64);
         bucket.update(step1);
-        assert_eq!(bucket.step, Ts::from(1));
-        let step2 = Ts::from(2);
+        assert_eq!(bucket.step, TimeS::from(1i64));
+        let step2 = TimeS::from(2i64);
         bucket.update(step2);
-        assert_eq!(bucket.step, Ts::from(2));
+        assert_eq!(bucket.step, TimeS::from(2i64));
     }
 }
