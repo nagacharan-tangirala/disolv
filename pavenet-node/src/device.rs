@@ -79,20 +79,14 @@ impl Schedulable for Device {
     }
 }
 
-impl Transmitter<DeviceBucket, NodeContent, NodeType, PayloadInfo, DataType, NodeClass, TimeS>
-    for Device
-{
-    fn collect(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<DPayload>> {
-        bucket.data_lake.payloads_for(self.node_info.id)
-    }
-
-    fn payloads_to_forward(
-        &mut self,
-        bucket: &mut DeviceBucket,
-        payloads: Vec<DPayload>,
-    ) -> Vec<DPayload> {
-        let feasible = self.models.radio.can_transfer(payloads);
-        let to_forward = self.models.radio.apply_tx_rules(&bucket.rules, feasible);
+impl Transmitter<DeviceBucket, NodeContent, NodeType, PayloadInfo, DataType, NodeClass> for Device {
+    fn collect(&mut self, bucket: &mut DeviceBucket) -> Vec<DPayload> {
+        let incoming = match bucket.data_lake.payloads_for(self.node_info.id) {
+            Some(incoming) => incoming,
+            None => return Vec::new(),
+        };
+        let feasible = self.models.radio.can_transfer(incoming);
+        let to_forward = self.models.radio.filter_to_forward(&bucket.rules, feasible);
         return to_forward;
     }
 
@@ -111,32 +105,33 @@ impl Transmitter<DeviceBucket, NodeContent, NodeType, PayloadInfo, DataType, Nod
             Some(links) => links,
             None => return,
         };
-        let stats = bucket.stats_for(&link_options.link_opts);
+        let stats = bucket.stats_for(&link_options);
         let target_link = match self.models.selector {
             Some(ref mut selector) => selector.select_target(link_options, &stats),
             None => return,
         };
         self.models.radio.out_stats.update(&payload.metadata);
+        bucket
+            .resultant
+            .result_writer
+            .add_tx_data(self.step, &payload);
         bucket.data_lake.add_payload_to(target_link.target, payload)
     }
 }
 
 impl Responder<DeviceBucket, DataSource, TransferMetrics, DataType, NodeClass, TimeS> for Device {
     fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<DResponse> {
-        bucket.data_lake.response_for(self.node_info.id)
-    }
-
-    fn process(&mut self, response: DResponse) -> DResponse {
-        if response.content.is_none() {
-            return response;
-        }
+        let response = match bucket.data_lake.response_for(self.node_info.id) {
+            Some(response) => response,
+            None => return None,
+        };
         match self.models.composer {
             Some(ref mut composer) => {
                 composer.update_sources(response.content.as_ref().unwrap());
             }
-            None => (),
+            None => return None,
         };
-        response
+        Some(response)
     }
 
     fn respond(&mut self, response: Option<DResponse>, bucket: &mut DeviceBucket) {
@@ -152,20 +147,13 @@ impl Responder<DeviceBucket, DataSource, TransferMetrics, DataType, NodeClass, T
     }
 }
 
-impl Entity<DeviceBucket, NodeClass, TimeS> for Device {
+impl Entity<DeviceBucket, NodeClass> for Device {
     fn uplink_stage(&mut self, bucket: &mut DeviceBucket) {
         self.step = bucket.step;
         self.power_state = PowerState::On;
-        debug!(
-            "Device: {} is uplinking at {}",
-            self.node_info.id, self.step
-        );
         self.set_mobility(bucket);
 
-        let to_forward = match self.collect(bucket) {
-            Some(incoming) => self.payloads_to_forward(bucket, incoming),
-            None => Vec::new(),
-        };
+        let payloads_to_fwd = self.collect(bucket);
 
         match self.target_classes {
             Some(ref target_classes) => {
@@ -174,7 +162,7 @@ impl Entity<DeviceBucket, NodeClass, TimeS> for Device {
                     target_classes.iter().map(|x| bucket.kind_for(x)).collect();
 
                 for (target_type, target_class) in target_types.iter().zip(target_classes.iter()) {
-                    match self.compose(target_class, &to_forward) {
+                    match self.compose(target_class, &payloads_to_fwd) {
                         Some(payload) => self.transmit(target_type, payload, bucket),
                         None => {}
                     };
@@ -185,19 +173,13 @@ impl Entity<DeviceBucket, NodeClass, TimeS> for Device {
         bucket
             .devices
             .entry(self.node_info.id)
-            .and_modify(|device| *device = self.clone());
+            .and_modify(|device| *device = self.clone())
+            .or_insert(self.clone());
     }
 
     fn downlink_stage(&mut self, bucket: &mut DeviceBucket) {
-        debug!(
-            "Device: {} is downlinking at {}",
-            self.node_info.id, self.step
-        );
-        let processed_response = match self.receive(bucket) {
-            Some(response) => Some(self.process(response)),
-            None => None,
-        };
-        self.respond(processed_response, bucket);
+        let response = self.receive(bucket);
+        self.respond(response, bucket);
         if self.step == self.models.power.peek_time_to_off() {
             bucket.add_to_schedule(self.node_info.id);
             bucket.stop_node(self.node_info.id);
