@@ -1,6 +1,5 @@
-use super::bucket::Bucket;
-use super::bucket::TimeStamp;
-use crate::entity::{Entity, Identifier, Kind, Tier};
+use super::bucket::{Bucket, TimeS};
+use crate::entity::{Entity, Kind, NodeId, Tier};
 use crate::scheduler::Scheduler;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::{schedule::Schedule, state::State};
@@ -11,38 +10,33 @@ use std::hash::{Hash, Hasher};
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Default)]
-pub struct GNode<B, E, I, K, T, Ts>
+pub struct GNode<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
-    pub node_id: I,
+    pub node_id: NodeId,
     pub entity: E,
     pub kind: K,
-    _marker: std::marker::PhantomData<fn() -> (B, T, Ts)>,
+    _marker: std::marker::PhantomData<fn() -> (B, T)>,
 }
 
-impl<B, E, I, K, T, Ts> Agent for GNode<B, E, I, K, T, Ts>
+impl<B, E, K, T> Agent for GNode<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
     fn step(&mut self, state: &mut dyn State) {
-        let engine: &mut GEngine<B, Ts> =
-            state.as_any_mut().downcast_mut::<GEngine<B, Ts>>().unwrap();
+        let engine: &mut GEngine<B> = state.as_any_mut().downcast_mut::<GEngine<B>>().unwrap();
         self.entity.uplink_stage(&mut engine.bucket);
     }
 
     fn after_step(&mut self, state: &mut dyn State) {
-        let engine = state.as_any_mut().downcast_mut::<GEngine<B, Ts>>().unwrap();
+        let engine = state.as_any_mut().downcast_mut::<GEngine<B>>().unwrap();
         self.entity.downlink_stage(&mut engine.bucket);
     }
 
@@ -51,16 +45,14 @@ where
     }
 }
 
-impl<B, E, I, K, T, Ts> GNode<B, E, I, K, T, Ts>
+impl<B, E, K, T> GNode<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
-    pub fn new(node_id: I, node: E, kind: K) -> Self {
+    pub fn new(node_id: NodeId, node: E, kind: K) -> Self {
         Self {
             node_id,
             entity: node,
@@ -70,14 +62,12 @@ where
     }
 }
 
-impl<B, E, I, K, T, Ts> Hash for GNode<B, E, I, K, T, Ts>
+impl<B, E, K, T> Hash for GNode<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
     fn hash<H>(&self, state: &mut H)
     where
@@ -87,70 +77,62 @@ where
     }
 }
 
-impl<B, E, I, K, T, Ts> Display for GNode<B, E, I, K, T, Ts>
+impl<B, E, K, T> Display for GNode<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.node_id)
     }
 }
 
-impl<B, E, I, K, T, Ts> PartialEq for GNode<B, E, I, K, T, Ts>
+impl<B, E, K, T> PartialEq for GNode<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
-    fn eq(&self, other: &GNode<B, E, I, K, T, Ts>) -> bool {
+    fn eq(&self, other: &GNode<B, E, K, T>) -> bool {
         self.node_id == other.node_id
     }
 }
 
-impl<B, E, I, K, T, Ts> Eq for GNode<B, E, I, K, T, Ts>
+impl<B, E, K, T> Eq for GNode<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
 }
 
 #[derive(TypedBuilder)]
-pub struct GEngine<B, T>
+pub struct GEngine<B>
 where
-    B: Bucket<T>,
-    T: TimeStamp,
+    B: Bucket,
 {
-    end_step: T,
-    streaming_interval: T,
+    end_step: TimeS,
+    streaming_interval: TimeS,
     pub bucket: B,
     #[builder(default)]
-    streaming_step: T,
+    streaming_step: TimeS,
     #[builder(default)]
-    step: T,
-    step_size: T,
+    step: TimeS,
+    step_size: TimeS,
 }
 
-impl<B, T> State for GEngine<B, T>
+impl<B> State for GEngine<B>
 where
-    B: Bucket<T>,
-    T: TimeStamp,
+    B: Bucket,
 {
     fn init(&mut self, schedule: &mut Schedule) {
         self.bucket.scheduler().init(schedule);
         self.streaming_step = self.streaming_interval;
-        let step = T::from(schedule.step);
+        let step = TimeS::from(schedule.step);
         self.bucket.init(step);
     }
 
@@ -173,7 +155,7 @@ where
     fn reset(&mut self) {}
 
     fn update(&mut self, step: u64) {
-        self.step = T::from(step) * self.step_size;
+        self.step = TimeS::from(step) * self.step_size;
         self.bucket.update(self.step);
     }
 
@@ -200,19 +182,21 @@ where
 pub(crate) mod tests {
     use super::GEngine;
     use super::GNode;
-    use crate::bucket::tests::{MyBucket, Ts};
-    use crate::entity::tests::{make_device, DeviceType, Level, Nid, TDevice};
+    use crate::bucket::tests::MyBucket;
+    use crate::bucket::TimeS;
+    use crate::entity::tests::{make_device, DeviceType, Level, TDevice};
+    use crate::entity::NodeId;
     use crate::scheduler::tests::make_scheduler_with_2_devices;
     use krabmaga::simulate;
 
-    pub(crate) type MyNode = GNode<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
+    pub(crate) type MyNode = GNode<MyBucket, TDevice, DeviceType, Level>;
 
     pub(crate) fn as_node(device: TDevice) -> MyNode {
         let device_type = device.device_type.clone();
         GNode::new(device.id, device, device_type)
     }
 
-    fn make_engine(end_step: Ts, stream_step: Ts, step_size: Ts) -> GEngine<MyBucket, Ts> {
+    fn make_engine(end_step: TimeS, stream_step: TimeS, step_size: TimeS) -> GEngine<MyBucket> {
         let bucket = MyBucket::new();
         let scheduler = make_scheduler_with_2_devices();
         GEngine::builder()
@@ -225,30 +209,30 @@ pub(crate) mod tests {
 
     #[test]
     fn test_engine_making() {
-        let end_step = Ts::from(100);
-        let stream_step = Ts::from(10);
-        let step_size = Ts::from(1);
+        let end_step = TimeS::from(100);
+        let stream_step = TimeS::from(10);
+        let step_size = TimeS::from(1);
         let engine = make_engine(end_step, stream_step, step_size);
-        assert_eq!(engine.step, Ts::default());
-        assert_eq!(engine.streaming_step, Ts::default());
-        assert_eq!(engine.streaming_interval, Ts::from(10));
-        assert_eq!(engine.end_step, Ts::from(100));
+        assert_eq!(engine.step, TimeS::default());
+        assert_eq!(engine.streaming_step, TimeS::default());
+        assert_eq!(engine.streaming_interval, TimeS::from(10));
+        assert_eq!(engine.end_step, TimeS::from(100));
     }
 
     #[test]
     fn test_simulation() {
-        let end_step = Ts::from(100);
-        let stream_step = Ts::from(10);
-        let step_size = Ts::from(10);
+        let end_step = TimeS::from(100);
+        let stream_step = TimeS::from(50);
+        let step_size = TimeS::from(10);
         let engine = make_engine(end_step, stream_step, step_size);
-        simulate!(engine, end_step.into(), 1);
+        simulate!(engine, end_step.as_u64(), 1);
     }
 
     #[test]
     fn test_make_nodes() {
-        let device_a = make_device(Nid::from(1), DeviceType::TypeA, 1);
+        let device_a = make_device(NodeId::from(1), DeviceType::TypeA, 1);
         let node_a = as_node(device_a);
-        assert_eq!(node_a.node_id, Nid::from(1));
+        assert_eq!(node_a.node_id, NodeId::from(1));
         assert_eq!(node_a.kind, DeviceType::TypeA);
     }
 }
