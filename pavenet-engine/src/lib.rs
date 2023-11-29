@@ -6,6 +6,7 @@ pub mod link;
 pub mod payload;
 pub mod radio;
 pub mod response;
+pub mod result;
 pub mod rules;
 pub mod scheduler;
 
