@@ -70,76 +70,8 @@ pub(crate) mod series {
     }
 }
 
-pub(crate) mod list_series {
-    use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
-    use polars::prelude::Series;
-    use std::slice;
-
-    pub(crate) fn to_vec_of_nodeid_vec(
-        list_series: &Series,
-    ) -> Result<Vec<Vec<NodeId>>, Box<dyn std::error::Error>> {
-        let mut result_vec: Vec<Vec<NodeId>> = Vec::with_capacity(list_series.len());
-        for n in list_series.iter() {
-            let x = Series::from_any_values("a", slice::from_ref(&n), true)?;
-            let x_vec = x.explode()?.i64()?.to_vec();
-            let x_vec: Vec<NodeId> = x_vec
-                .iter()
-                .filter_map(|x| *x)
-                .map(|x| NodeId::from(x))
-                .collect();
-            result_vec.push(x_vec);
-        }
-        Ok(result_vec)
-    }
-
-    pub(crate) fn to_vec_of_f32_vec(
-        list_series: &Series,
-    ) -> Result<Vec<Vec<f32>>, Box<dyn std::error::Error>> {
-        let mut result_vec: Vec<Vec<f32>> = Vec::with_capacity(list_series.len());
-        for n in list_series.iter() {
-            let x = Series::from_any_values("a", slice::from_ref(&n), true)?;
-            let x_vec = x.explode()?.f64()?.to_vec();
-            let x_vec: Vec<f32> = x_vec.iter().filter_map(|x| *x).map(|x| x as f32).collect();
-            result_vec.push(x_vec);
-        }
-        Ok(result_vec)
-    }
-
-    pub(crate) fn to_vec_of_i64_vec(
-        list_series: &Series,
-    ) -> Result<Vec<Vec<i64>>, Box<dyn std::error::Error>> {
-        let mut result_vec: Vec<Vec<i64>> = Vec::with_capacity(list_series.len());
-        for n in list_series.iter() {
-            let x = Series::from_any_values("a", slice::from_ref(&n), true)?;
-            let x_vec = x.explode()?.i64()?.to_vec();
-            let x_vec: Vec<i64> = x_vec.iter().filter_map(|x| *x).collect();
-            result_vec.push(x_vec);
-        }
-        Ok(result_vec)
-    }
-
-    pub(crate) fn to_vec_of_timestamp_vec(
-        list_series: &Series,
-    ) -> Result<Vec<Vec<TimeS>>, Box<dyn std::error::Error>> {
-        let mut result_vec: Vec<Vec<TimeS>> = Vec::with_capacity(list_series.len());
-        for n in list_series.iter() {
-            let x = Series::from_any_values("a", slice::from_ref(&n), true)?;
-            let x_vec = x.explode()?.i64()?.to_vec();
-            let x_vec: Vec<TimeS> = x_vec
-                .iter()
-                .filter_map(|x| *x)
-                .map(|x| TimeS::from(x))
-                .collect();
-            result_vec.push(x_vec);
-        }
-        Ok(result_vec)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::list_series::*;
     use super::series::*;
     use pavenet_core::mobility::road::RoadId;
     use pavenet_core::mobility::velocity::Velocity;
@@ -201,58 +133,6 @@ mod tests {
                 Velocity::from(1f64),
                 Velocity::from(2f64),
                 Velocity::from(3f64)
-            ]
-        );
-    }
-
-    #[test]
-    fn test_to_vec_of_nodeid_vec() {
-        let series = Series::new("a", &[Some(1i64), Some(2i64), Some(3i64)]);
-        let series2 = Series::new("a", &[Some(4i64), Some(5i64), Some(6i64)]);
-        let list_series = Series::new("a", &[Some(series), Some(series2)]);
-        println!("{:?}", list_series);
-        let result = to_vec_of_nodeid_vec(&list_series).unwrap();
-        assert_eq!(
-            result,
-            vec![
-                vec![NodeId::from(1i64), NodeId::from(2i64), NodeId::from(3i64)],
-                vec![NodeId::from(4i64), NodeId::from(5i64), NodeId::from(6i64)]
-            ]
-        );
-    }
-
-    #[test]
-    fn test_to_vec_of_f32_vec() {
-        let series = Series::new("a", &[Some(1f64), Some(2f64), Some(3f64)]);
-        let series2 = Series::new("a", &[Some(4f64), Some(5f64), Some(6f64)]);
-        let list_series = Series::new("a", &[Some(series), Some(series2)]);
-        println!("{:?}", list_series);
-        let result = to_vec_of_f32_vec(&list_series).unwrap();
-        assert_eq!(result, vec![vec![1f32, 2f32, 3f32], vec![4f32, 5f32, 6f32]]);
-    }
-
-    #[test]
-    fn test_to_vec_of_i64_vec() {
-        let series = Series::new("a", &[Some(1i64), Some(2i64), Some(3i64)]);
-        let series2 = Series::new("a", &[Some(4i64), Some(5i64), Some(6i64)]);
-        let list_series = Series::new("a", &[Some(series), Some(series2)]);
-        println!("{:?}", list_series);
-        let result = to_vec_of_i64_vec(&list_series).unwrap();
-        assert_eq!(result, vec![vec![1i64, 2i64, 3i64], vec![4i64, 5i64, 6i64]]);
-    }
-
-    #[test]
-    fn test_to_vec_of_timestamp_vec() {
-        let series = Series::new("a", &[Some(1i64), Some(2i64), Some(3i64)]);
-        let series2 = Series::new("a", &[Some(4i64), Some(5i64), Some(6i64)]);
-        let list_series = Series::new("a", &[Some(series), Some(series2)]);
-        println!("{:?}", list_series);
-        let result = to_vec_of_timestamp_vec(&list_series).unwrap();
-        assert_eq!(
-            result,
-            vec![
-                vec![TimeS::from(1i64), TimeS::from(2i64), TimeS::from(3i64)],
-                vec![TimeS::from(4i64), TimeS::from(5i64), TimeS::from(6i64)]
             ]
         );
     }
