@@ -1,7 +1,8 @@
-use pavenet_core::bucket::TimeS;
 use pavenet_core::entity::class::NodeClass;
 use pavenet_core::entity::kind::NodeType;
+use pavenet_core::result::OutputSettings;
 use pavenet_core::rules::RuleSettings;
+use pavenet_engine::bucket::TimeS;
 use pavenet_node::models::compose::ComposerSettings;
 use pavenet_node::models::latency::LatencyConfig;
 use pavenet_node::models::linker::LinkerSettings;
@@ -37,13 +38,6 @@ pub struct LogSettings {
     pub log_level: String,
     pub log_file_name: String,
     pub log_overwrite: bool,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct OutputSettings {
-    pub output_path: String,
-    pub output_type: String,
-    pub output_step: TimeS,
 }
 
 #[derive(Deserialize, Debug, Clone)]
