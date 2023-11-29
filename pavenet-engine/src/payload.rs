@@ -51,24 +51,16 @@ where
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
 /// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
 /// This should be called in the <code>uplink_stage</code> method of the entity.
-pub trait Transmitter<B, C, K, M, Q, T, Ts>
+pub trait Transmitter<B, C, K, M, Q, T>
 where
-    B: Bucket<Ts>,
+    B: Bucket,
     C: PayloadContent,
     K: Kind,
     M: PayloadMetadata<Q>,
     Q: Queryable,
     T: Tier,
-    Ts: TimeStamp,
 {
-    fn collect(&mut self, bucket: &mut B) -> Option<Vec<GPayload<C, M, Q>>>;
-
-    fn payloads_to_forward(
-        &mut self,
-        bucket: &mut B,
-        payloads: Vec<GPayload<C, M, Q>>,
-    ) -> Vec<GPayload<C, M, Q>>;
-
+    fn collect(&mut self, bucket: &mut B) -> Vec<GPayload<C, M, Q>>;
     fn compose(
         &mut self,
         target_tier: &T,

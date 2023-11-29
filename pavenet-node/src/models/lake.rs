@@ -1,4 +1,4 @@
-use pavenet_core::entity::id::NodeId;
+use pavenet_engine::entity::NodeId;
 use pavenet_core::payload::DPayload;
 use pavenet_core::response::DResponse;
 use pavenet_engine::hashbrown::HashMap;

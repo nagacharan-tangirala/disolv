@@ -1,6 +1,6 @@
 use crate::entity::class::NodeClass;
-use crate::entity::id::NodeId;
 use crate::entity::kind::NodeType;
+use pavenet_engine::entity::NodeId;
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
@@ -8,55 +8,6 @@ pub struct NodeInfo {
     pub id: NodeId,
     pub node_type: NodeType,
     pub node_class: NodeClass,
-}
-
-pub mod id {
-    use pavenet_engine::entity::Identifier;
-    use serde::Deserialize;
-    use std::fmt::Display;
-    use std::str::FromStr;
-
-    #[derive(Deserialize, Default, Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
-    pub struct NodeId(u32);
-
-    impl Display for NodeId {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{:09}", self.0)
-        }
-    }
-
-    impl FromStr for NodeId {
-        type Err = std::num::ParseIntError;
-
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            let id = s.parse::<u32>()?;
-            Ok(Self(id))
-        }
-    }
-
-    impl From<u32> for NodeId {
-        fn from(f: u32) -> Self {
-            Self(f)
-        }
-    }
-
-    impl From<i64> for NodeId {
-        fn from(f: i64) -> Self {
-            Self(f as u32)
-        }
-    }
-
-    impl NodeId {
-        pub fn as_i64(&self) -> i64 {
-            self.0 as i64
-        }
-    }
-
-    impl Identifier for NodeId {
-        fn as_u32(&self) -> u32 {
-            self.0
-        }
-    }
 }
 
 pub mod class {
@@ -86,10 +37,10 @@ pub mod class {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
                 NodeClass::None => write!(f, "None"),
-                NodeClass::Vehicle5G(x) => write!(f, "Vehicle5G({})", x),
-                NodeClass::RSU5G(x) => write!(f, "RSU5G({})", x),
-                NodeClass::BaseStation5G(x) => write!(f, "BaseStation5G({})", x),
-                NodeClass::Controller(x) => write!(f, "Controller({})", x),
+                NodeClass::Vehicle5G(x) => write!(f, "Vehicle 5G({})", x),
+                NodeClass::RSU5G(x) => write!(f, "RSU 5G({})", x),
+                NodeClass::BaseStation5G(x) => write!(f, "BaseStation 5G({})", x),
+                NodeClass::Controller(x) => write!(f, "Controller ({})", x),
             }
         }
     }

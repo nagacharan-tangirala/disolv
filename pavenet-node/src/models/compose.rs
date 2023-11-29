@@ -1,6 +1,7 @@
 use pavenet_core::entity::class::NodeClass;
 use pavenet_core::payload::{DPayload, NodeContent, PayloadInfo};
 use pavenet_core::response::DataSource;
+use pavenet_engine::bucket::TimeS;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone, Default, Copy)]
@@ -61,6 +62,7 @@ impl Composer {
 pub struct BasicComposer {
     pub data_sources: Vec<DataSource>,
     pub data_handler: DataHandler,
+    pub step: TimeS,
 }
 
 impl BasicComposer {
@@ -68,11 +70,16 @@ impl BasicComposer {
         Self {
             data_sources: composer_settings.source_settings,
             data_handler: composer_settings.data_handler,
+            step: TimeS::default(),
         }
     }
 
     pub fn update_sources(&mut self, data_sources: &Vec<DataSource>) {
         self.data_sources = data_sources.to_owned();
+    }
+
+    pub fn update_step(&mut self, step: TimeS) {
+        self.step = step;
     }
 
     fn compose_payload(

@@ -1,4 +1,4 @@
-use crate::entity::Identifier;
+use crate::entity::NodeId;
 use std::fmt::Debug;
 use typed_builder::TypedBuilder;
 
@@ -7,21 +7,19 @@ pub trait LinkFeatures: Clone + Debug + Default {}
 
 /// A struct that represents a link between two nodes defined by the features F.
 #[derive(Debug, Clone, Default, TypedBuilder)]
-pub struct GLink<F, I>
+pub struct GLink<F>
 where
     F: LinkFeatures,
-    I: Identifier,
 {
-    pub target: I,
+    pub target: NodeId,
     pub properties: F,
 }
 
-impl<F, I> GLink<F, I>
+impl<F> GLink<F>
 where
     F: LinkFeatures,
-    I: Identifier,
 {
-    pub fn new(target: I) -> Self {
+    pub fn new(target: NodeId) -> Self {
         Self {
             target,
             properties: F::default(),
@@ -32,20 +30,18 @@ where
 /// A struct that represents a set of links between a node and other nodes at a given time.
 /// User can write strategies to select the best link to use.
 #[derive(Debug, Clone, Default)]
-pub struct GLinkOptions<F, I>
+pub struct GLinkOptions<F>
 where
     F: LinkFeatures,
-    I: Identifier,
 {
-    pub link_opts: Vec<GLink<F, I>>,
+    pub link_opts: Vec<GLink<F>>,
 }
 
-impl<F, I> GLinkOptions<F, I>
+impl<F> GLinkOptions<F>
 where
     F: LinkFeatures,
-    I: Identifier,
 {
-    pub fn new(targets: Vec<I>) -> Self {
+    pub fn new(targets: Vec<NodeId>) -> Self {
         let links = targets
             .into_iter()
             .map(|target| GLink::new(target))
@@ -53,7 +49,7 @@ where
         Self { link_opts: links }
     }
 
-    pub fn utilize_link_at(&mut self, index: usize) -> GLink<F, I> {
+    pub fn utilize_link_at(&mut self, index: usize) -> GLink<F> {
         self.link_opts.remove(index)
     }
 }

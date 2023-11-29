@@ -1,9 +1,9 @@
 pub mod data {
     use crate::file_reader::{read_file, stream_parquet_in_interval};
     use crate::links::df::extract_link_traces;
-    use pavenet_core::bucket::TimeS;
-    use pavenet_core::entity::id::NodeId;
     use pavenet_core::link::DLinkOptions;
+    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
     use polars::prelude::DataFrame;
     use std::error::Error;

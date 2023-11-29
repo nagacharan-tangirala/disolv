@@ -1,8 +1,8 @@
 pub mod data {
     use crate::file_reader::read_file;
     use crate::power::df::extract_power_schedule;
-    use pavenet_core::bucket::TimeS;
-    use pavenet_core::entity::id::NodeId;
+    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
     use std::path::PathBuf;
 
@@ -20,7 +20,8 @@ pub(super) mod df {
     use crate::converter::list_series::to_vec_of_timestamp_vec;
     use crate::converter::series::to_nodeid_vec;
     use crate::power::data::PowerTimes;
-    use pavenet_core::entity::id::NodeId;
+
+    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
     use polars::prelude::{col, DataFrame, IntoLazy};
 

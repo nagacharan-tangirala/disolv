@@ -1,6 +1,6 @@
 use crate::columns::TIME_STEP;
 
-use pavenet_core::bucket::TimeS;
+use pavenet_engine::bucket::TimeS;
 use polars::error::ErrString;
 use polars::frame::DataFrame;
 use polars::io::SerReader;

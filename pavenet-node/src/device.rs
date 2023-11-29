@@ -2,22 +2,22 @@ use crate::bucket::DeviceBucket;
 use crate::d_model::DeviceModel;
 use crate::models::power::PowerState;
 use log::debug;
-use pavenet_core::bucket::TimeS;
 use pavenet_core::entity::class::NodeClass;
-use pavenet_core::entity::id::NodeId;
 use pavenet_core::entity::kind::NodeType;
 use pavenet_core::entity::NodeInfo;
 use pavenet_core::mobility::MapState;
 use pavenet_core::payload::{DPayload, DataType, NodeContent, PayloadInfo};
 use pavenet_core::response::{DResponse, DataSource, TransferMetrics};
+use pavenet_engine::bucket::TimeS;
 use pavenet_engine::engine::GNode;
+use pavenet_engine::entity::NodeId;
 use pavenet_engine::entity::{Entity, Movable, Schedulable, Tiered};
 use pavenet_engine::payload::Transmitter;
 use pavenet_engine::radio::{Channel, OutgoingStats};
 use pavenet_engine::response::Responder;
 use typed_builder::TypedBuilder;
 
-pub type TNode = GNode<DeviceBucket, Device, NodeId, NodeType, NodeClass, TimeS>;
+pub type TNode = GNode<DeviceBucket, Device, NodeType, NodeClass>;
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct Device {
@@ -52,7 +52,7 @@ impl Tiered<NodeClass> for Device {
     }
 }
 
-impl Movable<DeviceBucket, MapState, TimeS> for Device {
+impl Movable<DeviceBucket, MapState> for Device {
     fn mobility(&self) -> &MapState {
         &self.map_state
     }
@@ -65,7 +65,7 @@ impl Movable<DeviceBucket, MapState, TimeS> for Device {
     }
 }
 
-impl Schedulable<TimeS> for Device {
+impl Schedulable for Device {
     fn stop(&mut self) {
         self.power_state = PowerState::Off;
     }

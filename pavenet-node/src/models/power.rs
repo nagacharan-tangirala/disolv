@@ -1,4 +1,4 @@
-use pavenet_core::bucket::TimeS;
+use pavenet_engine::bucket::TimeS;
 use pavenet_input::power::data::PowerTimes;
 use std::collections::VecDeque;
 

@@ -1,7 +1,7 @@
-use crate::bucket::TimeS;
 use crate::entity::class::NodeClass;
 use crate::payload::{DataType, TransferStatus};
 use crate::radio::metrics::latency::Latency;
+use pavenet_engine::bucket::TimeS;
 use pavenet_engine::response::{GResponse, ResponseContent, ResponseMetadata};
 use serde::Deserialize;
 

@@ -3,7 +3,7 @@ use crate::models::power::PowerManager;
 use crate::models::radio::Radio;
 use crate::models::respond::{Responder, ResponderSettings, StatsResponder};
 use crate::models::select::{Selector, SelectorSettings};
-use pavenet_core::bucket::TimeS;
+use pavenet_engine::bucket::TimeS;
 use pavenet_input::power::data::PowerTimes;
 
 pub trait BucketModel {

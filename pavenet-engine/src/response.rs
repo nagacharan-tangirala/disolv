@@ -1,4 +1,4 @@
-use crate::bucket::{Bucket, TimeStamp};
+use crate::bucket::Bucket;
 use crate::entity::Tier;
 
 /// A trait to represent a type that can be used to query content from other devices.
@@ -51,14 +51,12 @@ where
 /// This should be called in the <code>downlink_stage</code> method of the entity.
 pub trait Responder<B, C, M, Q, T, Ts>
 where
-    B: Bucket<Ts>,
+    B: Bucket,
     C: ResponseContent<Q>,
     M: ResponseMetadata,
     Q: Queryable,
     T: Tier,
-    Ts: TimeStamp,
 {
     fn receive(&mut self, bucket: &mut B) -> Option<GResponse<C, M, Q>>;
-    fn process(&mut self, response: GResponse<C, M, Q>) -> GResponse<C, M, Q>;
     fn respond(&mut self, response: Option<GResponse<C, M, Q>>, bucket: &mut B);
 }

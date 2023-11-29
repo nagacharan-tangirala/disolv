@@ -1,4 +1,3 @@
-use crate::entity::id::NodeId;
 use pavenet_engine::link::{GLink, GLinkOptions, LinkFeatures};
 use typed_builder::TypedBuilder;
 
@@ -12,5 +11,5 @@ pub struct LinkProperties {
 
 impl LinkFeatures for LinkProperties {}
 
-pub type DLink = GLink<LinkProperties, NodeId>;
-pub type DLinkOptions = GLinkOptions<LinkProperties, NodeId>;
+pub type DLink = GLink<LinkProperties>;
+pub type DLinkOptions = GLinkOptions<LinkProperties>;

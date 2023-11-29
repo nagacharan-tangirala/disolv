@@ -1,10 +1,9 @@
 pub(crate) mod series {
     use pavenet_core::mobility::road::RoadId;
     use pavenet_core::mobility::velocity::Velocity;
-
-    use pavenet_core::bucket::TimeS;
-    use pavenet_core::entity::id::NodeId;
-    use polars::prelude::Series;
+    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::entity::NodeId;
+    use polars::series::Series;
 
     pub(crate) fn to_i64_vec(series: &Series) -> Result<Vec<i64>, Box<dyn std::error::Error>> {
         let series_to_option_vec: Vec<Option<i64>> = series.i64()?.to_vec();
@@ -72,8 +71,8 @@ pub(crate) mod series {
 }
 
 pub(crate) mod list_series {
-    use pavenet_core::bucket::TimeS;
-    use pavenet_core::entity::id::NodeId;
+    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::entity::NodeId;
     use polars::prelude::Series;
     use std::slice;
 
@@ -142,10 +141,10 @@ pub(crate) mod list_series {
 mod tests {
     use super::list_series::*;
     use super::series::*;
-    use pavenet_core::bucket::TimeS;
-    use pavenet_core::entity::id::NodeId;
     use pavenet_core::mobility::road::RoadId;
     use pavenet_core::mobility::velocity::Velocity;
+    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::entity::NodeId;
     use polars::prelude::{NamedFrom, Series};
 
     #[test]

@@ -2,22 +2,24 @@ use crate::d_model::BucketModel;
 use crate::device::Device;
 use crate::models::lake::DataLake;
 use crate::models::linker::Linker;
+use crate::models::result::Resultant;
 use crate::models::space::{Mapper, Space};
-use log::debug;
-use pavenet_core::bucket::TimeS;
+use log::{debug, info};
 use pavenet_core::entity::class::NodeClass;
-use pavenet_core::entity::id::NodeId;
+use pavenet_engine::entity::NodeId;
 use pavenet_core::entity::kind::NodeType;
 use pavenet_core::link::{DLink, DLinkOptions};
 use pavenet_core::mobility::MapState;
 use pavenet_core::radio::stats::InDataStats;
 use pavenet_core::rules::Rules;
+use pavenet_engine::bucket::TimeS;
 use pavenet_engine::bucket::Bucket;
 use pavenet_engine::hashbrown::HashMap;
+use pavenet_engine::result::Saveable;
 use pavenet_engine::scheduler::GNodeScheduler;
 use typed_builder::TypedBuilder;
 
-pub type DNodeScheduler = GNodeScheduler<DeviceBucket, Device, NodeId, NodeType, NodeClass, TimeS>;
+pub type DNodeScheduler = GNodeScheduler<DeviceBucket, Device, NodeType, NodeClass>;
 
 #[derive(Clone, TypedBuilder)]
 pub struct DeviceBucket {
@@ -104,7 +106,7 @@ impl DeviceBucket {
     }
 }
 
-impl Bucket<TimeS> for DeviceBucket {
+impl Bucket for DeviceBucket {
     type SchedulerImpl = DNodeScheduler;
 
     fn scheduler(&mut self) -> &mut DNodeScheduler {
