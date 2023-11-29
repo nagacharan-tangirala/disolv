@@ -1,16 +1,13 @@
-use crate::bucket::{Bucket, TimeStamp};
+use crate::bucket::Bucket;
 use crate::engine::GNode;
-use crate::entity::{Entity, Identifier, Kind, Tier};
+use crate::entity::{Entity, Kind, NodeId, Tier};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
 
 /// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
 /// of calling the scheduler's functions is important to ensure the correct behavior of the engine.
 /// Adding and removing entities should be handled in this trait.
-pub trait Scheduler<T>: Clone + Send + Sync + 'static
-where
-    T: TimeStamp,
-{
+pub trait Scheduler: Clone + Send + Sync + 'static {
     fn init(&mut self, schedule: &mut Schedule);
     fn add_to_schedule(&mut self, schedule: &mut Schedule);
     fn remove_from_schedule(&mut self, schedule: &mut Schedule);
@@ -19,30 +16,26 @@ where
 /// A struct that represents a scheduler for nodes. This is used to schedule nodes when they are
 /// added or removed from the network.
 #[derive(Default, Clone)]
-pub struct GNodeScheduler<B, E, I, K, T, Ts>
+pub struct GNodeScheduler<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
-    nodes: HashMap<I, GNode<B, E, I, K, T, Ts>>,
-    to_pop: Vec<I>,
-    to_add: Vec<I>,
+    nodes: HashMap<NodeId, GNode<B, E, K, T>>,
+    to_pop: Vec<NodeId>,
+    to_add: Vec<NodeId>,
 }
 
-impl<B, E, I, K, T, Ts> GNodeScheduler<B, E, I, K, T, Ts>
+impl<B, E, K, T> GNodeScheduler<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
-    pub fn new(entities: HashMap<I, GNode<B, E, I, K, T, Ts>>) -> Self {
+    pub fn new(entities: HashMap<NodeId, GNode<B, E, K, T>>) -> Self {
         Self {
             nodes: entities,
             to_pop: Vec::new(),
@@ -50,23 +43,21 @@ where
         }
     }
 
-    pub fn pop(&mut self, node_id: I) {
+    pub fn pop(&mut self, node_id: NodeId) {
         self.to_pop.push(node_id);
     }
 
-    pub fn add(&mut self, node_id: I) {
+    pub fn add(&mut self, node_id: NodeId) {
         self.to_add.push(node_id);
     }
 }
 
-impl<B, E, I, K, T, Ts> Scheduler<Ts> for GNodeScheduler<B, E, I, K, T, Ts>
+impl<B, E, K, T> Scheduler for GNodeScheduler<B, E, K, T>
 where
-    B: Bucket<Ts>,
-    E: Entity<B, T, Ts>,
-    I: Identifier,
+    B: Bucket,
+    E: Entity<B, T>,
     K: Kind,
     T: Tier,
-    Ts: TimeStamp,
 {
     fn init(&mut self, schedule: &mut Schedule) {
         for (id, node) in self.nodes.iter_mut() {
@@ -111,16 +102,16 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::bucket::tests::{MyBucket, Ts};
+    use crate::bucket::tests::MyBucket;
     use crate::engine::tests::as_node;
-    use crate::entity::tests::{make_device, DeviceType, Level, Nid, TDevice};
+    use crate::entity::tests::{make_device, DeviceType, Level, TDevice};
 
-    pub(crate) type MyScheduler = GNodeScheduler<MyBucket, TDevice, Nid, DeviceType, Level, Ts>;
+    pub(crate) type MyScheduler = GNodeScheduler<MyBucket, TDevice, DeviceType, Level>;
 
     pub(crate) fn make_scheduler_with_2_devices() -> MyScheduler {
         let mut nodes = HashMap::new();
-        let device_a = make_device(Nid::from(1), DeviceType::TypeA, 1);
-        let device_b = make_device(Nid::from(2), DeviceType::TypeB, 1);
+        let device_a = make_device(NodeId::from(1), DeviceType::TypeA, 1);
+        let device_b = make_device(NodeId::from(2), DeviceType::TypeB, 2);
         let node_a = as_node(device_a);
         let node_b = as_node(device_b);
         nodes.insert(node_a.node_id, node_a);
