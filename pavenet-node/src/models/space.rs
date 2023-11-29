@@ -1,9 +1,9 @@
 use crate::d_model::BucketModel;
 use log::debug;
-use pavenet_core::bucket::TimeS;
-use pavenet_core::entity::id::NodeId;
+use pavenet_engine::entity::NodeId;
 use pavenet_core::mobility::cell::CellId;
 use pavenet_core::mobility::{MapState, MobilityType, Point2D};
+use pavenet_engine::bucket::TimeS;
 use pavenet_engine::hashbrown::{HashMap, HashSet};
 use pavenet_input::mobility::data::{
     MapFetcher, MapReader, MapStateReader, MapStateStreamer, TraceMap,

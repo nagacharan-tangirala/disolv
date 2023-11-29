@@ -30,7 +30,14 @@ pub enum TransferStatus {
     Fail,
 }
 
-impl PayloadStatus for TransferStatus {}
+impl PayloadStatus for TransferStatus {
+    fn as_u8(&self) -> u8 {
+        match self {
+            TransferStatus::Ok => 1,
+            TransferStatus::Fail => 0,
+        }
+    }
+}
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct NodeContent {

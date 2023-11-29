@@ -101,7 +101,7 @@ where
 
     pub fn check_feasibility(&mut self, metadata: &P) -> Feasibility<M> {
         let measured = self.variant.measure(metadata);
-        return match self.constraint {
+        match self.constraint {
             Some(constraint) => {
                 if constraint >= measured {
                     return Feasibility::Feasible(measured);
@@ -109,7 +109,7 @@ where
                 Feasibility::Infeasible(measured)
             }
             None => Feasibility::Feasible(measured),
-        };
+        }
     }
 }
 
@@ -162,12 +162,12 @@ where
     pub fn check_feasibility(&mut self, metadata: &P) -> Feasibility<M> {
         let measured = self.variant.measure(metadata);
         let updated_used = self.used + measured;
-        return if self.available >= updated_used {
+        if self.available >= updated_used {
             self.add_used(measured);
             Feasibility::Feasible(measured)
         } else {
             Feasibility::Infeasible(measured)
-        };
+        }
     }
 }
 
@@ -184,7 +184,7 @@ where
 {
     fn reset(&mut self);
     fn can_transfer(&mut self, payloads: Vec<GPayload<C, P, Q>>) -> Vec<GPayload<C, P, Q>>;
-    fn apply_tx_rules(
+    fn filter_to_forward(
         &mut self,
         tx_enforcer: &Tx,
         payloads: Vec<GPayload<C, P, Q>>,

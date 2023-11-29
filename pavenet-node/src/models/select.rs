@@ -1,4 +1,4 @@
-use pavenet_core::link::{DLink, DLinkOptions};
+use pavenet_core::link::DLink;
 use pavenet_core::radio::stats::InDataStats;
 use rand::Rng;
 use serde::Deserialize;
@@ -29,16 +29,12 @@ impl Selector {
         }
     }
 
-    pub fn select_target(
-        &self,
-        link_opts: DLinkOptions,
-        stats: &Vec<Option<&InDataStats>>,
-    ) -> DLink {
-        if link_opts.link_opts.is_empty() {
+    pub fn select_target(&self, link_opts: Vec<DLink>, stats: &Vec<Option<&InDataStats>>) -> DLink {
+        if link_opts.is_empty() {
             panic!("No target nodes in link: {:?}", link_opts);
         }
-        if link_opts.link_opts.len() == 1 {
-            return link_opts.link_opts[0].clone();
+        if link_opts.len() == 1 {
+            return link_opts[0].clone();
         }
         match self.strategy {
             Strategy::Random => self.a_random(link_opts),
@@ -48,18 +44,18 @@ impl Selector {
         }
     }
 
-    fn a_random(&self, mut link_opt: DLinkOptions) -> DLink {
-        let random_idx = rand::thread_rng().gen_range(0..link_opt.link_opts.len());
-        link_opt.utilize_link_at(random_idx)
+    fn a_random(&self, mut link_opts: Vec<DLink>) -> DLink {
+        let random_idx = rand::thread_rng().gen_range(0..link_opts.len());
+        link_opts.remove(random_idx)
     }
 
-    fn nearest(&self, mut link_opt: DLinkOptions) -> DLink {
-        let mut selected_link = link_opt.utilize_link_at(0);
+    fn nearest(&self, mut link_opt: Vec<DLink>) -> DLink {
+        let mut selected_link = link_opt.remove(0);
         let mut min_distance = match selected_link.properties.distance {
             Some(distance) => distance,
             None => f32::MAX,
         };
-        for link in link_opt.link_opts.into_iter() {
+        for link in link_opt.into_iter() {
             let distance = match link.properties.distance {
                 Some(distance) => distance,
                 None => f32::MAX,
@@ -74,15 +70,15 @@ impl Selector {
 
     fn with_least_nodes(
         &self,
-        mut link_opt: DLinkOptions,
+        mut link_opts: Vec<DLink>,
         stats: &Vec<Option<&InDataStats>>,
     ) -> DLink {
-        let mut selected_link = link_opt.utilize_link_at(0);
+        let mut selected_link = link_opts.remove(0);
         let min_tr_count = match stats[0] {
             Some(stat) => stat.attempted.node_count,
             None => u32::MAX,
         };
-        for (link, stat) in link_opt.link_opts.into_iter().zip(stats.into_iter()) {
+        for (link, stat) in link_opts.into_iter().zip(stats.into_iter()) {
             if stat.is_none() {
                 continue;
             }
@@ -95,15 +91,15 @@ impl Selector {
 
     fn with_least_data(
         &self,
-        mut link_opt: DLinkOptions,
+        mut link_opts: Vec<DLink>,
         stats: &Vec<Option<&InDataStats>>,
     ) -> DLink {
-        let mut selected_link = link_opt.utilize_link_at(0);
+        let mut selected_link = link_opts.remove(0);
         let min_data_size = match stats[0] {
             Some(stat) => stat.attempted.data_size,
             None => f32::MAX,
         };
-        for (link, stat) in link_opt.link_opts.into_iter().zip(stats.into_iter()) {
+        for (link, stat) in link_opts.into_iter().zip(stats.into_iter()) {
             if stat.is_none() {
                 continue;
             }

@@ -32,7 +32,7 @@ pub struct Radio {
 }
 
 impl Radio {
-    fn check_feasibility(&mut self, payload: &DPayload) -> bool {
+    fn check_feasible(&mut self, payload: &DPayload) -> bool {
         let latency_check = match self.latency_model.check_feasibility(&payload.metadata) {
             Feasibility::Feasible(latency) => {
                 self.in_stats.update_avg_latency(latency);
@@ -70,17 +70,15 @@ impl Channel<NodeContent, PayloadInfo, DataType, TxAction, NodeClass, Rules> for
                 .or_insert(Vec::new())
                 .push(payload.content.node_info.id);
 
-            if !self.check_feasibility(&payload) {
-                continue;
+            if self.check_feasible(&payload) {
+                self.in_stats.add_feasible(&payload.metadata);
+                valid.push(payload);
             }
-
-            self.in_stats.add_feasible(&payload.metadata);
-            valid.push(payload);
         }
         return valid;
     }
 
-    fn apply_tx_rules(&mut self, rules: &Rules, payloads: Vec<DPayload>) -> Vec<DPayload> {
+    fn filter_to_forward(&mut self, rules: &Rules, payloads: Vec<DPayload>) -> Vec<DPayload> {
         let mut to_forward = Vec::with_capacity(payloads.len());
         for payload in payloads.into_iter() {
             let payload = rules.enforce_tx_rules(&self.my_class, payload);

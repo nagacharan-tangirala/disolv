@@ -3,13 +3,13 @@ use crate::logger;
 use itertools::Itertools;
 use krabmaga::rand_pcg::Pcg64Mcg;
 use log::info;
-use pavenet_core::bucket::TimeS;
 use pavenet_core::entity::class::NodeClass;
-use pavenet_core::entity::id::NodeId;
 use pavenet_core::entity::kind::NodeType;
 use pavenet_core::entity::NodeInfo;
 use pavenet_core::rules::Rules;
+use pavenet_engine::bucket::TimeS;
 use pavenet_engine::engine::{GEngine, GNode};
+use pavenet_engine::entity::NodeId;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_input::links::data::LinkReader;
 use pavenet_input::power::data::{read_power_schedule, PowerTimes};
@@ -19,11 +19,12 @@ use pavenet_node::device::Device;
 use pavenet_node::models::latency::DLatencyModel;
 use pavenet_node::models::linker::{Linker, LinkerSettings};
 use pavenet_node::models::radio::Radio;
+use pavenet_node::models::result::Resultant;
 use pavenet_node::models::space::{Mapper, Space};
 use std::path::{Path, PathBuf};
 
-pub type DNode = GNode<DeviceBucket, Device, NodeId, NodeType, NodeClass, TimeS>;
-pub type DEngine = GEngine<DeviceBucket, TimeS>;
+pub type DNode = GNode<DeviceBucket, Device, NodeType, NodeClass>;
+pub type DEngine = GEngine<DeviceBucket>;
 
 pub struct PavenetBuilder {
     base_config: BaseConfig,
@@ -87,7 +88,7 @@ impl PavenetBuilder {
 
     fn read_power_file(power_file: &PathBuf) -> HashMap<NodeId, PowerTimes> {
         if !power_file.exists() {
-            panic!("Power schedule file is not found.");
+            panic!("Power schedule file {} is not found.", power_file.display());
         }
         return match read_power_schedule(&power_file) {
             Ok(power_schedule) => power_schedule,
@@ -229,6 +230,7 @@ impl PavenetBuilder {
             .rules(Rules::new(self.base_config.tx_rules.clone()))
             .class_to_type(self.read_class_to_type_map())
             .output_step(self.output_step())
+            .resultant(self.build_resultant())
             .build()
     }
 
@@ -279,6 +281,16 @@ impl PavenetBuilder {
             .cell_size(self.base_config.field_settings.cell_size)
             .width(self.base_config.field_settings.width)
             .build()
+    }
+
+    fn build_resultant(&self) -> Resultant {
+        let output_path =
+            Path::new(&self.config_path).join(&self.base_config.output_settings.output_path);
+        Resultant::new(
+            &output_path,
+            self.sim_step(),
+            &self.base_config.output_settings,
+        )
     }
 
     fn read_class_to_type_map(&mut self) -> HashMap<NodeClass, NodeType> {

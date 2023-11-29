@@ -1,4 +1,5 @@
 use pavenet_core::response::{DResponse, TransferMetrics};
+use pavenet_engine::bucket::TimeS;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -31,11 +32,15 @@ impl Responder {
 }
 
 #[derive(Clone, Debug, Copy, Default)]
-pub struct StatsResponder {}
+pub struct StatsResponder {
+    step: TimeS,
+}
 
 impl StatsResponder {
     pub(crate) fn new(_responder_settings: ResponderSettings) -> Self {
-        Self {}
+        Self {
+            step: TimeS::default(),
+        }
     }
 
     pub(crate) fn compose_response(
