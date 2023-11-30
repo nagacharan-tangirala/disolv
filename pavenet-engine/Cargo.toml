@@ -11,7 +11,7 @@ readme = "README.md"
 [dependencies]
 krabmaga = { version = "0.4.1", path= "../../krABMaga" }
 typed-builder = "0.18.0"
-hashbrown = "0.14.2"
+hashbrown = "0.14.3"
 anyhow = "1.0.75"
 serde = { version = "1.0.190", features = ["derive"] }
 
