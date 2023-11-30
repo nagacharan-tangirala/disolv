@@ -1,6 +1,6 @@
 use crate::bucket::Bucket;
-use crate::engine::GNode;
-use crate::entity::{Entity, Kind, NodeId, Tier};
+use crate::entity::{Entity, Tier};
+use crate::node::{GNode, NodeId};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
 
@@ -16,26 +16,24 @@ pub trait Scheduler: Clone + Send + Sync + 'static {
 /// A struct that represents a scheduler for nodes. This is used to schedule nodes when they are
 /// added or removed from the network.
 #[derive(Default, Clone)]
-pub struct GNodeScheduler<B, E, K, T>
+pub struct GNodeScheduler<B, E, T>
 where
     B: Bucket,
     E: Entity<B, T>,
-    K: Kind,
     T: Tier,
 {
-    nodes: HashMap<NodeId, GNode<B, E, K, T>>,
+    nodes: HashMap<NodeId, GNode<B, E, T>>,
     to_pop: Vec<NodeId>,
     to_add: Vec<NodeId>,
 }
 
-impl<B, E, K, T> GNodeScheduler<B, E, K, T>
+impl<B, E, T> GNodeScheduler<B, E, T>
 where
     B: Bucket,
     E: Entity<B, T>,
-    K: Kind,
     T: Tier,
 {
-    pub fn new(entities: HashMap<NodeId, GNode<B, E, K, T>>) -> Self {
+    pub fn new(entities: HashMap<NodeId, GNode<B, E, T>>) -> Self {
         Self {
             nodes: entities,
             to_pop: Vec::new(),
@@ -52,11 +50,10 @@ where
     }
 }
 
-impl<B, E, K, T> Scheduler for GNodeScheduler<B, E, K, T>
+impl<B, E, T> Scheduler for GNodeScheduler<B, E, T>
 where
     B: Bucket,
     E: Entity<B, T>,
-    K: Kind,
     T: Tier,
 {
     fn init(&mut self, schedule: &mut Schedule) {
@@ -106,7 +103,7 @@ pub(crate) mod tests {
     use crate::engine::tests::as_node;
     use crate::entity::tests::{make_device, DeviceType, Level, TDevice};
 
-    pub(crate) type MyScheduler = GNodeScheduler<MyBucket, TDevice, DeviceType, Level>;
+    pub(crate) type MyScheduler = GNodeScheduler<MyBucket, TDevice, Level>;
 
     pub(crate) fn make_scheduler_with_2_devices() -> MyScheduler {
         let mut nodes = HashMap::new();
