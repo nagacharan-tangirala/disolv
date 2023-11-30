@@ -1,6 +1,6 @@
 use crate::scheduler::Scheduler;
-use serde::Deserialize;
-use std::fmt::Display;
+use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, Mul};
 use std::str::FromStr;
 
@@ -101,11 +101,24 @@ pub trait Bucket: Clone + Send + Sync + 'static {
     fn streaming_step(&mut self, step: TimeS);
 }
 
+/// The <code>ResultSaver</code> trait defines the methods that take the simulator data and prepare the
+/// data for output.
+pub trait ResultSaver: Bucket {
+    fn save_device_stats(&mut self, step: TimeS);
+    fn save_data_stats(&mut self, step: TimeS);
+}
+
+/// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark a struct which
+/// contains the data that needs to be written to a file.
+pub trait Resultant: Serialize + Copy + Clone + Debug {
+    fn write_to_file(&mut self);
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::Bucket;
+    use super::ResultSaver;
     use super::TimeS;
-    use crate::result::Saveable;
     use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
     use std::fmt::Display;
 
@@ -125,7 +138,7 @@ pub(crate) mod tests {
         }
     }
 
-    impl Saveable for MyBucket {
+    impl ResultSaver for MyBucket {
         fn save_device_stats(&mut self, time: TimeS) {
             todo!()
         }
