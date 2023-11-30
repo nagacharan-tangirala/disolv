@@ -32,12 +32,10 @@ pub trait Kind:
 }
 
 /// A trait to get and set the tier of an entity.
-pub trait Tiered<T>
-where
-    T: Tier,
-{
-    fn tier(&self) -> T;
-    fn set_tier(&mut self, tier: T);
+pub trait Tiered {
+    type T: Tier;
+    fn tier(&self) -> Self::T;
+    fn set_tier(&mut self, tier: Self::T);
 }
 
 /// A trait that represents the mobility information of an entity. Extend this to
@@ -50,12 +48,12 @@ pub trait MobilityInfo: Copy + Clone {}
 
 /// A trait to get and set the mobility information of an entity. Must extend this for
 /// both the static and mobile entities.
-pub trait Movable<B, M>
+pub trait Movable<B>
 where
     B: Bucket,
-    M: MobilityInfo,
 {
-    fn mobility(&self) -> &M;
+    type M: MobilityInfo;
+    fn mobility(&self) -> &Self::M;
     fn set_mobility(&mut self, bucket: &mut B);
 }
 
@@ -79,7 +77,7 @@ pub trait Schedulable {
 /// Starting at this trait will guide you to the other traits that you need to implement for the
 /// device to be simulation-ready.
 /// [tier]: Tier
-pub trait Entity<B, T>: Schedulable + Tiered<T> + Clone + Send + Sync + 'static
+pub trait Entity<B, T>: Schedulable + Tiered + Movable<B> + Clone + Send + Sync + 'static
 where
     B: Bucket,
     T: Tier,
@@ -90,15 +88,16 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{Entity, Kind, MobilityInfo, Movable, NodeId, Schedulable, Tier, Tiered};
+    use super::{Entity, Kind, MobilityInfo, Movable, Schedulable, Tier, Tiered};
     use crate::bucket::tests::MyBucket;
     use crate::bucket::TimeS;
     use crate::engine::tests::as_node;
+    use crate::node::NodeId;
     use krabmaga::engine::schedule::Schedule;
     use std::fmt::{Debug, Display, Formatter};
 
     #[derive(Copy, Clone, Default, Debug)]
-    struct Mobility {
+    pub struct Mobility {
         x: f32,
         y: f32,
         velocity: f32,
@@ -111,21 +110,6 @@ pub(crate) mod tests {
     }
 
     impl MobilityInfo for Mobility {}
-
-    #[derive(Copy, Clone, Default, Debug)]
-    struct Device {
-        mobility: Mobility,
-    }
-
-    impl Movable<MyBucket, Mobility> for Device {
-        fn mobility(&self) -> &Mobility {
-            &self.mobility
-        }
-
-        fn set_mobility(&mut self, my_bucket: &mut MyBucket) {
-            todo!("Read from bucket");
-        }
-    }
 
     #[derive(Default, Debug, Copy, Clone, Hash, Ord, PartialOrd, PartialEq, Eq)]
     pub(crate) struct Level(u32);
@@ -186,13 +170,26 @@ pub(crate) mod tests {
         }
     }
 
-    impl Tiered<Level> for TDevice {
+    impl Tiered for TDevice {
+        type T = Level;
         fn tier(&self) -> Level {
             Level::from(self.order.as_i32() as u32)
         }
 
         fn set_tier(&mut self, tier: Level) {
             self.order = tier;
+        }
+    }
+
+    impl Movable<MyBucket> for TDevice {
+        type M = Mobility;
+
+        fn mobility(&self) -> &Self::M {
+            todo!()
+        }
+
+        fn set_mobility(&mut self, bucket: &mut MyBucket) {
+            todo!()
         }
     }
 
