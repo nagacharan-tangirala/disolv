@@ -1,54 +1,7 @@
 use super::bucket::Bucket;
 use super::bucket::TimeS;
-use serde::Deserialize;
 use std::fmt::Display;
 use std::hash::Hash;
-use std::str::FromStr;
-
-#[derive(Deserialize, Default, Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub struct NodeId(u32);
-
-impl Display for NodeId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:09}", self.0)
-    }
-}
-
-impl FromStr for NodeId {
-    type Err = std::num::ParseIntError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let id = s.parse::<u32>()?;
-        Ok(Self(id))
-    }
-}
-
-impl From<u32> for NodeId {
-    fn from(f: u32) -> Self {
-        Self(f)
-    }
-}
-
-impl From<i64> for NodeId {
-    fn from(f: i64) -> Self {
-        Self(f as u32)
-    }
-}
-
-impl From<i32> for NodeId {
-    fn from(f: i32) -> Self {
-        Self(f as u32)
-    }
-}
-
-impl NodeId {
-    pub fn as_i64(&self) -> i64 {
-        self.0 as i64
-    }
-    pub fn as_u32(&self) -> u32 {
-        self.0
-    }
-}
 
 /// A trait that represents the tier of an entity. Extend this to a custom type that represents
 /// the tier of your entity. Only one instance of this type is allowed. A named type masking an
