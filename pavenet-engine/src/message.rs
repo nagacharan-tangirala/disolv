@@ -1,7 +1,6 @@
 use crate::bucket::Bucket;
 use crate::entity::{Kind, Tier};
 use crate::radio::Action;
-use hashbrown::HashMap;
 use typed_builder::TypedBuilder;
 
 /// A trait to represent a type that can be used to query content from other devices.

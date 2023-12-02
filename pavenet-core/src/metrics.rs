@@ -1,7 +1,7 @@
 use pavenet_engine::metrics::Metric;
 use serde::Deserialize;
 use std::fmt::Display;
-use std::ops::{Add, AddAssign, Mul, Sub};
+use std::ops::{Add, AddAssign};
 
 #[derive(Debug, Clone, Copy)]
 pub enum RadioMetrics {
