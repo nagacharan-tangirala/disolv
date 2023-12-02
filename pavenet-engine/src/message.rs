@@ -1,14 +1,21 @@
 use crate::bucket::Bucket;
 use crate::entity::{Kind, Tier};
+use crate::radio::Action;
 use hashbrown::HashMap;
 use typed_builder::TypedBuilder;
 
 /// A trait to represent a type that can be used to query content from other devices.
 pub trait Queryable: Copy + Clone + PartialEq + Eq + Send + Sync {}
 
-/// A trait to indicate a type that can be used to represent the transfer status of a payload.
-pub trait PayloadStatus: Clone + Send + Sync {
-    fn as_u8(&self) -> u8;
+/// A trait to represent a type that can be used to represent the individual content of
+/// a payload. Extend this to a custom type (e.g. struct) that you want to use as a collection
+/// of data that is being transferred by a device.
+pub trait DataUnit: Clone + Send + Sync {
+    type Action: Action;
+    fn size(&self) -> f32;
+    fn count(&self) -> u32;
+    fn action(&self) -> Self::Action;
+    fn set_action(&mut self, action: Self::Action);
 }
 
 /// A trait that represents the content of a payload. Extend this to a custom type (e.g. struct)
@@ -20,11 +27,7 @@ pub trait NodeState: Copy + Clone + Send + Sync {}
 /// that contains the metadata such as the size, count, etc. of a payload. The struct extending
 /// this trait must contain information that is useful to evaluate if the transmission is feasible.
 /// It should contain information about the queryable content of the payload.
-pub trait Metadata: Clone + Send + Sync {
-    type QueryType: Queryable;
-    fn size_by_type(&self) -> HashMap<Self::QueryType, u16>;
-    fn count_by_type(&self) -> HashMap<Self::QueryType, u16>;
-}
+pub trait Metadata: Clone + Send + Sync {}
 
 /// A generic struct that represents a payload of a device. A message exchange between two devices
 /// can be represented by a payload. Gathered content can be used to represent the aggregated
@@ -38,6 +41,11 @@ where
     pub node_state: N,
     pub metadata: M,
     pub gathered_states: Option<Vec<N>>,
+}
+
+/// A trait to indicate a type that can be used to represent the transfer status of a payload.
+pub trait PayloadStatus: Clone + Send + Sync {
+    fn as_u8(&self) -> u8;
 }
 
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
@@ -77,7 +85,7 @@ pub trait Reply: Clone + Send + Sync {}
 ///
 /// Queries can be optionally included in the response to control the content that is
 /// being transferred.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct GResponse<R, T>
 where
     R: Reply,
@@ -86,20 +94,6 @@ where
     pub reply: R,
     pub downstream: Option<Vec<R>>,
     pub tx_status: T,
-}
-
-impl<R, T> GResponse<R, T>
-where
-    R: Reply,
-    T: TxStatus,
-{
-    pub fn new(reply: R, downstream: Option<Vec<R>>, tx_status: T) -> Self {
-        Self {
-            reply,
-            downstream,
-            tx_status,
-        }
-    }
 }
 
 /// A trait that an entity must implement to respond to payloads. Transmission of payloads
