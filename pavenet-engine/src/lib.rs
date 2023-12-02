@@ -3,6 +3,7 @@ pub mod bucket;
 pub mod engine;
 pub mod entity;
 pub mod message;
+pub mod metrics;
 pub mod node;
 pub mod radio;
 pub mod scheduler;
