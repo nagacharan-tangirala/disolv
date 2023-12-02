@@ -1,9 +1,8 @@
 use crate::entity::{NodeClass, NodeInfo};
 use crate::metrics::Latency;
 use crate::mobility::MapState;
-use crate::radio::{ActionImpl, ActionType, DLink};
+use crate::radio::{ActionImpl, DLink};
 use pavenet_engine::bucket::TimeS;
-use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::message::{DataUnit, GPayload, Metadata, NodeState, PayloadStatus};
 use pavenet_engine::message::{GResponse, Queryable, Reply, TxStatus};
 use serde::Deserialize;
@@ -102,30 +101,7 @@ impl PayloadInfo {
     }
 }
 
-impl Metadata for PayloadInfo {
-    type Query = DataType;
-    type Action = ActionImpl;
-
-    fn apply_actions(&mut self) {
-        for data_blob in self.data_blobs.iter_mut() {
-            match data_blob.action.action_type {
-                ActionType::Consume => self.consume(data_blob),
-                ActionType::Forward => self.forward(data_blob),
-            }
-        }
-    }
-    fn clear_actions(&mut self) {
-        self.data_blobs.iter_mut().for_each(|x| {
-            x.action = ActionImpl::default();
-        });
-    }
-
-    fn set_new_actions(&mut self, new_actions: &HashMap<DataType, ActionImpl>) {
-        for data_blob in self.data_blobs.iter_mut() {
-            match data_blob.action.action_type {}
-        }
-    }
-}
+impl Metadata for PayloadInfo {}
 
 pub type DPayload = GPayload<PayloadInfo, NodeContent>;
 
