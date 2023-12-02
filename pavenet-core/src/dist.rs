@@ -38,7 +38,7 @@ impl DistType {
                 Ok(dist) => dist,
                 Err(_) => panic!("Invalid distribution parameters"),
             },
-            "lognormal" => match Self::build_lognormal(params) {
+            "lognormal" => match Self::build_log_normal(params) {
                 Ok(dist) => dist,
                 Err(_) => panic!("Invalid distribution parameters"),
             },
@@ -66,7 +66,7 @@ impl DistType {
         Ok(Self::Normal(Normal::new(mean, std_dev)?))
     }
 
-    fn build_lognormal(dist_params: DistParams) -> Result<Self> {
+    fn build_log_normal(dist_params: DistParams) -> Result<Self> {
         let mean = dist_params.mean.ok_or(anyhow!("Missing mean"))?;
         let std_dev = dist_params.std_dev.ok_or(anyhow!("Missing std_dev"))?;
         Ok(Self::LogNormal(LogNormal::new(mean, std_dev)?))
