@@ -2408,7 +2408,7 @@ checksum = "cc11df1ace8e7e564511f53af41f3e42ddc95b56fd07b3f4445d2a6048bc682c"
 dependencies = [
  "bitflags 2.4.0",
  "gpu-descriptor-types",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
 ]
 
 [[package]]
@@ -2462,9 +2462,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.14.2"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f93e7192158dbcda357bdec5fb5788eebf8bbac027f3f33e719d29135ae84156"
+checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 dependencies = [
  "ahash 0.8.6",
  "allocator-api2",
@@ -2582,7 +2582,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8adf3ddd720272c6ea8bf59463c04e0f93d0bbf7c5439b691bca2987e0270897"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "serde",
 ]
 
@@ -2752,7 +2752,7 @@ dependencies = [
  "downcast-rs",
  "dyn-clone",
  "getrandom",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "image",
  "indicatif",
  "lazy_static",
@@ -3520,6 +3520,7 @@ dependencies = [
  "serde",
  "serde_with",
  "typed-builder",
+ "uuid",
 ]
 
 [[package]]
@@ -3527,10 +3528,11 @@ name = "pavenet-engine"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "krabmaga",
  "serde",
  "typed-builder",
+ "uuid",
 ]
 
 [[package]]
@@ -3717,7 +3719,7 @@ dependencies = [
  "foreign_vec",
  "futures",
  "getrandom",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "itoa",
  "lz4",
  "multiversion",
@@ -3744,7 +3746,7 @@ dependencies = [
  "chrono",
  "comfy-table",
  "either",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "indexmap 2.0.2",
  "num-traits",
  "once_cell",
@@ -3844,7 +3846,7 @@ dependencies = [
  "argminmax",
  "bytemuck",
  "either",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "indexmap 2.0.2",
  "memchr",
  "num-traits",
@@ -3893,7 +3895,7 @@ dependencies = [
  "crossbeam-channel",
  "crossbeam-queue",
  "enum_dispatch",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "num-traits",
  "polars-arrow",
  "polars-core",
@@ -3986,7 +3988,7 @@ checksum = "da6ce68169fe61d46958c8eab7447360f30f2f23f6e24a0ce703a14b0a3cfbfc"
 dependencies = [
  "ahash 0.8.6",
  "bytemuck",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "indexmap 2.0.2",
  "num-traits",
  "once_cell",
@@ -5140,11 +5142,12 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "uuid"
-version = "1.4.1"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79daa5ed5740825c40b389c5e50312b9c86df53fccd33f281df655642b43869d"
+checksum = "5e395fcf16a7a3d8127ec99782007af141946b4795001f876d54fb0d55978560"
 dependencies = [
  "getrandom",
+ "rand",
  "serde",
 ]
 
