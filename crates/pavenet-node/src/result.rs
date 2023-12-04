@@ -1,4 +1,3 @@
-use pavenet_core::result::OutputSettings;
 use pavenet_engine::bucket::TimeS;
 use pavenet_output::result::ResultWriter;
 use std::path::PathBuf;
