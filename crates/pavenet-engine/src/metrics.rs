@@ -19,6 +19,11 @@ where
     Infeasible(M),
 }
 
+/// A trait that can be used on structs that contain the settings of a metric. The settings should
+/// be capable of building an instance of the struct that implements either the
+/// <code>Measurable</code> or <code>Consumable</code> trait.
+pub trait MetricSettings {}
+
 /// A trait that can be used to contain the measurement process of a metric. It must be applied on
 /// each struct that measure some kind of a metric.
 pub trait Measurable<M>: Clone + Send + Sync
@@ -26,6 +31,8 @@ where
     M: Metric,
 {
     type P: Metadata;
+    type S: MetricSettings;
+    fn with_settings(settings: Self::S) -> Self;
     fn measure(&mut self, metadata: &Self::P) -> Feasibility<M>;
 }
 
@@ -37,5 +44,7 @@ where
     M: Metric,
 {
     type P: Metadata;
+    type S: MetricSettings;
+    fn with_settings(settings: Self::S) -> Self;
     fn consume(&mut self, metadata: &Self::P) -> Feasibility<M>;
 }
