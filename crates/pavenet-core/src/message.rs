@@ -1,7 +1,7 @@
 use crate::entity::{NodeClass, NodeInfo};
 use crate::metrics::Latency;
 use crate::mobility::MapState;
-use crate::radio::{ActionImpl, DLink};
+use crate::radio::{ActionImpl, ActionType, DLink};
 use pavenet_engine::bucket::TimeS;
 use pavenet_engine::message::{DataUnit, GPayload, Metadata, NodeState, PayloadStatus};
 use pavenet_engine::message::{GResponse, Queryable, Reply, TxStatus};
@@ -84,15 +84,13 @@ pub struct PayloadInfo {
 }
 
 impl PayloadInfo {
-    pub fn consume(&mut self, data_blob: &DataBlob) {
-        self.total_size -= data_blob.data_size;
-        self.total_count -= 1;
-        let index = self
-            .data_blobs
-            .iter()
-            .position(|x| x.uuid == data_blob.uuid)
-            .unwrap();
-        self.data_blobs.remove(index);
+    pub fn consume(&mut self) {
+        self.data_blobs.iter_mut().for_each(|blob| {
+            self.total_size -= blob.data_size;
+            self.total_count -= 1;
+        });
+        self.data_blobs
+            .retain(|blob| blob.action.action_type != ActionType::Consume);
     }
 }
 
