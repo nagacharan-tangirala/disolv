@@ -28,8 +28,8 @@ pub struct DistParams {
 }
 
 impl DistType {
-    pub fn new(dist_name: String, params: DistParams) -> Self {
-        match dist_name.as_str() {
+    pub fn new(params: DistParams) -> Self {
+        match params.dist_name.as_str() {
             "uniform" => match Self::build_uniform(params) {
                 Ok(dist) => dist,
                 Err(_) => panic!("Invalid distribution parameters"),
@@ -91,9 +91,9 @@ pub struct RngSampler {
 }
 
 impl RngSampler {
-    pub fn new(dist_name: String, params: DistParams) -> Self {
+    pub fn new(params: DistParams) -> Self {
         let seed = params.seed.unwrap_or(0u128);
-        let dist = DistType::new(dist_name, params);
+        let dist = DistType::new(params);
         Self {
             dist,
             rng: Pcg64Mcg::new(seed),
