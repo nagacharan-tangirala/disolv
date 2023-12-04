@@ -2,12 +2,7 @@
 resolver = "2"
 
 members  = [
-    "pavenet",
-    "pavenet-core",
-    "pavenet-input",
-    "pavenet-engine",
-    "pavenet-node",
-    "pavenet-output",
+    "crates/*",
 ]
 
 [profile.dev]
