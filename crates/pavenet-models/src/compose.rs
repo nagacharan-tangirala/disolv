@@ -85,6 +85,7 @@ impl BasicComposer {
 
     fn compose_metadata(&self, target_class: &NodeClass) -> PayloadInfo {
         let mut data_blobs = Vec::with_capacity(self.data_sources.len());
+        let mut data_count: u32 = 0;
         for ds_settings in self.data_sources.iter() {
             if ds_settings.node_class != *target_class {
                 continue;
@@ -100,11 +101,12 @@ impl BasicComposer {
                 .action(ActionImpl::default())
                 .build();
             data_blobs.push(data_blob);
+            data_count += 1;
         }
         let payload_info = PayloadInfo::builder()
-            .data_blobs(data_blobs)
-            .total_count(data_blobs.len() as u32)
             .total_size(data_blobs.iter().map(|x| x.data_size).sum())
+            .data_blobs(data_blobs)
+            .total_count(data_count)
             .routing_info(TxInfo::default())
             .build();
         return payload_info;
@@ -123,7 +125,7 @@ impl StatusComposer {
         }
     }
 
-    fn compose_payload(&self, target_class: &NodeClass, content: NodeContent) -> DPayload {
+    fn compose_payload(&self, _target_class: &NodeClass, content: NodeContent) -> DPayload {
         DPayload::builder()
             .metadata(PayloadInfo::default())
             .node_state(content)
