@@ -1,5 +1,5 @@
-use pavenet_core::link::DLink;
-use pavenet_core::radio::stats::InDataStats;
+use crate::model::{Model, ModelSettings};
+use pavenet_core::radio::{DLink, InDataStats};
 use rand::Rng;
 use serde::Deserialize;
 
@@ -17,18 +17,24 @@ pub struct SelectorSettings {
     pub strategy: Strategy,
 }
 
+impl ModelSettings for SelectorSettings {}
+
 #[derive(Clone, Debug, Default)]
 pub struct Selector {
     pub strategy: Strategy,
 }
 
-impl Selector {
-    pub fn new(selector_settings: SelectorSettings) -> Self {
+impl Model for Selector {
+    type Settings = SelectorSettings;
+
+    fn with_settings(settings: &SelectorSettings) -> Self {
         Self {
-            strategy: selector_settings.strategy,
+            strategy: settings.strategy,
         }
     }
+}
 
+impl Selector {
     pub fn select_target(&self, link_opts: Vec<DLink>, stats: &Vec<Option<&InDataStats>>) -> DLink {
         if link_opts.is_empty() {
             panic!("No target nodes in link: {:?}", link_opts);
