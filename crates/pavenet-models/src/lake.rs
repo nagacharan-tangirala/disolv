@@ -1,7 +1,7 @@
-use pavenet_engine::entity::NodeId;
-use pavenet_core::payload::DPayload;
-use pavenet_core::response::DResponse;
+use pavenet_core::message::DPayload;
+use pavenet_core::message::DResponse;
 use pavenet_engine::hashbrown::HashMap;
+use pavenet_engine::node::NodeId;
 
 pub type PayloadMap = HashMap<NodeId, Vec<DPayload>>; // TargetNodeId -> Payloads
 pub type ResponseMap = HashMap<NodeId, DResponse>; // TargetNodeId -> Response
