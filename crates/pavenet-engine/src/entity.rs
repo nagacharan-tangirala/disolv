@@ -3,18 +3,6 @@ use super::bucket::TimeS;
 use std::fmt::Display;
 use std::hash::Hash;
 
-/// A trait that represents the tier of an entity. Extend this to a custom type that represents
-/// the tier of your entity. Only one instance of this type is allowed. A named type masking an
-/// integer is sufficient or an enum is also sufficient.
-///
-/// This is required to control the order of calling the uplink and downlink stages of the
-/// entities. At each time step, the entities are sorted by their tier. The entities with the
-/// lowest tier are called first and gradually proceeding to the entities with the highest tier.
-/// This allows the entities to be simulated in a tiered fashion.
-pub trait Tier: Default + Copy + Clone + Hash + PartialEq + Eq + Send + Sync + 'static {
-    fn as_i32(&self) -> i32;
-}
-
 /// Trait that represents the kind of an entity. Extend this to a custom type
 /// (e.g. enum) that represents the kind of your entity. Only one instance of this type
 /// is allowed. This is required to distinguish between different types of entities.
@@ -29,6 +17,26 @@ pub trait Tier: Default + Copy + Clone + Hash + PartialEq + Eq + Send + Sync + '
 pub trait Kind:
     Default + Display + Clone + Copy + PartialEq + Eq + Hash + Send + Sync + 'static
 {
+}
+
+/// Trait that represents the variety within each `kind` of an entity. `kind` distinguishes
+/// among the different types of devices, while `Class` will allow for varies categories within
+/// each kind.
+///
+/// An example will be Vehicle5G, Vehicle4G being two classes of Vehicle Kind. This allows for
+/// defining behaviour at both the `kind` level and `Class` level.
+pub trait Class: Default + Display + Clone + Hash + Eq + PartialEq + Send + Sync + 'static {}
+
+/// A trait that represents the tier of an entity. Extend this to a custom type that represents
+/// the tier of your entity. Only one instance of this type is allowed. A named type masking an
+/// integer is sufficient or an enum is also sufficient.
+///
+/// This is required to control the order of calling the uplink and downlink stages of the
+/// entities. At each time step, the entities are sorted by their tier. The entities with the
+/// lowest tier are called first and gradually proceeding to the entities with the highest tier.
+/// This allows the entities to be simulated in a tiered fashion.
+pub trait Tier: Default + Copy + Clone + Hash + PartialEq + Eq + Send + Sync + 'static {
+    fn as_i32(&self) -> i32;
 }
 
 /// A trait to get and set the tier of an entity.
