@@ -1,3 +1,4 @@
+use crate::entity::Class;
 use crate::message::{GPayload, Metadata, NodeState};
 use crate::node::NodeId;
 use std::fmt::Debug;
@@ -34,18 +35,34 @@ where
 
 /// A trait that represents a radio that can be used to transfer data. It performs the actual
 /// data transfer and can be used to measure the radio usage.
-pub trait Channel<M, N>
+pub trait RxChannel<M, N>
 where
     M: Metadata,
     N: NodeState,
 {
     fn reset(&mut self);
-    fn do_transfers(&mut self, payloads: Vec<GPayload<M, N>>) -> Vec<GPayload<M, N>>;
-    fn update_actions(
+    fn complete_transfers(&mut self, payloads: Vec<GPayload<M, N>>) -> Vec<GPayload<M, N>>;
+    fn perform_actions(
         &mut self,
         node_state: &N,
         payloads: Vec<GPayload<M, N>>,
     ) -> Vec<GPayload<M, N>>;
+}
+
+/// A trait that represents a channel that can be used to transmit data. It prepares the data
+/// for transmission and applies the actions to the data blobs before transmission.
+pub trait TxChannel<M, N>
+where
+    M: Metadata,
+    N: NodeState,
+{
+    type C: Class;
+    fn reset(&mut self);
+    fn prepare_transfer(
+        &mut self,
+        target_class: &Self::C,
+        payload: GPayload<M, N>,
+    ) -> GPayload<M, N>;
 }
 
 /// A trait to represent a type that holds statistics of the radio usage for incoming data.
