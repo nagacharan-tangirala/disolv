@@ -49,7 +49,6 @@ pub struct DataBlob {
     pub uuid: Uuid,
     pub data_type: DataType,
     pub data_size: f32,
-    pub data_count: u32,
     pub action: ActionImpl,
 }
 
@@ -57,10 +56,6 @@ impl DataUnit for DataBlob {
     type Action = ActionImpl;
     fn size(&self) -> f32 {
         self.data_size
-    }
-
-    fn count(&self) -> u32 {
-        self.data_count
     }
 
     fn action(&self) -> Self::Action {
@@ -80,7 +75,7 @@ pub struct TxInfo {
     pub status: TransferStatus,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct PayloadInfo {
     pub total_size: f32,
     pub total_count: u32,
@@ -91,7 +86,7 @@ pub struct PayloadInfo {
 impl PayloadInfo {
     pub fn consume(&mut self, data_blob: &DataBlob) {
         self.total_size -= data_blob.data_size;
-        self.total_count -= data_blob.data_count;
+        self.total_count -= 1;
         let index = self
             .data_blobs
             .iter()
