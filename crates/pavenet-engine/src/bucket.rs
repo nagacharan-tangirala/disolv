@@ -101,15 +101,15 @@ pub trait Bucket: Clone + Send + Sync + 'static {
     fn streaming_step(&mut self, step: TimeS);
 }
 
-/// The <code>ResultSaver</code> trait defines the methods that take the simulator data and prepare the
-/// data for output.
+/// The <code>ResultSaver</code> trait defines the methods that take the simulator data and
+/// prepare the data for output.
 pub trait ResultSaver: Bucket {
     fn save_device_stats(&mut self, step: TimeS);
     fn save_data_stats(&mut self, step: TimeS);
 }
 
-/// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark a struct which
-/// contains the data that needs to be written to a file.
+/// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark
+/// a struct which contains the data that needs to be written to a file.
 pub trait Resultant: Serialize + Copy + Clone + Debug {
     fn write_to_file(&mut self);
 }
