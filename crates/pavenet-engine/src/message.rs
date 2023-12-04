@@ -1,6 +1,6 @@
 use crate::bucket::Bucket;
-use crate::entity::{Kind, Tier};
-use crate::radio::Action;
+use crate::entity::Class;
+use crate::radio::{Action, GLink, LinkFeatures};
 use typed_builder::TypedBuilder;
 
 /// A trait to represent a type that can be used to query content from other devices.
@@ -12,7 +12,6 @@ pub trait Queryable: Copy + Clone + PartialEq + Eq + Send + Sync {}
 pub trait DataUnit: Clone + Send + Sync {
     type Action: Action;
     fn size(&self) -> f32;
-    fn count(&self) -> u32;
     fn action(&self) -> Self::Action;
     fn set_action(&mut self, action: Self::Action);
 }
@@ -50,23 +49,19 @@ pub trait PayloadStatus: Clone + Send + Sync {
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
 /// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
 /// This should be called in the <code>uplink_stage</code> method of the entity.
-pub trait Transmitter<B, M, N>
+pub trait Transmitter<B, F, M, N>
 where
     B: Bucket,
+    F: LinkFeatures,
     M: Metadata,
     N: NodeState,
 {
-    type NodeTier: Tier;
-    type NodeKind: Kind;
+    type NodeClass: Class;
 
     fn collect(&mut self, bucket: &mut B) -> Vec<GPayload<M, N>>;
-    fn compose(
-        &mut self,
-        target_tier: &Self::NodeTier,
-        to_fwd: &Vec<GPayload<M, N>>,
-    ) -> Option<GPayload<M, N>>;
-
-    fn transmit(&mut self, target_kind: &Self::NodeKind, payload: GPayload<M, N>, bucket: &mut B);
+    fn find_target(&mut self, bucket: &mut B) -> Option<GLink<F>>;
+    fn compose(&mut self, target_class: &Self::NodeClass) -> Option<GPayload<M, N>>;
+    fn transmit(&mut self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
 }
 
 /// A trait to indicate a type that can be used to convey the payload transfer status back
