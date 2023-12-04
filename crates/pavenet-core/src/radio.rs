@@ -36,8 +36,8 @@ impl Action for ActionImpl {}
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde_with::skip_serializing_none]
-pub struct DecisionSettings {
-    pub source: NodeClass,
+pub struct ActionSettings {
+    pub target: NodeClass,
     pub data_type: DataType,
     pub action_type: ActionType,
     pub to_class: Option<NodeClass>,
