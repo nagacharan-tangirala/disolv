@@ -17,7 +17,7 @@ impl LinkFeatures for LinkProperties {}
 
 pub type DLink = GLink<LinkProperties>;
 
-#[derive(Deserialize, Clone, Debug, Copy, Default)]
+#[derive(Deserialize, Clone, Debug, Copy, Eq, PartialEq, Default)]
 pub enum ActionType {
     #[default]
     Consume,
