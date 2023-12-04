@@ -1,4 +1,5 @@
-use pavenet_core::response::{DResponse, TransferMetrics};
+use crate::model::{Model, ModelSettings};
+use pavenet_core::message::{DResponse, TransferMetrics};
 use pavenet_engine::bucket::TimeS;
 use serde::Deserialize;
 
@@ -7,19 +8,25 @@ pub struct ResponderSettings {
     pub name: String,
 }
 
+impl ModelSettings for ResponderSettings {}
+
 #[derive(Clone, Debug, Copy)]
 pub enum Responder {
     Stats(StatsResponder),
 }
 
-impl Responder {
-    pub fn new(responder_settings: ResponderSettings) -> Self {
-        match responder_settings.name.as_str() {
+impl Model for Responder {
+    type Settings = ResponderSettings;
+
+    fn with_settings(settings: &ResponderSettings) -> Self {
+        match settings.name.as_str() {
             "basic" => Responder::Stats(StatsResponder::default()),
             _ => panic!("Unknown responder type"),
         }
     }
+}
 
+impl Responder {
     pub fn compose_response(
         &mut self,
         in_response: Option<DResponse>,
@@ -33,25 +40,29 @@ impl Responder {
 
 #[derive(Clone, Debug, Copy, Default)]
 pub struct StatsResponder {
-    step: TimeS,
+    _step: TimeS,
 }
 
 impl StatsResponder {
-    pub(crate) fn new(_responder_settings: ResponderSettings) -> Self {
+    pub fn new(_responder_settings: ResponderSettings) -> Self {
         Self {
-            step: TimeS::default(),
+            _step: TimeS::default(),
         }
     }
 
-    pub(crate) fn compose_response(
+    pub fn compose_response(
         &mut self,
         in_response: Option<DResponse>,
         transfer_stats: TransferMetrics,
     ) -> DResponse {
-        let content = match in_response {
-            Some(response) => response.content,
+        let downstream = match in_response {
+            Some(response) => response.downstream,
             None => None,
         };
-        DResponse::new(transfer_stats, content)
+        DResponse::builder()
+            .reply(None)
+            .tx_status(transfer_stats)
+            .downstream(downstream)
+            .build()
     }
 }
