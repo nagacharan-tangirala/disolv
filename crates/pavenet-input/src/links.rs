@@ -1,10 +1,10 @@
 pub mod data {
     use crate::file_reader::{read_file, stream_parquet_in_interval};
     use crate::links::df::extract_link_traces;
-    use pavenet_core::link::DLink;
+    use pavenet_core::radio::DLink;
     use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
+    use pavenet_engine::node::NodeId;
     use std::path::PathBuf;
     use typed_builder::TypedBuilder;
 
@@ -80,13 +80,12 @@ pub(super) mod df {
     use crate::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
     use crate::converter::series::{to_f32_vec, to_nodeid_vec, to_timestamp_vec};
     use crate::links::data::LinkMap;
-    use log::debug;
-    use pavenet_core::link::DLink;
+    use pavenet_core::radio::DLink;
     use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
+    use pavenet_engine::node::NodeId;
     use polars::error::ErrString;
-    use polars::prelude::{col, lit, DataFrame, IntoLazy, PolarsError, PolarsResult, Series};
+    use polars::prelude::{col, lit, DataFrame, IntoLazy, PolarsError, Series};
 
     mod mandatory {
         use crate::columns::*;
@@ -134,7 +133,7 @@ pub(super) mod df {
             }
             links.entry(*time_stamp).or_insert(link_map_entry);
         }
-        return Ok(links);
+        Ok(links)
     }
 
     fn validate_links_df(df: &DataFrame) -> Result<(), PolarsError> {
@@ -145,23 +144,20 @@ pub(super) mod df {
                 )));
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     fn build_links_data(df: &DataFrame) -> Result<Vec<DLink>, Box<dyn std::error::Error>> {
         let target_id_series: &Series = df.column(TARGET_ID)?;
         let target_ids: Vec<NodeId> = to_nodeid_vec(&target_id_series)?;
-        let mut link_vec: Vec<DLink> = target_ids
-            .into_iter()
-            .map(|target_id_vec| DLink::new(target_id_vec))
-            .collect();
+        let mut link_vec: Vec<DLink> = target_ids.into_iter().map(DLink::new).collect();
 
         let optional_columns = get_optional_columns(df);
         for optional_col in optional_columns.into_iter() {
             match optional_col {
                 DISTANCE => {
                     let distance_series: &Series = df.column(DISTANCE)?;
-                    let distances: Vec<f32> = to_f32_vec(&distance_series)?;
+                    let distances: Vec<f32> = to_f32_vec(distance_series)?;
                     for (idx, distance) in distances.into_iter().enumerate() {
                         link_vec[idx].properties.distance = Some(distance);
                     }

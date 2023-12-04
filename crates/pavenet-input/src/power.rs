@@ -2,15 +2,15 @@ pub mod data {
     use crate::file_reader::read_file;
     use crate::power::df::extract_power_schedule;
     use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
+    use pavenet_engine::node::NodeId;
     use std::path::PathBuf;
 
     pub type PowerTimes = (Vec<TimeS>, Vec<TimeS>);
     pub fn read_power_schedule(
         power_schedule_file: &PathBuf,
     ) -> Result<HashMap<NodeId, PowerTimes>, Box<dyn std::error::Error>> {
-        let activation_df = read_file(&power_schedule_file)?;
+        let activation_df = read_file(power_schedule_file)?;
         extract_power_schedule(&activation_df)
     }
 }
@@ -19,12 +19,11 @@ pub(super) mod df {
     use crate::columns::{NODE_ID, OFF_TIMES, ON_TIMES};
     use crate::converter::series::{to_nodeid_vec, to_timestamp_vec};
     use crate::power::data::PowerTimes;
-    use log::debug;
 
     use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
-    use polars::prelude::{col, DataFrame, IntoLazy};
+    use pavenet_engine::node::NodeId;
+    use polars::prelude::DataFrame;
 
     pub(crate) fn extract_power_schedule(
         power_df: &DataFrame,
@@ -52,15 +51,9 @@ pub(super) mod df {
                 .1
                 .push(off_time_vec[idx]);
         }
-        return Ok(power_data_map);
+        Ok(power_data_map)
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::data::read_power_schedule;
-    use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
-    use pavenet_engine::hashbrown::HashMap;
-    use std::path::PathBuf;
-}
+mod tests {}

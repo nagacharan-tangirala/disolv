@@ -4,8 +4,8 @@ pub mod data {
     use log::debug;
     use pavenet_core::mobility::MapState;
     use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
+    use pavenet_engine::node::NodeId;
     use std::path::PathBuf;
     use typed_builder::TypedBuilder;
 
@@ -35,14 +35,13 @@ pub mod data {
                     panic!("Error reading file: {:?}", e)
                 }
             };
-            let trace_map = match extract_map_states(&trace_df) {
+            match extract_map_states(&trace_df) {
                 Ok(map) => map,
                 Err(e) => {
                     debug!("Error extracting map states: {:?}", e);
                     panic!("Error extracting map states: {:?}", e)
                 }
-            };
-            trace_map
+            }
         }
     }
 
@@ -64,14 +63,13 @@ pub mod data {
                         panic!("Error reading file: {:?}", e)
                     }
                 };
-            let trace_map = match extract_map_states(&trace_df) {
+            match extract_map_states(&trace_df) {
                 Ok(map) => map,
                 Err(e) => {
                     debug!("Error extracting map states: {:?}", e);
                     panic!("Error extracting map states: {:?}", e)
                 }
-            };
-            trace_map
+            }
         }
     }
 }
@@ -88,8 +86,8 @@ pub(super) mod df {
     use pavenet_core::mobility::{MapState, Point2D};
 
     use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
     use pavenet_engine::hashbrown::HashMap;
+    use pavenet_engine::node::NodeId;
     use polars::error::{ErrString, PolarsError};
     use polars::prelude::{col, lit, DataFrame, IntoLazy, PolarsResult};
 
@@ -109,7 +107,7 @@ pub(super) mod df {
         trace_df: &DataFrame,
     ) -> Result<TraceMap, Box<dyn std::error::Error>> {
         validate_trace_df(trace_df)?;
-        let filtered_df = group_by_time(&trace_df)?;
+        let filtered_df = group_by_time(trace_df)?;
 
         let ts_series = filtered_df.column(TIME_STEP)?;
         let time_stamps: Vec<TimeS> = to_timestamp_vec(ts_series)?;
@@ -139,7 +137,7 @@ pub(super) mod df {
             }
             trace_map.entry(*time_stamp).or_insert(trace);
         }
-        return Ok(trace_map);
+        Ok(trace_map)
     }
 
     fn validate_trace_df(df: &DataFrame) -> Result<(), PolarsError> {
@@ -150,26 +148,22 @@ pub(super) mod df {
                 )));
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     fn group_by_time(df: &DataFrame) -> PolarsResult<DataFrame> {
         let agg_columns = columns_to_aggregate(df);
-        return df
-            .clone()
+        df.clone()
             .lazy()
             .group_by([col(TIME_STEP)])
             .agg(agg_columns.into_iter().collect::<Vec<_>>())
-            .collect();
+            .collect()
     }
 
     fn columns_to_aggregate(df: &DataFrame) -> Vec<polars::prelude::Expr> {
         let mut columns_in_df = df.get_column_names();
         columns_in_df.remove(columns_in_df.iter().position(|x| *x == TIME_STEP).unwrap());
-        return columns_in_df
-            .into_iter()
-            .map(|x| col(x))
-            .collect::<Vec<_>>();
+        columns_in_df.into_iter().map(col).collect::<Vec<_>>()
     }
 
     fn extract_mandatory_data(df: &DataFrame) -> Result<Vec<MapState>, Box<dyn std::error::Error>> {
@@ -183,7 +177,7 @@ pub(super) mod df {
             .zip(y_positions.iter())
             .map(|(x, y)| MapState::builder().pos(Point2D { x: *x, y: *y }).build())
             .collect();
-        return Ok(map_states);
+        Ok(map_states)
     }
 
     fn add_optional_data(
@@ -226,15 +220,14 @@ pub(super) mod df {
                 _ => return Err("Invalid column name".into()),
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     fn get_optional_columns(df: &DataFrame) -> Vec<&str> {
         return df
             .get_column_names()
             .into_iter()
-            .filter(|col| optional::COLUMNS.contains(&col))
-            .map(|col| col)
+            .filter(|col| optional::COLUMNS.contains(col))
             .collect();
     }
 }

@@ -2,13 +2,13 @@ pub(crate) mod series {
     use pavenet_core::mobility::road::RoadId;
     use pavenet_core::mobility::velocity::Velocity;
     use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
+    use pavenet_engine::node::NodeId;
     use polars::series::Series;
 
     pub(crate) fn to_i64_vec(series: &Series) -> Result<Vec<i64>, Box<dyn std::error::Error>> {
         let series_to_option_vec: Vec<Option<i64>> = series.i64()?.to_vec();
         let option_vec_to_vec: Vec<i64> = series_to_option_vec.iter().filter_map(|x| *x).collect();
-        return Ok(option_vec_to_vec);
+        Ok(option_vec_to_vec)
     }
 
     pub(crate) fn to_f32_vec(series: &Series) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
@@ -18,7 +18,7 @@ pub(crate) mod series {
             .filter_map(|x| *x)
             .map(|x| x as f32)
             .collect();
-        return Ok(option_vec_to_vec);
+        Ok(option_vec_to_vec)
     }
 
     pub(crate) fn to_nodeid_vec(
@@ -28,9 +28,9 @@ pub(crate) mod series {
         let option_vec_to_vec: Vec<NodeId> = series_to_option_vec
             .iter()
             .filter_map(|x| *x)
-            .map(|x| NodeId::from(x))
+            .map(NodeId::from)
             .collect::<Vec<NodeId>>();
-        return Ok(option_vec_to_vec);
+        Ok(option_vec_to_vec)
     }
 
     pub(crate) fn to_timestamp_vec(
@@ -40,9 +40,9 @@ pub(crate) mod series {
         let option_vec_to_vec: Vec<TimeS> = series_to_option_vec
             .iter()
             .filter_map(|x| *x)
-            .map(|x| TimeS::from(x))
+            .map(TimeS::from)
             .collect();
-        return Ok(option_vec_to_vec);
+        Ok(option_vec_to_vec)
     }
 
     pub(crate) fn to_roadid_vec(
@@ -52,9 +52,9 @@ pub(crate) mod series {
         let option_vec_to_vec: Vec<RoadId> = series_to_option_vec
             .iter()
             .filter_map(|x| *x)
-            .map(|x| RoadId::from(x))
+            .map(RoadId::from)
             .collect();
-        return Ok(option_vec_to_vec);
+        Ok(option_vec_to_vec)
     }
 
     pub(crate) fn to_velocity_vec(
@@ -64,9 +64,9 @@ pub(crate) mod series {
         let option_vec_to_vec: Vec<Velocity> = series_to_option_vec
             .iter()
             .filter_map(|x| *x)
-            .map(|x| Velocity::from(x))
+            .map(Velocity::from)
             .collect();
-        return Ok(option_vec_to_vec);
+        Ok(option_vec_to_vec)
     }
 }
 
@@ -76,7 +76,7 @@ mod tests {
     use pavenet_core::mobility::road::RoadId;
     use pavenet_core::mobility::velocity::Velocity;
     use pavenet_engine::bucket::TimeS;
-    use pavenet_engine::entity::NodeId;
+    use pavenet_engine::node::NodeId;
     use polars::prelude::{NamedFrom, Series};
 
     #[test]

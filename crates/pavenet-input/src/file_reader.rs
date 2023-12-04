@@ -28,7 +28,7 @@ pub fn read_file(file_name: &PathBuf) -> PolarsResult<DataFrame> {
         let args = ScanArgsParquet::default();
         return LazyFrame::scan_parquet(file_name, args)?.collect();
     }
-    return Err(PolarsError::InvalidOperation(ErrString::from(
+    Err(PolarsError::InvalidOperation(ErrString::from(
         "File extension not supported".to_string(),
-    )));
+    )))
 }
