@@ -85,7 +85,7 @@ where
     R: Reply,
     T: TxStatus,
 {
-    pub reply: R,
+    pub reply: Option<R>,
     pub downstream: Option<Vec<R>>,
     pub tx_status: T,
 }
