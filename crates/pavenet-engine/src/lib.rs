@@ -10,3 +10,4 @@ pub mod scheduler;
 
 pub use anyhow;
 pub use hashbrown;
+pub use uuid;
