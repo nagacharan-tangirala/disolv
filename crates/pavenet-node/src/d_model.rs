@@ -1,16 +1,9 @@
-use crate::models::compose::{BasicComposer, Composer, ComposerSettings, StatusComposer};
-use crate::models::power::PowerManager;
-use crate::models::radio::Radio;
-use crate::models::respond::{Responder, ResponderSettings, StatsResponder};
-use crate::models::select::{Selector, SelectorSettings};
-use pavenet_engine::bucket::TimeS;
+use pavenet_core::power::PowerManager;
 use pavenet_input::power::data::PowerTimes;
-
-pub trait BucketModel {
-    fn init(&mut self, step: TimeS);
-    fn stream_data(&mut self, step: TimeS);
-    fn refresh_cache(&mut self, step: TimeS);
-}
+use pavenet_models::compose::{BasicComposer, Composer, ComposerSettings, StatusComposer};
+use pavenet_models::radio::Radio;
+use pavenet_models::respond::{Responder, ResponderSettings, StatsResponder};
+use pavenet_models::select::{Selector, SelectorSettings};
 
 #[derive(Debug, Clone)]
 pub struct DeviceModel {
@@ -51,8 +44,8 @@ impl ModelBuilder {
         match composer_settings {
             Some(settings) => {
                 self.composer = Some(match settings.name.as_str() {
-                    "basic" => Composer::Basic(BasicComposer::new(settings.clone())),
-                    "status" => Composer::Status(StatusComposer::new(settings.clone())),
+                    "basic" => Composer::Basic(BasicComposer::new(&settings)),
+                    "status" => Composer::Status(StatusComposer::new(&settings)),
                     _ => panic!("Unknown composer type"),
                 });
             }

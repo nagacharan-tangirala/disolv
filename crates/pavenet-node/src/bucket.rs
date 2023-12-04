@@ -1,30 +1,24 @@
-use crate::d_model::BucketModel;
 use crate::device::Device;
-use crate::models::lake::DataLake;
-use crate::models::linker::Linker;
-use crate::models::result::Resultant;
-use crate::models::space::{Mapper, Space};
+use crate::linker::Linker;
+use crate::space::{Mapper, Space};
 use log::{debug, info};
-use pavenet_core::entity::class::NodeClass;
-use pavenet_core::entity::kind::NodeType;
-use pavenet_core::link::DLink;
+use pavenet_core::entity::{NodeClass, NodeOrder, NodeType};
 use pavenet_core::mobility::MapState;
-use pavenet_core::radio::stats::InDataStats;
-use pavenet_core::rules::Rules;
+use pavenet_core::radio::{DLink, InDataStats};
 use pavenet_engine::bucket::Bucket;
+use pavenet_engine::bucket::ResultSaver;
 use pavenet_engine::bucket::TimeS;
-use pavenet_engine::entity::NodeId;
 use pavenet_engine::hashbrown::HashMap;
-use pavenet_engine::result::Saveable;
+use pavenet_engine::node::NodeId;
 use pavenet_engine::scheduler::GNodeScheduler;
+use pavenet_models::lake::DataLake;
 use typed_builder::TypedBuilder;
 
-pub type DNodeScheduler = GNodeScheduler<DeviceBucket, Device, NodeType, NodeClass>;
+pub type DNodeScheduler = GNodeScheduler<DeviceBucket, Device, NodeOrder>;
 
 #[derive(Clone, TypedBuilder)]
 pub struct DeviceBucket {
     pub space: Space,
-    pub rules: Rules,
     pub scheduler: DNodeScheduler,
     pub mapper_holder: Vec<(NodeType, Mapper)>,
     pub linker_holder: Vec<(NodeType, Linker)>,
@@ -61,6 +55,10 @@ impl DeviceBucket {
         self.mapper_for(node_type).map_state_of(node_id)
     }
 
+    pub(crate) fn node_of(&self, node_id: NodeId) -> Option<&Device> {
+        self.devices.get(&node_id)
+    }
+
     pub(crate) fn stats_for(&mut self, link_opts: &Vec<DLink>) -> Vec<Option<&InDataStats>> {
         let mut link_stats = Vec::with_capacity(link_opts.len());
         for link_opt in link_opts.iter() {
@@ -69,9 +67,9 @@ impl DeviceBucket {
         link_stats
     }
 
-    pub(crate) fn kind_for(&self, target_class: &NodeClass) -> NodeType {
+    pub(crate) fn kind_for(&self, target_class: &NodeClass) -> &NodeType {
         match self.class_to_type.get(target_class) {
-            Some(node_type) => node_type.to_owned(),
+            Some(node_type) => node_type,
             None => panic!("No node type for class: {:?}", target_class),
         }
     }
@@ -158,7 +156,7 @@ impl Bucket for DeviceBucket {
     }
 }
 
-impl Saveable for DeviceBucket {
+impl ResultSaver for DeviceBucket {
     fn save_device_stats(&mut self, step: TimeS) {
         for (node_id, device) in self.devices.iter() {
             self.resultant
