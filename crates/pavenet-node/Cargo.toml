@@ -11,6 +11,7 @@ readme = "README.md"
 [dependencies]
 pavenet-core = { version = "0.0.0", path= "../pavenet-core" }
 pavenet-engine = { version = "0.0.0", path= "../pavenet-engine" }
+pavenet-models = { version = "0.0.0", path= "../pavenet-models" }
 pavenet-input = { version = "0.0.0", path= "../pavenet-input" }
 pavenet-output = { version = "0.0.0", path= "../pavenet-output" }
 log4rs = "1.2.0"
