@@ -1,0 +1,13 @@
+[package]
+name = "pavenet-models"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+pavenet-core = { path = "../pavenet-core" }
+pavenet-engine = { path = "../pavenet-engine" }
+serde = { version = "1.0.193", features = ["derive"] }
+typed-builder = "0.18.0"
+log = "0.4.20"
+rand = "0.8.5"
+
