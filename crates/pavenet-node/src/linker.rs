@@ -1,9 +1,12 @@
 use pavenet_core::entity::NodeType;
+use pavenet_core::radio::DLink;
 use pavenet_engine::bucket::TimeS;
 use pavenet_engine::hashbrown::HashMap;
+use pavenet_engine::node::NodeId;
+use pavenet_input::links::data::{LinkMap, LinkReader};
+use pavenet_models::model::BucketModel;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
-use pavenet_core::radio::DLink;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct LinkerSettings {
@@ -52,7 +55,7 @@ impl BucketModel for Linker {
         };
     }
 
-    fn refresh_cache(&mut self, step: TimeS) {
+    fn before_node_step(&mut self, step: TimeS) {
         if self.is_static {
             return;
         }
