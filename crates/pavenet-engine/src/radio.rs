@@ -1,5 +1,5 @@
 use crate::entity::Class;
-use crate::message::{GPayload, Metadata, NodeState};
+use crate::message::{DataUnit, GPayload, Metadata, NodeState};
 use crate::node::NodeId;
 use std::fmt::Debug;
 use typed_builder::TypedBuilder;
@@ -40,7 +40,7 @@ where
     M: Metadata,
     N: NodeState,
 {
-    fn reset(&mut self);
+    fn reset_rx(&mut self);
     fn complete_transfers(&mut self, payloads: Vec<GPayload<M, N>>) -> Vec<GPayload<M, N>>;
     fn perform_actions(
         &mut self,
@@ -57,7 +57,14 @@ where
     N: NodeState,
 {
     type C: Class;
+    type D: DataUnit;
+
     fn reset(&mut self);
+    fn prepare_blobs_to_fwd(
+        &mut self,
+        target_class: &N,
+        to_forward: &Vec<GPayload<M, N>>,
+    ) -> Vec<Self::D>;
     fn prepare_transfer(
         &mut self,
         target_class: &Self::C,
