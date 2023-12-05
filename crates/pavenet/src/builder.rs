@@ -1,29 +1,30 @@
 use crate::base::{BaseConfig, BaseConfigReader, NodeClassSettings, NodeSettings};
 use crate::logger;
-use itertools::Itertools;
 use krabmaga::rand_pcg::Pcg64Mcg;
 use log::info;
-use pavenet_core::entity::class::NodeClass;
-use pavenet_core::entity::kind::NodeType;
-use pavenet_core::entity::NodeInfo;
-use pavenet_core::rules::Rules;
+use pavenet_core::entity::{NodeClass, NodeInfo, NodeOrder, NodeType};
+use pavenet_core::power::PowerManager;
 use pavenet_engine::bucket::TimeS;
-use pavenet_engine::engine::{GEngine, GNode};
-use pavenet_engine::entity::NodeId;
+use pavenet_engine::engine::GEngine;
 use pavenet_engine::hashbrown::HashMap;
+use pavenet_engine::metrics::Measurable;
+use pavenet_engine::node::{GNode, NodeId};
 use pavenet_input::links::data::LinkReader;
 use pavenet_input::power::data::{read_power_schedule, PowerTimes};
+use pavenet_models::compose::Composer;
+use pavenet_models::latency::LatencyType;
+use pavenet_models::model::Model;
+use pavenet_models::radio::{RxRadio, TxRadio};
+use pavenet_models::reply::Replier;
+use pavenet_models::select::Selector;
 use pavenet_node::bucket::{DNodeScheduler, DeviceBucket};
-use pavenet_node::d_model::DeviceModel;
-use pavenet_node::device::Device;
-use pavenet_node::models::latency::DLatencyModel;
-use pavenet_node::models::linker::{Linker, LinkerSettings};
-use pavenet_node::models::radio::Radio;
-use pavenet_node::models::result::Resultant;
-use pavenet_node::models::space::{Mapper, Space};
+use pavenet_node::device::{Device, DeviceModel};
+use pavenet_node::linker::{Linker, LinkerSettings};
+use pavenet_node::space::{Mapper, Space};
+use pavenet_output::result::ResultWriter;
 use std::path::{Path, PathBuf};
 
-pub type DNode = GNode<DeviceBucket, Device, NodeType, NodeClass>;
+pub type DNode = GNode<DeviceBucket, Device, NodeOrder>;
 pub type DEngine = GEngine<DeviceBucket>;
 
 pub struct PavenetBuilder {
@@ -149,13 +150,30 @@ impl PavenetBuilder {
         power_times: PowerTimes,
     ) -> Device {
         let node_info = Self::build_node_info(node_id, node_type, class_settings);
-        let radio = self.build_radio(class_settings);
-        let models = self.build_device_model(class_settings, power_times, radio);
+
+        let rx_radio = self.build_rx_radio(class_settings);
+        let mut tx_radio = self.build_tx_radio(class_settings);
+        tx_radio.update_settings(&class_settings.actions);
+
         let target_classes = self.read_target_classes(class_settings);
+        let power_manager = PowerManager::builder()
+            .on_times(power_times.0.into())
+            .off_times(power_times.1.into())
+            .array_idx(0)
+            .build();
+
+        let device_model = DeviceModel::builder()
+            .power(power_manager)
+            .rx_radio(rx_radio)
+            .tx_radio(tx_radio)
+            .composer(Composer::with_settings(&class_settings.composer))
+            .selector(Selector::with_settings(&class_settings.selector))
+            .replier(Replier::with_settings(&class_settings.replier))
+            .build();
 
         let device = Device::builder()
             .node_info(node_info)
-            .models(models)
+            .models(device_model)
             .target_classes(target_classes)
             .build();
 
@@ -171,51 +189,39 @@ impl PavenetBuilder {
             .id(node_id)
             .node_type(node_type.to_owned())
             .node_class(class_settings.node_class)
+            .node_order(class_settings.node_order)
             .build()
     }
 
-    fn build_radio(&self, class_settings: &NodeClassSettings) -> Radio {
-        Radio::builder()
+    fn build_rx_radio(&self, class_settings: &NodeClassSettings) -> RxRadio {
+        RxRadio::builder()
             .my_class(class_settings.node_class)
-            .latency_model(DLatencyModel::new(class_settings.latency.clone()))
+            .latency_type(LatencyType::with_settings(class_settings.latency.clone()))
             .step_size(TimeS::from(self.sim_step()))
             .rng(Pcg64Mcg::new(self.sim_seed()))
             .build()
     }
 
-    fn build_device_model(
-        &self,
-        class_settings: &NodeClassSettings,
-        power_times: PowerTimes,
-        radio: Radio,
-    ) -> DeviceModel {
-        DeviceModel::builder(radio)
-            .with_power(power_times)
-            .with_composer(class_settings.composer.clone())
-            .with_responder(class_settings.responder.clone())
-            .with_selector(class_settings.selector.clone())
+    fn build_tx_radio(&self, class_settings: &NodeClassSettings) -> TxRadio {
+        TxRadio::builder()
+            .rng(Pcg64Mcg::new(self.sim_seed()))
+            .my_class(class_settings.node_class)
             .build()
     }
 
-    fn read_target_classes(&self, class_settings: &NodeClassSettings) -> Option<Vec<NodeClass>> {
-        let target_classes: Option<Vec<NodeClass>> = match class_settings.composer {
-            Some(ref composer) => Some(
-                composer
-                    .source_settings
-                    .iter()
-                    .map(|x| x.node_class)
-                    .unique()
-                    .collect(),
-            ),
-            None => None,
-        };
-        target_classes
+    fn read_target_classes(&self, class_settings: &NodeClassSettings) -> Vec<NodeClass> {
+        class_settings
+            .composer
+            .source_settings
+            .iter()
+            .map(|x| x.node_class)
+            .collect()
     }
 
     fn build_nodes(&self, devices: HashMap<NodeId, Device>) -> HashMap<NodeId, DNode> {
         let mut node_map = HashMap::with_capacity(devices.len());
         for (node_id, device) in devices.iter() {
-            let node = DNode::new(*node_id, device.to_owned(), device.node_info.node_type);
+            let node = DNode::new(*node_id, device.to_owned());
             node_map.insert(*node_id, node);
         }
         node_map
@@ -227,10 +233,9 @@ impl PavenetBuilder {
             .mapper_holder(self.build_mapper_vec())
             .linker_holder(self.build_linker_vec())
             .space(self.build_space())
-            .rules(Rules::new(self.base_config.tx_rules.clone()))
             .class_to_type(self.read_class_to_type_map())
             .output_step(self.output_step())
-            .resultant(self.build_resultant())
+            .resultant(ResultWriter::new(&self.base_config.output_settings))
             .build()
     }
 
@@ -272,7 +277,10 @@ impl PavenetBuilder {
         }
         let link_reader =
             LinkReader::new(links_file, self.streaming_step(), link_config.is_streaming);
-        Linker::builder().reader(link_reader).build()
+        Linker::builder()
+            .reader(link_reader)
+            .is_static(!link_config.is_streaming)
+            .build()
     }
 
     fn build_space(&self) -> Space {
@@ -281,16 +289,6 @@ impl PavenetBuilder {
             .cell_size(self.base_config.field_settings.cell_size)
             .width(self.base_config.field_settings.width)
             .build()
-    }
-
-    fn build_resultant(&self) -> Resultant {
-        let output_path =
-            Path::new(&self.config_path).join(&self.base_config.output_settings.output_path);
-        Resultant::new(
-            &output_path,
-            self.sim_step(),
-            &self.base_config.output_settings,
-        )
     }
 
     fn read_class_to_type_map(&mut self) -> HashMap<NodeClass, NodeType> {

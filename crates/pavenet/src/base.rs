@@ -1,14 +1,13 @@
-use pavenet_core::entity::class::NodeClass;
-use pavenet_core::entity::kind::NodeType;
-use pavenet_core::result::OutputSettings;
-use pavenet_core::rules::RuleSettings;
+use pavenet_core::entity::{NodeClass, NodeOrder, NodeType};
+use pavenet_core::radio::ActionSettings;
 use pavenet_engine::bucket::TimeS;
-use pavenet_node::models::compose::ComposerSettings;
-use pavenet_node::models::latency::LatencyConfig;
-use pavenet_node::models::linker::LinkerSettings;
-use pavenet_node::models::respond::ResponderSettings;
-use pavenet_node::models::select::SelectorSettings;
-use pavenet_node::models::space::{FieldSettings, MobilitySettings};
+use pavenet_models::compose::ComposerSettings;
+use pavenet_models::latency::LatencyConfig;
+use pavenet_models::reply::ReplierSettings;
+use pavenet_models::select::SelectorSettings;
+use pavenet_node::linker::LinkerSettings;
+use pavenet_node::space::{FieldSettings, MobilitySettings};
+use pavenet_output::result::OutputSettings;
 use serde::Deserialize;
 use std::path::PathBuf;
 
@@ -20,7 +19,6 @@ pub struct BaseConfig {
     pub log_settings: LogSettings,
     pub output_settings: OutputSettings,
     pub nodes: Vec<NodeSettings>,
-    pub tx_rules: Vec<RuleSettings>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -53,10 +51,12 @@ pub struct NodeSettings {
 pub struct NodeClassSettings {
     pub node_share: f32,
     pub node_class: NodeClass,
+    pub node_order: NodeOrder,
     pub latency: LatencyConfig,
-    pub composer: Option<ComposerSettings>,
-    pub selector: Option<SelectorSettings>,
-    pub responder: Option<ResponderSettings>,
+    pub composer: ComposerSettings,
+    pub selector: SelectorSettings,
+    pub replier: ReplierSettings,
+    pub actions: Vec<ActionSettings>,
 }
 
 pub struct BaseConfigReader {
