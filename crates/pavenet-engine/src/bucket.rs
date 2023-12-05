@@ -5,15 +5,15 @@ use std::ops::{Add, AddAssign, Div, Mul};
 use std::str::FromStr;
 
 #[derive(Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct TimeS(pub u64);
+pub struct TimeMS(pub u64);
 
-impl Display for TimeS {
+impl Display for TimeMS {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:09}", self.0)
+        write!(f, "{}", self.0)
     }
 }
 
-impl FromStr for TimeS {
+impl FromStr for TimeMS {
     type Err = std::num::ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -22,43 +22,40 @@ impl FromStr for TimeS {
     }
 }
 
-impl From<u64> for TimeS {
+impl From<u64> for TimeMS {
     fn from(f: u64) -> Self {
         Self(f)
     }
 }
 
-impl From<i32> for TimeS {
+impl From<i32> for TimeMS {
     fn from(f: i32) -> Self {
         Self(f as u64)
     }
 }
 
-impl From<i64> for TimeS {
+impl From<i64> for TimeMS {
     fn from(f: i64) -> Self {
         Self(f as u64)
     }
 }
 
-impl TimeS {
+impl TimeMS {
     pub fn as_u64(&self) -> u64 {
         self.0
     }
     pub fn as_u32(&self) -> u32 {
         self.0 as u32
     }
-    pub fn as_i64(&self) -> i64 {
-        self.0 as i64
-    }
-    pub fn as_f64(&self) -> f64 {
-        self.0 as f64
-    }
     pub fn as_f32(&self) -> f32 {
         self.0 as f32
     }
+    pub(crate) fn as_f32_sec(&self) -> f32 {
+        self.0 as f32 / 1000.0
+    }
 }
 
-impl Mul for TimeS {
+impl Mul for TimeMS {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -66,7 +63,7 @@ impl Mul for TimeS {
     }
 }
 
-impl Div for TimeS {
+impl Div for TimeMS {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
@@ -74,14 +71,14 @@ impl Div for TimeS {
     }
 }
 
-impl Add for TimeS {
+impl Add for TimeMS {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
         Self(self.0 + rhs.0)
     }
 }
-impl AddAssign for TimeS {
+impl AddAssign for TimeMS {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
     }
@@ -94,18 +91,18 @@ pub trait Bucket: Clone + Send + Sync + 'static {
     type SchedulerImpl: Scheduler;
 
     fn scheduler(&mut self) -> &mut Self::SchedulerImpl;
-    fn init(&mut self, step: TimeS);
-    fn update(&mut self, step: TimeS);
+    fn init(&mut self, step: TimeMS);
+    fn update(&mut self, step: TimeMS);
     fn before_uplink(&mut self);
     fn after_downlink(&mut self);
-    fn streaming_step(&mut self, step: TimeS);
+    fn streaming_step(&mut self, step: TimeMS);
 }
 
 /// The <code>ResultSaver</code> trait defines the methods that take the simulator data and
 /// prepare the data for output.
 pub trait ResultSaver: Bucket {
-    fn save_device_stats(&mut self, step: TimeS);
-    fn save_data_stats(&mut self, step: TimeS);
+    fn save_device_stats(&mut self, step: TimeMS);
+    fn save_data_stats(&mut self, step: TimeMS);
 }
 
 /// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark
@@ -123,14 +120,14 @@ where
 pub(crate) mod tests {
     use super::Bucket;
     use super::ResultSaver;
-    use super::TimeS;
+    use super::TimeMS;
     use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
     use std::fmt::Display;
 
     #[derive(Default, Clone)]
     pub(crate) struct MyBucket {
         pub(crate) scheduler: MyScheduler,
-        pub(crate) step: TimeS,
+        pub(crate) step: TimeMS,
     }
 
     impl MyBucket {
@@ -138,16 +135,16 @@ pub(crate) mod tests {
             let scheduler = make_scheduler_with_2_devices();
             Self {
                 scheduler,
-                step: TimeS::default(),
+                step: TimeMS::default(),
             }
         }
     }
 
     impl ResultSaver for MyBucket {
-        fn save_device_stats(&mut self, time: TimeS) {
+        fn save_device_stats(&mut self, time: TimeMS) {
             todo!()
         }
-        fn save_data_stats(&mut self, time: TimeS) {
+        fn save_data_stats(&mut self, time: TimeMS) {
             todo!()
         }
     }
@@ -158,11 +155,11 @@ pub(crate) mod tests {
             &mut self.scheduler
         }
 
-        fn init(&mut self, step: TimeS) {
+        fn init(&mut self, step: TimeMS) {
             self.step = step;
         }
 
-        fn update(&mut self, step: TimeS) {
+        fn update(&mut self, step: TimeMS) {
             self.step = step;
             println!("Update in MyBucket at {}", step);
         }
@@ -175,7 +172,7 @@ pub(crate) mod tests {
             println!("after_downlink in MyBucket");
         }
 
-        fn streaming_step(&mut self, step: TimeS) {
+        fn streaming_step(&mut self, step: TimeMS) {
             println!("Streaming step in bucket at {}", step);
         }
     }
@@ -184,14 +181,14 @@ pub(crate) mod tests {
     fn test_bucket_update() {
         let mut bucket = MyBucket::default();
         let scheduler = MyScheduler::default();
-        let step0 = TimeS::from(0i64);
+        let step0 = TimeMS::from(0i64);
         bucket.init(step0);
-        assert_eq!(bucket.step, TimeS::from(0i64));
-        let step1 = TimeS::from(1i64);
+        assert_eq!(bucket.step, TimeMS::from(0i64));
+        let step1 = TimeMS::from(1i64);
         bucket.update(step1);
-        assert_eq!(bucket.step, TimeS::from(1i64));
-        let step2 = TimeS::from(2i64);
+        assert_eq!(bucket.step, TimeMS::from(1i64));
+        let step2 = TimeMS::from(2i64);
         bucket.update(step2);
-        assert_eq!(bucket.step, TimeS::from(2i64));
+        assert_eq!(bucket.step, TimeMS::from(2i64));
     }
 }
