@@ -1,17 +1,17 @@
 use csv::{Writer, WriterBuilder};
-use log::debug;
-use pavenet_engine::result::{Resultant, WriterOut};
+use log::error;
+use pavenet_engine::bucket::Resultant;
 use std::fs::{File, OpenOptions};
 use std::io::Seek;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
-pub enum FileOutput {
+pub enum DataOutput {
     Csv(WriterCsv),
     Parquet,
 }
 
-impl FileOutput {
+impl DataOutput {
     pub fn new(file_name: &PathBuf) -> Self {
         match file_name.extension() {
             Some(ext) => match ext.to_str() {
@@ -22,19 +22,14 @@ impl FileOutput {
         }
     }
 
-    fn build_csv_writer(file_name: &PathBuf) -> FileOutput {
-        FileOutput::Csv(WriterCsv::new(file_name))
+    fn build_csv_writer(file_name: &PathBuf) -> DataOutput {
+        DataOutput::Csv(WriterCsv::new(file_name))
     }
-}
 
-impl WriterOut for FileOutput {
-    fn write_to_file<R>(&mut self, resultant: Vec<R>)
-    where
-        R: Resultant,
-    {
+    pub fn write_to_file<R: Resultant>(&mut self, data: &Vec<R>) {
         match self {
-            FileOutput::Csv(writer) => writer.write_to_file(resultant),
-            FileOutput::Parquet => unimplemented!(),
+            DataOutput::Csv(writer) => writer.write_to_file(data),
+            DataOutput::Parquet => {}
         }
     }
 }
@@ -55,11 +50,14 @@ impl WriterCsv {
         let mut file = match OpenOptions::new()
             .write(true)
             .create(true)
-            .append(true)
-            .open(file_name.to_owned())
+            .append(false)
+            .open(file_name.clone())
         {
             Ok(file) => file,
-            Err(e) => panic!("Error opening file: {}", e),
+            Err(e) => {
+                error!("Error opening file: {}", file_name.to_str().unwrap());
+                panic!("Error opening file: {}", e);
+            }
         };
 
         let needs_headers: bool = match file.seek(std::io::SeekFrom::End(0)) {
@@ -73,15 +71,9 @@ impl WriterCsv {
         writer
     }
 
-    pub fn write_to_file<R>(&mut self, resultant: Vec<R>)
-    where
-        R: Resultant,
-    {
+    fn write_to_file<R: Resultant>(&mut self, data: &Vec<R>) {
         let mut writer = Self::build_writer(self.file_name.to_owned());
-        debug!("Writing to file: {:?}", self.file_name);
-        debug!("Writing {} records", resultant.len());
-        for result in resultant {
-            writer.serialize(result).unwrap();
-        }
+        writer.serialize(data).expect("Error writing record");
+        writer.flush().expect("Error flushing writer");
     }
 }
