@@ -96,12 +96,7 @@ impl Schedulable for Device {
         self.power_state == PowerState::Off
     }
 
-    fn time_to_add(&mut self) -> TimeS {
-        debug!(
-            "Node {} will be added at {}",
-            self.node_info.id,
-            self.models.power.pop_time_to_on()
-        );
+    fn time_to_add(&mut self) -> TimeMS {
         self.models.power.pop_time_to_on()
     }
 }
