@@ -4,47 +4,47 @@ use pavenet_engine::bucket::TimeS;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct ResponderSettings {
+pub struct ReplierSettings {
     pub name: String,
 }
 
-impl ModelSettings for ResponderSettings {}
+impl ModelSettings for ReplierSettings {}
 
 #[derive(Clone, Debug, Copy)]
-pub enum Responder {
-    Stats(StatsResponder),
+pub enum Replier {
+    Stats(StatsReplier),
 }
 
-impl Model for Responder {
-    type Settings = ResponderSettings;
+impl Model for Replier {
+    type Settings = ReplierSettings;
 
-    fn with_settings(settings: &ResponderSettings) -> Self {
-        match settings.name.as_str() {
-            "basic" => Responder::Stats(StatsResponder::default()),
-            _ => panic!("Unknown responder type"),
+    fn with_settings(settings: &ReplierSettings) -> Self {
+        match settings.name.to_lowercase().as_str() {
+            "stats" => Replier::Stats(StatsReplier::default()),
+            _ => panic!("Unsupported replier type {}.", settings.name),
         }
     }
 }
 
-impl Responder {
+impl Replier {
     pub fn compose_response(
         &mut self,
         in_response: Option<DResponse>,
         transfer_stats: TransferMetrics,
     ) -> DResponse {
         match self {
-            Responder::Stats(responder) => responder.compose_response(in_response, transfer_stats),
+            Replier::Stats(responder) => responder.compose_response(in_response, transfer_stats),
         }
     }
 }
 
 #[derive(Clone, Debug, Copy, Default)]
-pub struct StatsResponder {
+pub struct StatsReplier {
     _step: TimeS,
 }
 
-impl StatsResponder {
-    pub fn new(_responder_settings: ResponderSettings) -> Self {
+impl StatsReplier {
+    pub fn new(_replier_settings: ReplierSettings) -> Self {
         Self {
             _step: TimeS::default(),
         }
@@ -61,7 +61,7 @@ impl StatsResponder {
         };
         DResponse::builder()
             .reply(None)
-            .tx_status(transfer_stats)
+            .tx_report(transfer_stats)
             .downstream(downstream)
             .build()
     }
