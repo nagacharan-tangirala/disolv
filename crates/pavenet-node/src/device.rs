@@ -89,6 +89,7 @@ impl Movable<DeviceBucket> for Device {
 
 impl Schedulable for Device {
     fn stop(&mut self) {
+        debug!("Stopping node: {}", self.node_info.id);
         self.power_state = PowerState::Off;
     }
 
@@ -202,7 +203,6 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
         let response = self.receive(bucket);
         self.respond(response, bucket);
         if self.step == self.models.power.peek_time_to_off() {
-            debug!("Removing node: {} at {}", self.node_info.id, self.step);
             self.power_state = PowerState::Off;
             bucket.add_to_schedule(self.node_info.id);
             bucket.stop_node(self.node_info.id);
