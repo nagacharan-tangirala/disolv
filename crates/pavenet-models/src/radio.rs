@@ -14,47 +14,22 @@ use rand::prelude::SliceRandom;
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Debug, TypedBuilder)]
-pub struct Radio {
+pub struct RxRadio {
     pub my_class: NodeClass,
-    pub latency_model: LatencyType,
+    pub latency_type: LatencyType,
     pub step_size: TimeS,
     pub rng: Pcg64Mcg,
     #[builder(default)]
-    pub actions: HashMap<NodeClass, HashMap<DataType, ActionImpl>>,
-    #[builder(default)]
     pub in_link_nodes: HashMap<NodeClass, Vec<NodeId>>,
     #[builder(default)]
-    pub out_link_nodes: HashMap<NodeClass, Vec<NodeId>>,
-    #[builder(default)]
     pub in_stats: InDataStats,
-    #[builder(default)]
-    pub out_stats: OutDataStats,
     #[builder(default)]
     pub transfer_stats: HashMap<NodeId, TransferMetrics>,
 }
 
-impl Radio {
-    pub fn update_settings(&mut self, action_settings: &Vec<ActionSettings>) {
-        let mut actions = HashMap::with_capacity(action_settings.len());
-        for action in action_settings.iter() {
-            let rule = ActionImpl::builder()
-                .action_type(action.action_type)
-                .to_kind(action.to_kind)
-                .to_class(action.to_class)
-                .to_node(action.to_node)
-                .build();
-
-            actions
-                .entry(action.target)
-                .or_insert(HashMap::new())
-                .entry(action.data_type)
-                .or_insert(rule);
-        }
-        self.actions = actions;
-    }
-
+impl RxRadio {
     fn check_feasible(&mut self, payload: &DPayload) -> bool {
-        match self.latency_model.measure(&payload.metadata) {
+        match self.latency_type.measure(&payload.metadata) {
             Feasibility::Feasible(latency) => {
                 self.transfer_stats.insert(
                     payload.node_state.node_info.id,
@@ -124,35 +99,10 @@ impl Radio {
         }
         false
     }
-
-    /// Sets the new action for the data blob
-    ///
-    /// # Arguments
-    /// * `data_blob` - The data blob to set the action for
-    /// * `new_action` - The new action to set
-    fn assign_actions(&self, data_blob: &mut DataBlob, new_action: &ActionImpl) {
-        match new_action.action_type {
-            ActionType::Consume => {
-                data_blob.action.action_type = ActionType::Consume;
-            }
-            ActionType::Forward => {
-                if let Some(target_node) = new_action.to_node {
-                    data_blob.action.to_node = Some(target_node);
-                }
-                if let Some(target_class) = new_action.to_class {
-                    data_blob.action.to_class = Some(target_class);
-                }
-                if let Some(target_kind) = new_action.to_kind {
-                    data_blob.action.to_kind = Some(target_kind);
-                }
-                data_blob.action.action_type = ActionType::Forward;
-            }
-        };
-    }
 }
 
-impl RxChannel<PayloadInfo, NodeContent> for Radio {
-    fn reset(&mut self) {
+impl RxChannel<PayloadInfo, NodeContent> for RxRadio {
+    fn reset_rx(&mut self) {
         self.in_stats.reset();
         self.in_link_nodes.clear();
         self.transfer_stats.clear();
@@ -191,12 +141,118 @@ impl RxChannel<PayloadInfo, NodeContent> for Radio {
     }
 }
 
-impl TxChannel<PayloadInfo, NodeContent> for Radio {
+#[derive(Clone, Debug, TypedBuilder)]
+pub struct TxRadio {
+    pub my_class: NodeClass,
+    pub rng: Pcg64Mcg,
+    #[builder(default)]
+    pub actions: HashMap<NodeClass, HashMap<DataType, ActionImpl>>,
+    #[builder(default)]
+    pub out_link_nodes: HashMap<NodeClass, Vec<NodeId>>,
+    #[builder(default)]
+    pub out_stats: OutDataStats,
+}
+
+impl TxRadio {
+    pub fn update_settings(&mut self, action_settings: &Vec<ActionSettings>) {
+        let mut actions = HashMap::with_capacity(action_settings.len());
+        for action in action_settings.iter() {
+            let rule = ActionImpl::builder()
+                .action_type(action.action_type)
+                .to_kind(action.to_kind)
+                .to_class(action.to_class)
+                .to_node(action.to_node)
+                .build();
+
+            actions
+                .entry(action.target)
+                .or_insert(HashMap::new())
+                .entry(action.data_type)
+                .or_insert(rule);
+        }
+        self.actions = actions;
+    }
+
+    /// Sets the new action for the data blob
+    ///
+    /// # Arguments
+    /// * `data_blob` - The data blob to set the action for
+    /// * `new_action` - The new action to set
+    fn assign_actions(&self, data_blob: &mut DataBlob, new_action: &ActionImpl) {
+        match new_action.action_type {
+            ActionType::Consume => {
+                data_blob.action.action_type = ActionType::Consume;
+            }
+            ActionType::Forward => {
+                if let Some(target_node) = new_action.to_node {
+                    data_blob.action.to_node = Some(target_node);
+                }
+                if let Some(target_class) = new_action.to_class {
+                    data_blob.action.to_class = Some(target_class);
+                }
+                if let Some(target_kind) = new_action.to_kind {
+                    data_blob.action.to_kind = Some(target_kind);
+                }
+                data_blob.action.action_type = ActionType::Forward;
+            }
+        };
+    }
+
+    /// Checks if the current node should forward the data blob
+    ///
+    /// # Arguments
+    /// * `blob` - The data blob to check
+    /// * `target_info` - The node info of the target node
+    ///
+    /// # Returns
+    /// * `bool` - True if the current node should forward the data blob, false otherwise
+    fn should_i_forward(&self, blob: &DataBlob, target_info: &NodeInfo) -> bool {
+        if blob.action.action_type == ActionType::Consume {
+            error!("This should have been consumed by now");
+            panic!("consume payload appears to be forwarded");
+        }
+        if let Some(target_id) = blob.action.to_node {
+            if target_id == target_info.id {
+                return true;
+            }
+        }
+        if let Some(class) = blob.action.to_class {
+            if class == target_info.node_class {
+                return true;
+            }
+        }
+        if let Some(target_kind) = blob.action.to_kind {
+            if target_info.node_type == target_kind {
+                return true;
+            }
+        }
+        false
+    }
+}
+
+impl TxChannel<PayloadInfo, NodeContent> for TxRadio {
     type C = NodeClass;
+    type D = DataBlob;
 
     fn reset(&mut self) {
         self.out_stats.reset();
         self.out_link_nodes.clear();
+    }
+
+    fn prepare_blobs_to_fwd(
+        &mut self,
+        target_node_data: &NodeContent,
+        to_forward: &Vec<DPayload>,
+    ) -> Vec<DataBlob> {
+        let mut blobs_to_forward: Vec<DataBlob> = Vec::new();
+        for payload in to_forward.iter() {
+            for blob in payload.metadata.data_blobs.iter() {
+                if self.should_i_forward(blob, &target_node_data.node_info) {
+                    blobs_to_forward.push(blob.to_owned());
+                }
+            }
+        }
+        blobs_to_forward
     }
 
     fn prepare_transfer(&mut self, target_class: &NodeClass, mut payload: DPayload) -> DPayload {
