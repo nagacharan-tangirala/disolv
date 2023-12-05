@@ -1,13 +1,13 @@
-use crate::d_model::BucketModel;
 use log::debug;
-use pavenet_engine::entity::NodeId;
 use pavenet_core::mobility::cell::CellId;
 use pavenet_core::mobility::{MapState, MobilityType, Point2D};
 use pavenet_engine::bucket::TimeS;
 use pavenet_engine::hashbrown::{HashMap, HashSet};
+use pavenet_engine::node::NodeId;
 use pavenet_input::mobility::data::{
     MapFetcher, MapReader, MapStateReader, MapStateStreamer, TraceMap,
 };
+use pavenet_models::model::BucketModel;
 use serde::Deserialize;
 use std::path::PathBuf;
 use typed_builder::TypedBuilder;
@@ -46,10 +46,7 @@ impl Space {
 
     #[inline]
     fn add_node_to_cell(&mut self, node_id: NodeId, cell_id: CellId) {
-        self.cell2node
-            .entry(cell_id)
-            .or_insert_with(HashSet::new)
-            .insert(node_id);
+        self.cell2node.entry(cell_id).or_default().insert(node_id);
     }
 
     #[inline]
@@ -91,15 +88,12 @@ impl BucketModel for Mapper {
     }
 
     fn stream_data(&mut self, step: TimeS) {
-        match self.reader {
-            MapReader::Stream(ref mut reader) => {
-                self.map_states = reader.fetch_traffic_data(step);
-            }
-            _ => {}
+        if let MapReader::Stream(ref mut reader) = self.reader {
+            self.map_states = reader.fetch_traffic_data(step);
         }
     }
 
-    fn refresh_cache(&mut self, step: TimeS) {
+    fn before_node_step(&mut self, step: TimeS) {
         self.map_cache = match self.map_states.remove(&step) {
             Some(traces) => traces,
             None => HashMap::new(),
@@ -154,15 +148,11 @@ impl MapperBuilder {
         let map_state_reader: MapReader = match self.space_settings.is_streaming {
             true => MapReader::Stream(
                 MapStateStreamer::builder()
-                    .file_path(PathBuf::from(file_path))
+                    .file_path(file_path)
                     .streaming_step(self.streaming_step)
                     .build(),
             ),
-            false => MapReader::File(
-                MapStateReader::builder()
-                    .file_path(PathBuf::from(file_path))
-                    .build(),
-            ),
+            false => MapReader::File(MapStateReader::builder().file_path(file_path).build()),
         };
 
         Mapper {
