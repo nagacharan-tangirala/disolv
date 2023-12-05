@@ -163,15 +163,21 @@ impl Bucket for DeviceBucket {
 }
 
 impl ResultSaver for DeviceBucket {
-    fn save_device_stats(&mut self, step: TimeS) {
+    fn save_device_stats(&mut self, step: TimeMS) {
         for (node_id, device) in self.devices.iter() {
+            if device.is_stopped() {
+                continue;
+            }
             self.resultant
                 .add_node_pos(step, *node_id, &device.map_state);
         }
     }
 
-    fn save_data_stats(&mut self, step: TimeS) {
+    fn save_data_stats(&mut self, step: TimeMS) {
         for (node_id, device) in self.devices.iter() {
+            if device.is_stopped() {
+                continue;
+            }
             self.resultant
                 .add_rx_data(step, *node_id, &device.models.rx_radio.in_stats);
         }
