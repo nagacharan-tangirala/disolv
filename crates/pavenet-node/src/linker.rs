@@ -1,6 +1,7 @@
+use log::debug;
 use pavenet_core::entity::NodeType;
 use pavenet_core::radio::DLink;
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::node::NodeId;
 use pavenet_input::links::data::{LinkMap, LinkReader};
@@ -28,6 +29,7 @@ pub struct Linker {
 
 impl Linker {
     pub fn links_of(&mut self, node_id: NodeId) -> Option<Vec<DLink>> {
+        debug!("Linker::links_of: node_id: {:?}", self.links.len());
         if self.is_static {
             return self.link_cache.get(&node_id).cloned();
         }
@@ -36,26 +38,29 @@ impl Linker {
 }
 
 impl BucketModel for Linker {
-    fn init(&mut self, step: TimeS) {
+    fn init(&mut self, step: TimeMS) {
         self.links = match self.reader {
             LinkReader::File(ref mut reader) => reader.read_links_data(step),
             LinkReader::Stream(ref mut reader) => reader.stream_links_data(step),
         };
         // Refresh cache for the first time step
+        debug!(
+            "Reading links with settings: {} - {}",
+            self.is_static, self.reader
+        );
         self.link_cache = match self.links.remove(&step) {
             Some(links) => links,
             None => HashMap::new(),
         };
     }
 
-    fn stream_data(&mut self, step: TimeS) {
-        match self.reader {
-            LinkReader::Stream(ref mut reader) => self.links = reader.stream_links_data(step),
-            _ => {}
+    fn stream_data(&mut self, step: TimeMS) {
+        if let LinkReader::Stream(ref mut reader) = self.reader {
+            self.links = reader.stream_links_data(step)
         };
     }
 
-    fn before_node_step(&mut self, step: TimeS) {
+    fn before_node_step(&mut self, step: TimeMS) {
         if self.is_static {
             return;
         }

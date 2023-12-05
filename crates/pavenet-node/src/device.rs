@@ -6,7 +6,7 @@ use pavenet_core::message::{DResponse, DataSource, TransferMetrics};
 use pavenet_core::mobility::MapState;
 use pavenet_core::power::{PowerManager, PowerState};
 use pavenet_core::radio::{DLink, LinkProperties};
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::entity::{Entity, Movable, Schedulable, Tiered};
 use pavenet_engine::message::Responder;
 use pavenet_engine::message::Transmitter;
@@ -37,7 +37,7 @@ pub struct Device {
     #[builder(default)]
     pub target_classes: Vec<NodeClass>,
     #[builder(default)]
-    pub step: TimeS,
+    pub step: TimeMS,
     #[builder(default)]
     pub power_state: PowerState,
     #[builder(default)]
@@ -116,6 +116,7 @@ impl Transmitter<DeviceBucket, LinkProperties, PayloadInfo, NodeContent> for Dev
     }
 
     fn find_target(&self, target_class: &NodeClass, bucket: &mut DeviceBucket) -> Option<DLink> {
+        debug!("Finding target for {} at {}", self.node_info.id, self.step);
         let link_options = match bucket.link_options_for(self.node_info.id, target_class) {
             Some(links) => links,
             None => return None,
@@ -157,6 +158,7 @@ impl Responder<DeviceBucket, DataSource, TransferMetrics> for Device {
 
 impl Entity<DeviceBucket, NodeOrder> for Device {
     fn uplink_stage(&mut self, bucket: &mut DeviceBucket) {
+        debug!("Uplink stage for node: {} id", self.node_info.id);
         self.step = bucket.step;
         self.power_state = PowerState::On;
         self.set_mobility(bucket);
@@ -200,6 +202,7 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
         let response = self.receive(bucket);
         self.respond(response, bucket);
         if self.step == self.models.power.peek_time_to_off() {
+            debug!("Removing node: {} at {}", self.node_info.id, self.step);
             bucket.add_to_schedule(self.node_info.id);
             bucket.stop_node(self.node_info.id);
         }
