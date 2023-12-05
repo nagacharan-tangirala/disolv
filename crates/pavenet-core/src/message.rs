@@ -4,7 +4,7 @@ use crate::mobility::MapState;
 use crate::radio::{ActionImpl, ActionType, DLink};
 use pavenet_engine::bucket::TimeS;
 use pavenet_engine::message::{DataUnit, GPayload, Metadata, NodeState, PayloadStatus};
-use pavenet_engine::message::{GResponse, Queryable, Reply, TxStatus};
+use pavenet_engine::message::{GResponse, Queryable, Reply, TxReport};
 use serde::Deserialize;
 use std::fmt::Display;
 use typed_builder::TypedBuilder;
@@ -44,7 +44,7 @@ pub struct NodeContent {
 
 impl NodeState for NodeContent {}
 
-#[derive(Clone, Debug, Default, TypedBuilder)]
+#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct DataBlob {
     pub uuid: Uuid,
     pub data_type: DataType,
@@ -72,7 +72,7 @@ pub struct TxInfo {
     pub selected_link: DLink,
     pub link_found_at: TimeS,
     pub tx_order: Option<u32>,
-    pub status: TransferStatus,
+    pub status: TxStatus,
 }
 
 #[derive(Clone, Debug, Default, TypedBuilder)]
@@ -109,17 +109,17 @@ pub struct DataSource {
 impl Reply for DataSource {}
 
 #[derive(Clone, Eq, PartialEq, Copy, Debug, Default)]
-pub enum TransferStatus {
+pub enum TxStatus {
     Ok,
     #[default]
     Fail,
 }
 
-impl PayloadStatus for TransferStatus {
+impl PayloadStatus for TxStatus {
     fn as_u8(&self) -> u8 {
         match self {
-            TransferStatus::Ok => 1,
-            TransferStatus::Fail => 0,
+            TxStatus::Ok => 1,
+            TxStatus::Fail => 0,
         }
     }
 }
@@ -127,10 +127,10 @@ impl PayloadStatus for TransferStatus {
 #[derive(Debug, Clone, Default, Copy)]
 pub struct TransferMetrics {
     pub latency: Latency,
-    pub transfer_status: TransferStatus,
+    pub transfer_status: TxStatus,
 }
 
-impl TxStatus for TransferMetrics {}
+impl TxReport for TransferMetrics {}
 
 impl TransferMetrics {
     pub fn new(latency: Latency) -> Self {
