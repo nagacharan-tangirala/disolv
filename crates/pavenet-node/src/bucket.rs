@@ -7,7 +7,8 @@ use pavenet_core::mobility::MapState;
 use pavenet_core::radio::{DLink, InDataStats};
 use pavenet_engine::bucket::Bucket;
 use pavenet_engine::bucket::ResultSaver;
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
+use pavenet_engine::entity::Schedulable;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::node::NodeId;
 use pavenet_engine::scheduler::GNodeScheduler;
@@ -25,10 +26,10 @@ pub struct DeviceBucket {
     pub mapper_holder: Vec<(NodeType, Mapper)>,
     pub linker_holder: Vec<(NodeType, Linker)>,
     pub class_to_type: HashMap<NodeClass, NodeType>,
-    pub output_step: TimeS,
+    pub output_step: TimeMS,
     pub resultant: ResultWriter,
     #[builder(default)]
-    pub step: TimeS,
+    pub step: TimeMS,
     #[builder(default)]
     pub data_lake: DataLake,
     #[builder(default)]
@@ -118,7 +119,7 @@ impl Bucket for DeviceBucket {
         &mut self.scheduler
     }
 
-    fn init(&mut self, step: TimeS) {
+    fn init(&mut self, step: TimeMS) {
         self.step = step;
         self.mapper_holder.iter_mut().for_each(|(_, mapper)| {
             mapper.init(self.step);
@@ -128,7 +129,7 @@ impl Bucket for DeviceBucket {
         });
     }
 
-    fn update(&mut self, step: TimeS) {
+    fn update(&mut self, step: TimeMS) {
         self.step = step;
         self.update_stats();
     }
@@ -152,7 +153,7 @@ impl Bucket for DeviceBucket {
         }
     }
 
-    fn streaming_step(&mut self, step: TimeS) {
+    fn streaming_step(&mut self, step: TimeMS) {
         self.mapper_holder.iter_mut().for_each(|(_, space)| {
             space.stream_data(step);
         });

@@ -1,14 +1,16 @@
 pub mod data {
     use crate::file_reader::{read_file, stream_parquet_in_interval};
     use crate::links::df::extract_link_traces;
+    use log::debug;
     use pavenet_core::radio::DLink;
-    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::bucket::TimeMS;
     use pavenet_engine::hashbrown::HashMap;
     use pavenet_engine::node::NodeId;
+    use std::fmt::Display;
     use std::path::PathBuf;
     use typed_builder::TypedBuilder;
 
-    pub type LinkMap = HashMap<TimeS, HashMap<NodeId, Vec<DLink>>>;
+    pub type LinkMap = HashMap<TimeMS, HashMap<NodeId, Vec<DLink>>>;
 
     #[derive(Clone)]
     pub enum LinkReader {
@@ -16,10 +18,23 @@ pub mod data {
         Stream(StreamLinks),
     }
 
+    impl Display for LinkReader {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                LinkReader::File(file) => {
+                    write!(f, "Reader: {}", file.links_file.to_str().unwrap())
+                }
+                LinkReader::Stream(stream) => {
+                    write!(f, "Reader: {}", stream.links_file.to_str().unwrap())
+                }
+            }
+        }
+    }
+
     impl LinkReader {
         pub fn new(
             links_file: PathBuf,
-            streaming_interval: TimeS,
+            streaming_interval: TimeMS,
             is_streaming: bool,
         ) -> LinkReader {
             if is_streaming {
@@ -41,7 +56,7 @@ pub mod data {
     }
 
     impl ReadLinks {
-        pub fn read_links_data(&self, _step: TimeS) -> LinkMap {
+        pub fn read_links_data(&self, _step: TimeMS) -> LinkMap {
             let links_df = match read_file(&self.links_file) {
                 Ok(links_df) => links_df,
                 Err(e) => panic!("ReadLinks::read_links_data error {:?}", e),
@@ -56,13 +71,17 @@ pub mod data {
     #[derive(Clone, TypedBuilder)]
     pub struct StreamLinks {
         links_file: PathBuf,
-        streaming_interval: TimeS,
+        streaming_interval: TimeMS,
     }
 
     impl StreamLinks {
-        pub fn stream_links_data(&self, step: TimeS) -> LinkMap {
+        pub fn stream_links_data(&self, step: TimeMS) -> LinkMap {
             let starting_time = step;
             let ending_time = step + self.streaming_interval;
+            debug!(
+                "Streaming links from {:?} to {:?}",
+                starting_time, ending_time
+            );
             let links_df =
                 match stream_parquet_in_interval(&self.links_file, starting_time, ending_time) {
                     Ok(links_df) => links_df,
@@ -80,8 +99,9 @@ pub(super) mod df {
     use crate::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
     use crate::converter::series::{to_f32_vec, to_nodeid_vec, to_timestamp_vec};
     use crate::links::data::LinkMap;
+    use log::debug;
     use pavenet_core::radio::DLink;
-    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::bucket::TimeMS;
     use pavenet_engine::hashbrown::HashMap;
     use pavenet_engine::node::NodeId;
     use polars::error::ErrString;
@@ -104,8 +124,9 @@ pub(super) mod df {
     ) -> Result<LinkMap, Box<dyn std::error::Error>> {
         validate_links_df(links_df)?;
         let ts_series: &Series = links_df.column(TIME_STEP)?;
-        let time_stamps: Vec<TimeS> = to_timestamp_vec(ts_series)?;
+        let time_stamps: Vec<TimeMS> = to_timestamp_vec(ts_series)?;
         let mut links: LinkMap = HashMap::with_capacity(time_stamps.len());
+        debug!("Link DF height: {}", links_df.height());
 
         for time_stamp in time_stamps.iter() {
             let ts_df = links_df
@@ -133,6 +154,7 @@ pub(super) mod df {
             }
             links.entry(*time_stamp).or_insert(link_map_entry);
         }
+        debug!("Extracted links: {:?}", links.len());
         Ok(links)
     }
 
