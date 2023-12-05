@@ -203,8 +203,14 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
         self.respond(response, bucket);
         if self.step == self.models.power.peek_time_to_off() {
             debug!("Removing node: {} at {}", self.node_info.id, self.step);
+            self.power_state = PowerState::Off;
             bucket.add_to_schedule(self.node_info.id);
             bucket.stop_node(self.node_info.id);
+            bucket
+                .devices
+                .entry(self.node_info.id)
+                .and_modify(|device| *device = self.clone())
+                .or_insert(self.clone());
         }
         self.models.rx_radio.reset_rx();
     }
