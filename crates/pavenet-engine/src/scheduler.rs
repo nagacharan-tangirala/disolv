@@ -3,6 +3,7 @@ use crate::entity::{Entity, Tier};
 use crate::node::{GNode, NodeId};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
+use log::debug;
 
 /// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
 /// of calling the scheduler's functions is important to ensure the correct behavior of the engine.
@@ -11,6 +12,7 @@ pub trait Scheduler: Clone + Send + Sync + 'static {
     fn init(&mut self, schedule: &mut Schedule);
     fn add_to_schedule(&mut self, schedule: &mut Schedule);
     fn remove_from_schedule(&mut self, schedule: &mut Schedule);
+    fn clear_lists(&mut self);
 }
 
 /// A struct that represents a scheduler for nodes. This is used to schedule nodes when they are
@@ -88,6 +90,10 @@ where
     }
 
     fn remove_from_schedule(&mut self, schedule: &mut Schedule) {
+        debug!(
+            "Descheduling nodes {:?} from schedule at time {}",
+            self.to_pop, schedule.step
+        );
         for id in self.to_pop.iter() {
             match self.nodes.get_mut(id) {
                 Some(node) => {
@@ -97,6 +103,12 @@ where
                 None => panic!("Could not find node {}", id),
             }
         }
+    }
+
+    fn clear_lists(&mut self) {
+        debug!("Clearing lists");
+        self.to_add.clear();
+        self.to_pop.clear();
     }
 }
 
