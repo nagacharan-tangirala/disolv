@@ -25,9 +25,9 @@ impl Model for Composer {
     type Settings = ComposerSettings;
 
     fn with_settings(settings: &ComposerSettings) -> Self {
-        match settings.name.as_str() {
-            "Basic" => Composer::Basic(BasicComposer::new(settings)),
-            "Status" => Composer::Status(StatusComposer::new(settings)),
+        match settings.name.to_lowercase().as_str() {
+            "basic" => Composer::Basic(BasicComposer::new(settings)),
+            "status" => Composer::Status(StatusComposer::new(settings)),
             _ => {
                 error!("Only Basic and Status composers are supported.");
                 panic!("Unsupported composer type {}.", settings.name);
@@ -76,11 +76,11 @@ impl BasicComposer {
 
     fn compose_payload(&self, target_class: &NodeClass, content: NodeContent) -> DPayload {
         let payload_info = self.compose_metadata(target_class);
-        return DPayload::builder()
+        DPayload::builder()
             .metadata(payload_info)
             .node_state(content)
             .gathered_states(Some(Vec::new()))
-            .build();
+            .build()
     }
 
     fn compose_metadata(&self, target_class: &NodeClass) -> PayloadInfo {
