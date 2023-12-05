@@ -61,20 +61,24 @@ where
             schedule.schedule_repeating(
                 Box::new(node.clone()),
                 id.as_u32(),
-                node.entity.time_to_add().as_f32(),
+                node.entity.time_to_add().as_f32_sec(),
                 node.entity.tier().as_i32(),
             );
         }
     }
 
     fn add_to_schedule(&mut self, schedule: &mut Schedule) {
+        debug!(
+            "Scheduling nodes {:?} to schedule at time {}",
+            self.to_add, schedule.step
+        );
         for id in self.to_add.iter() {
             match self.nodes.get_mut(id) {
                 Some(node) => {
                     schedule.schedule_repeating(
                         Box::new(node.clone()),
                         id.as_u32(),
-                        node.entity.time_to_add().as_f32(),
+                        node.entity.time_to_add().as_f32_sec(),
                         node.entity.tier().as_i32(),
                     );
                 }
