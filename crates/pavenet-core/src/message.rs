@@ -2,7 +2,7 @@ use crate::entity::{NodeClass, NodeInfo};
 use crate::metrics::Latency;
 use crate::mobility::MapState;
 use crate::radio::{ActionImpl, ActionType, DLink};
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::message::{DataUnit, GPayload, Metadata, NodeState, PayloadStatus};
 use pavenet_engine::message::{GResponse, Queryable, Reply, TxReport};
 use serde::Deserialize;
@@ -70,7 +70,7 @@ impl DataUnit for DataBlob {
 #[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct TxInfo {
     pub selected_link: DLink,
-    pub link_found_at: TimeS,
+    pub link_found_at: TimeMS,
     pub tx_order: Option<u32>,
     pub status: TxStatus,
 }
@@ -103,7 +103,7 @@ pub struct DataSource {
     pub data_type: DataType,
     pub node_class: NodeClass,
     pub data_size: f32,
-    pub source_step: TimeS,
+    pub source_step: TimeMS,
 }
 
 impl Reply for DataSource {}

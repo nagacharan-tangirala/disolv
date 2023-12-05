@@ -3531,6 +3531,7 @@ dependencies = [
  "anyhow",
  "hashbrown 0.14.3",
  "krabmaga",
+ "log",
  "serde",
  "typed-builder",
  "uuid",
