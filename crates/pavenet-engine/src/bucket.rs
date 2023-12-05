@@ -110,8 +110,13 @@ pub trait ResultSaver: Bucket {
 
 /// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark
 /// a struct which contains the data that needs to be written to a file.
-pub trait Resultant: Serialize + Copy + Clone + Debug {
-    fn write_to_file(&mut self);
+pub trait Resultant: Serialize + Copy + Clone + Debug {}
+
+pub trait Outlet<R>
+where
+    R: Resultant,
+{
+    fn write_to_file(&mut self, data: &R);
 }
 
 #[cfg(test)]
