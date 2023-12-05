@@ -50,9 +50,6 @@ impl TimeMS {
     pub fn as_f32(&self) -> f32 {
         self.0 as f32
     }
-    pub(crate) fn as_f32_sec(&self) -> f32 {
-        self.0 as f32 / 1000.0
-    }
 }
 
 impl Mul for TimeMS {

@@ -63,7 +63,7 @@ where
             schedule.schedule_repeating(
                 Box::new(node.clone()),
                 id.as_u32(),
-                node.entity.time_to_add().as_f32_sec(),
+                node.entity.time_to_add().as_f32(),
                 node.entity.tier().as_i32(),
             );
         }
@@ -80,7 +80,7 @@ where
                     schedule.schedule_repeating(
                         Box::new(node.clone()),
                         id.as_u32(),
-                        node.entity.time_to_add().as_f32_sec(),
+                        node.entity.time_to_add().as_f32(),
                         node.entity.tier().as_i32(),
                     );
                 }
@@ -98,7 +98,6 @@ where
             match self.nodes.get_mut(id) {
                 Some(node) => {
                     node.entity.stop();
-                    schedule.dequeue(Box::new(node.clone()), id.as_u32());
                 }
                 None => panic!("Could not find node {}", id),
             }
