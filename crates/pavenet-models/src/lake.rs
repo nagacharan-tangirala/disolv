@@ -18,10 +18,7 @@ impl DataLake {
     }
 
     pub fn add_payload_to(&mut self, node_id: NodeId, payload: DPayload) {
-        self.payloads
-            .entry(node_id)
-            .or_insert_with(Vec::new)
-            .push(payload);
+        self.payloads.entry(node_id).or_default().push(payload);
     }
 
     pub fn response_for(&mut self, node_id: NodeId) -> Option<DResponse> {
