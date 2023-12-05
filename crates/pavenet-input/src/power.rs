@@ -1,12 +1,12 @@
 pub mod data {
     use crate::file_reader::read_file;
     use crate::power::df::extract_power_schedule;
-    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::bucket::TimeMS;
     use pavenet_engine::hashbrown::HashMap;
     use pavenet_engine::node::NodeId;
     use std::path::PathBuf;
 
-    pub type PowerTimes = (Vec<TimeS>, Vec<TimeS>);
+    pub type PowerTimes = (Vec<TimeMS>, Vec<TimeMS>);
     pub fn read_power_schedule(
         power_schedule_file: &PathBuf,
     ) -> Result<HashMap<NodeId, PowerTimes>, Box<dyn std::error::Error>> {
@@ -20,7 +20,7 @@ pub(super) mod df {
     use crate::converter::series::{to_nodeid_vec, to_timestamp_vec};
     use crate::power::data::PowerTimes;
 
-    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::bucket::TimeMS;
     use pavenet_engine::hashbrown::HashMap;
     use pavenet_engine::node::NodeId;
     use polars::prelude::DataFrame;
@@ -32,9 +32,9 @@ pub(super) mod df {
         let device_ids_vec: Vec<NodeId> = to_nodeid_vec(device_id_series)?;
 
         let on_series = power_df.column(ON_TIMES)?;
-        let on_time_vec: Vec<TimeS> = to_timestamp_vec(on_series)?;
+        let on_time_vec: Vec<TimeMS> = to_timestamp_vec(on_series)?;
         let off_series = power_df.column(OFF_TIMES)?;
-        let off_time_vec: Vec<TimeS> = to_timestamp_vec(off_series)?;
+        let off_time_vec: Vec<TimeMS> = to_timestamp_vec(off_series)?;
 
         let mut power_data_map: HashMap<NodeId, PowerTimes> =
             HashMap::with_capacity(device_ids_vec.len());

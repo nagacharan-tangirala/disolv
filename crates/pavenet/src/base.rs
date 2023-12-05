@@ -1,6 +1,6 @@
 use pavenet_core::entity::{NodeClass, NodeOrder, NodeType};
 use pavenet_core::radio::ActionSettings;
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_models::compose::ComposerSettings;
 use pavenet_models::latency::LatencyConfig;
 use pavenet_models::reply::ReplierSettings;
@@ -24,9 +24,9 @@ pub struct BaseConfig {
 #[derive(Deserialize, Debug, Clone)]
 pub struct SimSettings {
     pub sim_name: String,
-    pub sim_duration: TimeS,
-    pub sim_step_size: TimeS,
-    pub sim_streaming_step: TimeS,
+    pub sim_duration: TimeMS,
+    pub sim_step_size: TimeMS,
+    pub sim_streaming_step: TimeMS,
     pub sim_seed: u64,
 }
 

@@ -1,4 +1,4 @@
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use std::collections::VecDeque;
 use typed_builder::TypedBuilder;
 
@@ -11,23 +11,23 @@ pub enum PowerState {
 
 #[derive(Clone, Default, Debug, PartialEq, TypedBuilder)]
 pub struct PowerManager {
-    pub on_times: VecDeque<TimeS>,
-    pub off_times: VecDeque<TimeS>,
+    pub on_times: VecDeque<TimeMS>,
+    pub off_times: VecDeque<TimeMS>,
     array_idx: usize,
 }
 
 impl PowerManager {
-    pub fn peek_time_to_off(&self) -> TimeS {
+    pub fn peek_time_to_off(&self) -> TimeMS {
         match self.off_times.front() {
             Some(time_stamp) => *time_stamp,
-            None => TimeS::default(),
+            None => TimeMS::default(),
         }
     }
 
-    pub fn pop_time_to_on(&mut self) -> TimeS {
+    pub fn pop_time_to_on(&mut self) -> TimeMS {
         match self.on_times.pop_front() {
             Some(time_stamp) => time_stamp,
-            None => TimeS::default(),
+            None => TimeMS::default(),
         }
     }
 

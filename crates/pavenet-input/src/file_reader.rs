@@ -1,6 +1,6 @@
 use crate::columns::TIME_STEP;
 
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use polars::error::ErrString;
 use polars::frame::DataFrame;
 use polars::io::SerReader;
@@ -9,8 +9,8 @@ use std::path::PathBuf;
 
 pub(crate) fn stream_parquet_in_interval(
     file_name: &PathBuf,
-    interval_begin: TimeS,
-    interval_end: TimeS,
+    interval_begin: TimeMS,
+    interval_end: TimeMS,
 ) -> PolarsResult<DataFrame> {
     let args = ScanArgsParquet::default();
     LazyFrame::scan_parquet(file_name, args)?

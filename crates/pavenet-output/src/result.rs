@@ -5,7 +5,7 @@ use log::debug;
 use pavenet_core::message::DPayload;
 use pavenet_core::mobility::MapState;
 use pavenet_core::radio::InDataStats;
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::node::NodeId;
 use serde::Deserialize;
 
@@ -30,7 +30,7 @@ pub struct FileOutConfig {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct OutputSettings {
-    pub output_step: TimeS,
+    pub output_step: TimeMS,
     pub output_path: String,
     pub file_type: FileType,
     pub file_out_config: Vec<FileOutConfig>,
@@ -67,7 +67,7 @@ impl ResultWriter {
         }
     }
 
-    pub fn add_tx_data(&mut self, time_step: TimeS, payload: &DPayload) {
+    pub fn add_tx_data(&mut self, time_step: TimeMS, payload: &DPayload) {
         match &mut self.tx_writer {
             Some(tx) => {
                 debug!(
@@ -80,7 +80,7 @@ impl ResultWriter {
         }
     }
 
-    pub fn add_rx_data(&mut self, time_step: TimeS, node_id: NodeId, in_data_stats: &InDataStats) {
+    pub fn add_rx_data(&mut self, time_step: TimeMS, node_id: NodeId, in_data_stats: &InDataStats) {
         match &mut self.rx_writer {
             Some(rx) => {
                 debug!("Adding rx data for node {}", node_id.as_u32());
@@ -90,7 +90,7 @@ impl ResultWriter {
         }
     }
 
-    pub fn add_node_pos(&mut self, time_step: TimeS, node_id: NodeId, map_state: &MapState) {
+    pub fn add_node_pos(&mut self, time_step: TimeMS, node_id: NodeId, map_state: &MapState) {
         match &mut self.node_pos_writer {
             Some(pos) => {
                 debug!("Adding node position for node {}", node_id.as_u32());
@@ -100,7 +100,7 @@ impl ResultWriter {
         }
     }
 
-    pub fn write_output(&mut self, step: TimeS) {
+    pub fn write_output(&mut self, step: TimeMS) {
         debug!("Writing output at step {}", step.as_u32());
         match &mut self.tx_writer {
             Some(writer) => writer.write_to_file(),

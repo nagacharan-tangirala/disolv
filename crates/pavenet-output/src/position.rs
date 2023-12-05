@@ -2,7 +2,7 @@ use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
 use log::debug;
 use pavenet_core::mobility::MapState;
-use pavenet_engine::bucket::{Resultant, TimeS};
+use pavenet_engine::bucket::{Resultant, TimeMS};
 use pavenet_engine::node::NodeId;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -18,7 +18,7 @@ pub struct NodePosition {
 impl Resultant for NodePosition {}
 
 impl NodePosition {
-    pub fn from_data(time_step: TimeS, node_id: NodeId, map_state: &MapState) -> Self {
+    pub fn from_data(time_step: TimeMS, node_id: NodeId, map_state: &MapState) -> Self {
         Self {
             time_step: time_step.as_u32(),
             node_id: node_id.as_u32(),
@@ -49,7 +49,7 @@ impl PosWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeS, node_id: NodeId, map_state: &MapState) {
+    pub fn add_data(&mut self, time_step: TimeMS, node_id: NodeId, map_state: &MapState) {
         self.data_pos
             .push(NodePosition::from_data(time_step, node_id, map_state));
     }

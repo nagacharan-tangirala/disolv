@@ -1,5 +1,5 @@
 use super::bucket::Bucket;
-use super::bucket::TimeS;
+use super::bucket::TimeMS;
 use std::fmt::Display;
 use std::hash::Hash;
 
@@ -69,7 +69,7 @@ where
 pub trait Schedulable {
     fn stop(&mut self);
     fn is_stopped(&self) -> bool;
-    fn time_to_add(&mut self) -> TimeS;
+    fn time_to_add(&mut self) -> TimeMS;
 }
 
 /// A trait that represents an entity. Extend this to a custom device type (e.g. struct) that
@@ -98,7 +98,7 @@ where
 pub(crate) mod tests {
     use super::{Entity, Kind, MobilityInfo, Movable, Schedulable, Tier, Tiered};
     use crate::bucket::tests::MyBucket;
-    use crate::bucket::TimeS;
+    use crate::bucket::TimeMS;
     use crate::engine::tests::as_node;
     use crate::node::NodeId;
     use krabmaga::engine::schedule::Schedule;
@@ -163,7 +163,7 @@ pub(crate) mod tests {
         pub(crate) id: NodeId,
         pub(crate) device_type: DeviceType,
         pub(crate) order: Level,
-        pub(crate) step: TimeS,
+        pub(crate) step: TimeMS,
     }
 
     impl Schedulable for TDevice {
@@ -173,8 +173,8 @@ pub(crate) mod tests {
             false
         }
 
-        fn time_to_add(&mut self) -> TimeS {
-            TimeS::from(0)
+        fn time_to_add(&mut self) -> TimeMS {
+            TimeMS::from(0)
         }
     }
 
@@ -217,7 +217,7 @@ pub(crate) mod tests {
             id,
             device_type,
             order: Level::from(order as u32),
-            step: TimeS::default(),
+            step: TimeMS::default(),
         }
     }
 
@@ -229,9 +229,9 @@ pub(crate) mod tests {
 
     #[test]
     fn test_ts_addition() {
-        let mut ts = TimeS::from(1);
-        ts += TimeS::from(1);
-        assert_eq!(ts, TimeS::from(2));
+        let mut ts = TimeMS::from(1);
+        ts += TimeMS::from(1);
+        assert_eq!(ts, TimeMS::from(2));
     }
 
     #[test]
@@ -249,7 +249,7 @@ pub(crate) mod tests {
         let mut device_a = make_device(NodeId::from(1), DeviceType::TypeA, 1);
         let mut bucket = MyBucket::default();
         device_a.uplink_stage(&mut bucket);
-        assert_eq!(bucket.step, TimeS::default());
+        assert_eq!(bucket.step, TimeMS::default());
     }
 
     #[test]
@@ -260,7 +260,7 @@ pub(crate) mod tests {
         let x = schedule.schedule_repeating(
             Box::new(node_a.clone()),
             node_a.node_id.as_u32(),
-            TimeS::default().as_f32(),
+            TimeMS::default().as_f32(),
             0,
         );
         assert_eq!(x, true);

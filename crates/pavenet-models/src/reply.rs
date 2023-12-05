@@ -1,6 +1,6 @@
 use crate::model::{Model, ModelSettings};
 use pavenet_core::message::{DResponse, TransferMetrics};
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -40,13 +40,13 @@ impl Replier {
 
 #[derive(Clone, Debug, Copy, Default)]
 pub struct StatsReplier {
-    _step: TimeS,
+    _step: TimeMS,
 }
 
 impl StatsReplier {
     pub fn new(_replier_settings: ReplierSettings) -> Self {
         Self {
-            _step: TimeS::default(),
+            _step: TimeMS::default(),
         }
     }
 

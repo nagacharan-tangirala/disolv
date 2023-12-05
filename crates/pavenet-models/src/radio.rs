@@ -5,7 +5,7 @@ use pavenet_core::message::{DPayload, DataType, NodeContent, PayloadInfo};
 use pavenet_core::message::{DataBlob, TransferMetrics};
 use pavenet_core::radio::{ActionImpl, ActionSettings, ActionType, InDataStats, OutDataStats};
 use pavenet_core::rand_pcg::Pcg64Mcg;
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::metrics::{Feasibility, Measurable};
 use pavenet_engine::node::NodeId;
@@ -17,7 +17,7 @@ use typed_builder::TypedBuilder;
 pub struct RxRadio {
     pub my_class: NodeClass,
     pub latency_type: LatencyType,
-    pub step_size: TimeS,
+    pub step_size: TimeMS,
     pub rng: Pcg64Mcg,
     #[builder(default)]
     pub in_link_nodes: HashMap<NodeClass, Vec<NodeId>>,

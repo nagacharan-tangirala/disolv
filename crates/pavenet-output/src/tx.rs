@@ -2,7 +2,7 @@ use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
 use log::debug;
 use pavenet_core::message::DPayload;
-use pavenet_engine::bucket::{Resultant, TimeS};
+use pavenet_engine::bucket::{Resultant, TimeMS};
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -19,7 +19,7 @@ struct DataTx {
 impl Resultant for DataTx {}
 
 impl DataTx {
-    fn from_data(time_step: TimeS, payload: &DPayload) -> Self {
+    fn from_data(time_step: TimeMS, payload: &DPayload) -> Self {
         Self {
             time_step: time_step.as_u32(),
             node_id: payload.node_state.node_info.id.as_u32(),
@@ -58,7 +58,7 @@ impl TxDataWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeS, payload: &DPayload) {
+    pub fn add_data(&mut self, time_step: TimeMS, payload: &DPayload) {
         self.data_tx.push(DataTx::from_data(time_step, payload));
     }
 

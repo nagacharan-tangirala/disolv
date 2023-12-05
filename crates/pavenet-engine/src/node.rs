@@ -13,7 +13,7 @@ pub struct NodeId(u32);
 
 impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:09}", self.0)
+        write!(f, "{}", self.0)
     }
 }
 

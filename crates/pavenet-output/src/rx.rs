@@ -2,7 +2,7 @@ use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
 use log::debug;
 use pavenet_core::radio::InDataStats;
-use pavenet_engine::bucket::{Resultant, TimeS};
+use pavenet_engine::bucket::{Resultant, TimeMS};
 use pavenet_engine::node::NodeId;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -20,7 +20,7 @@ pub struct DataRx {
 }
 
 impl DataRx {
-    pub fn from_data(time_step: TimeS, node_id: NodeId, in_data_stats: &InDataStats) -> Self {
+    pub fn from_data(time_step: TimeMS, node_id: NodeId, in_data_stats: &InDataStats) -> Self {
         Self {
             time_step: time_step.as_u32(),
             node_id: node_id.as_u32(),
@@ -58,7 +58,7 @@ impl RxDataWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeS, node_id: NodeId, in_data_stats: &InDataStats) {
+    pub fn add_data(&mut self, time_step: TimeMS, node_id: NodeId, in_data_stats: &InDataStats) {
         self.data_rx
             .push(DataRx::from_data(time_step, node_id, in_data_stats));
     }

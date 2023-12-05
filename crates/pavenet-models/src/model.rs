@@ -1,4 +1,4 @@
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 
 /// A marker trait for model settings. Use this to define the settings for a model. These
 /// settings should be readable from a config file.
@@ -18,11 +18,11 @@ pub trait Model {
 /// a periodic update is needed.
 pub trait BucketModel {
     /// Initialize the model, called once at the beginning of the simulation.
-    fn init(&mut self, step: TimeS);
+    fn init(&mut self, step: TimeMS);
 
     /// Stream data required by the model, called when streaming interval is reached.
-    fn stream_data(&mut self, step: TimeS);
+    fn stream_data(&mut self, step: TimeMS);
 
     /// Prepare the model before the nodes are stepped.
-    fn before_node_step(&mut self, step: TimeS);
+    fn before_node_step(&mut self, step: TimeMS);
 }

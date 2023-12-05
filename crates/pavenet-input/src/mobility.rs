@@ -3,13 +3,13 @@ pub mod data {
     use crate::mobility::df::extract_map_states;
     use log::debug;
     use pavenet_core::mobility::MapState;
-    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::bucket::TimeMS;
     use pavenet_engine::hashbrown::HashMap;
     use pavenet_engine::node::NodeId;
     use std::path::PathBuf;
     use typed_builder::TypedBuilder;
 
-    pub type TraceMap = HashMap<TimeS, HashMap<NodeId, MapState>>;
+    pub type TraceMap = HashMap<TimeMS, HashMap<NodeId, MapState>>;
 
     #[derive(Clone, Debug)]
     pub enum MapReader {
@@ -18,7 +18,7 @@ pub mod data {
     }
 
     pub trait MapFetcher {
-        fn fetch_traffic_data(&self, step: TimeS) -> TraceMap;
+        fn fetch_traffic_data(&self, step: TimeMS) -> TraceMap;
     }
 
     #[derive(Clone, Debug, TypedBuilder)]
@@ -27,7 +27,7 @@ pub mod data {
     }
 
     impl MapFetcher for MapStateReader {
-        fn fetch_traffic_data(&self, _step: TimeS) -> TraceMap {
+        fn fetch_traffic_data(&self, _step: TimeMS) -> TraceMap {
             let trace_df = match read_file(&self.file_path) {
                 Ok(df) => df,
                 Err(e) => {
@@ -48,13 +48,13 @@ pub mod data {
     #[derive(Clone, Debug, TypedBuilder)]
     pub struct MapStateStreamer {
         file_path: PathBuf,
-        streaming_step: TimeS,
+        streaming_step: TimeMS,
     }
 
     impl MapFetcher for MapStateStreamer {
-        fn fetch_traffic_data(&self, step: TimeS) -> TraceMap {
-            let start_interval: TimeS = step;
-            let end_interval: TimeS = step + self.streaming_step;
+        fn fetch_traffic_data(&self, step: TimeMS) -> TraceMap {
+            let start_interval: TimeMS = step;
+            let end_interval: TimeMS = step + self.streaming_step;
             let trace_df =
                 match stream_parquet_in_interval(&self.file_path, start_interval, end_interval) {
                     Ok(df) => df,
@@ -85,7 +85,7 @@ pub(super) mod df {
     use pavenet_core::mobility::velocity::Velocity;
     use pavenet_core::mobility::{MapState, Point2D};
 
-    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::bucket::TimeMS;
     use pavenet_engine::hashbrown::HashMap;
     use pavenet_engine::node::NodeId;
     use polars::error::{ErrString, PolarsError};
@@ -110,7 +110,7 @@ pub(super) mod df {
         let filtered_df = group_by_time(trace_df)?;
 
         let ts_series = filtered_df.column(TIME_STEP)?;
-        let time_stamps: Vec<TimeS> = to_timestamp_vec(ts_series)?;
+        let time_stamps: Vec<TimeMS> = to_timestamp_vec(ts_series)?;
 
         let mut trace_map: TraceMap = HashMap::with_capacity(time_stamps.len());
         for time_stamp in time_stamps.iter() {

@@ -4,7 +4,7 @@ use krabmaga::rand_pcg::Pcg64Mcg;
 use log::info;
 use pavenet_core::entity::{NodeClass, NodeInfo, NodeOrder, NodeType};
 use pavenet_core::power::PowerManager;
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::engine::GEngine;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::metrics::Measurable;
@@ -197,7 +197,7 @@ impl PavenetBuilder {
         RxRadio::builder()
             .my_class(class_settings.node_class)
             .latency_type(LatencyType::with_settings(class_settings.latency.clone()))
-            .step_size(TimeS::from(self.sim_step()))
+            .step_size(TimeMS::from(self.sim_step()))
             .rng(Pcg64Mcg::new(self.sim_seed()))
             .build()
     }
@@ -303,19 +303,19 @@ impl PavenetBuilder {
         class_to_type
     }
 
-    fn streaming_step(&self) -> TimeS {
+    fn streaming_step(&self) -> TimeMS {
         return self.base_config.simulation_settings.sim_streaming_step;
     }
 
-    pub(crate) fn duration(&self) -> TimeS {
+    pub(crate) fn duration(&self) -> TimeMS {
         return self.base_config.simulation_settings.sim_duration;
     }
 
-    fn step_size(&self) -> TimeS {
+    fn step_size(&self) -> TimeMS {
         return self.base_config.simulation_settings.sim_step_size;
     }
 
-    fn sim_step(&self) -> TimeS {
+    fn sim_step(&self) -> TimeMS {
         return self.base_config.simulation_settings.sim_step_size;
     }
 
@@ -323,7 +323,7 @@ impl PavenetBuilder {
         return u128::from(self.base_config.simulation_settings.sim_seed);
     }
 
-    fn output_step(&self) -> TimeS {
+    fn output_step(&self) -> TimeMS {
         return self.base_config.output_settings.output_step;
     }
 }

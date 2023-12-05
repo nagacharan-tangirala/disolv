@@ -3,7 +3,7 @@ use log::error;
 use pavenet_core::entity::NodeClass;
 use pavenet_core::message::{DPayload, DataBlob, DataSource, NodeContent, PayloadInfo, TxInfo};
 use pavenet_core::radio::ActionImpl;
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::uuid;
 use serde::Deserialize;
 
@@ -55,14 +55,14 @@ impl Composer {
 #[derive(Clone, Debug, Default)]
 pub struct BasicComposer {
     pub data_sources: Vec<DataSource>,
-    pub step: TimeS,
+    pub step: TimeMS,
 }
 
 impl BasicComposer {
     pub fn new(composer_settings: &ComposerSettings) -> Self {
         Self {
             data_sources: composer_settings.source_settings.to_owned(),
-            step: TimeS::default(),
+            step: TimeMS::default(),
         }
     }
 
@@ -70,7 +70,7 @@ impl BasicComposer {
         self.data_sources = data_sources.to_owned();
     }
 
-    pub fn update_step(&mut self, step: TimeS) {
+    pub fn update_step(&mut self, step: TimeMS) {
         self.step = step;
     }
 
@@ -90,7 +90,7 @@ impl BasicComposer {
             if ds_settings.node_class != *target_class {
                 continue;
             }
-            if self.step.as_u32() % ds_settings.source_step.as_u32() != TimeS::default().as_u32() {
+            if self.step.as_u32() % ds_settings.source_step.as_u32() != TimeMS::default().as_u32() {
                 continue;
             }
 

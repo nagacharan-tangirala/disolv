@@ -1,7 +1,7 @@
 pub(crate) mod series {
     use pavenet_core::mobility::road::RoadId;
     use pavenet_core::mobility::velocity::Velocity;
-    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::bucket::TimeMS;
     use pavenet_engine::node::NodeId;
     use polars::series::Series;
 
@@ -35,12 +35,12 @@ pub(crate) mod series {
 
     pub(crate) fn to_timestamp_vec(
         series: &Series,
-    ) -> Result<Vec<TimeS>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<TimeMS>, Box<dyn std::error::Error>> {
         let series_to_option_vec: Vec<Option<i64>> = series.i64()?.to_vec();
-        let option_vec_to_vec: Vec<TimeS> = series_to_option_vec
+        let option_vec_to_vec: Vec<TimeMS> = series_to_option_vec
             .iter()
             .filter_map(|x| *x)
-            .map(TimeS::from)
+            .map(TimeMS::from)
             .collect();
         Ok(option_vec_to_vec)
     }
@@ -75,7 +75,7 @@ mod tests {
     use super::series::*;
     use pavenet_core::mobility::road::RoadId;
     use pavenet_core::mobility::velocity::Velocity;
-    use pavenet_engine::bucket::TimeS;
+    use pavenet_engine::bucket::TimeMS;
     use pavenet_engine::node::NodeId;
     use polars::prelude::{NamedFrom, Series};
 
@@ -109,7 +109,7 @@ mod tests {
         let result = to_timestamp_vec(&series).unwrap();
         assert_eq!(
             result,
-            vec![TimeS::from(1i64), TimeS::from(2i64), TimeS::from(3i64)]
+            vec![TimeMS::from(1i64), TimeMS::from(2i64), TimeMS::from(3i64)]
         );
     }
 

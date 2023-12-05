@@ -1,7 +1,7 @@
 use log::debug;
 use pavenet_core::mobility::cell::CellId;
 use pavenet_core::mobility::{MapState, MobilityType, Point2D};
-use pavenet_engine::bucket::TimeS;
+use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::hashbrown::{HashMap, HashSet};
 use pavenet_engine::node::NodeId;
 use pavenet_input::mobility::data::{
@@ -68,7 +68,7 @@ pub struct FieldSettings {
 pub struct MobilitySettings {
     pub mobility_type: MobilityType,
     pub is_streaming: bool,
-    pub mobility_step: Option<TimeS>,
+    pub mobility_step: Option<TimeMS>,
     pub trace_file: String,
 }
 
@@ -80,20 +80,20 @@ pub struct Mapper {
 }
 
 impl BucketModel for Mapper {
-    fn init(&mut self, step: TimeS) {
+    fn init(&mut self, step: TimeMS) {
         self.map_states = match self.reader {
             MapReader::File(ref mut reader) => reader.fetch_traffic_data(step),
             MapReader::Stream(ref mut reader) => reader.fetch_traffic_data(step),
         };
     }
 
-    fn stream_data(&mut self, step: TimeS) {
+    fn stream_data(&mut self, step: TimeMS) {
         if let MapReader::Stream(ref mut reader) = self.reader {
             self.map_states = reader.fetch_traffic_data(step);
         }
     }
 
-    fn before_node_step(&mut self, step: TimeS) {
+    fn before_node_step(&mut self, step: TimeMS) {
         self.map_cache = match self.map_states.remove(&step) {
             Some(traces) => traces,
             None => HashMap::new(),
@@ -114,7 +114,7 @@ impl Mapper {
 #[derive(Default)]
 pub struct MapperBuilder {
     config_path: PathBuf,
-    streaming_step: TimeS,
+    streaming_step: TimeMS,
     field_settings: FieldSettings,
     space_settings: MobilitySettings,
 }
@@ -127,7 +127,7 @@ impl MapperBuilder {
         }
     }
 
-    pub fn streaming_step(mut self, streaming_step: TimeS) -> Self {
+    pub fn streaming_step(mut self, streaming_step: TimeMS) -> Self {
         self.streaming_step = streaming_step;
         self
     }
