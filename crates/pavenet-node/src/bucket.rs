@@ -12,6 +12,8 @@ use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::node::NodeId;
 use pavenet_engine::scheduler::GNodeScheduler;
 use pavenet_models::lake::DataLake;
+use pavenet_models::model::BucketModel;
+use pavenet_output::result::ResultWriter;
 use typed_builder::TypedBuilder;
 
 pub type DNodeScheduler = GNodeScheduler<DeviceBucket, Device, NodeOrder>;
@@ -24,7 +26,7 @@ pub struct DeviceBucket {
     pub linker_holder: Vec<(NodeType, Linker)>,
     pub class_to_type: HashMap<NodeClass, NodeType>,
     pub output_step: TimeS,
-    pub resultant: Resultant,
+    pub resultant: ResultWriter,
     #[builder(default)]
     pub step: TimeS,
     #[builder(default)]
@@ -39,9 +41,9 @@ impl DeviceBucket {
     pub(crate) fn link_options_for(
         &mut self,
         node_id: NodeId,
-        target_type: &NodeType,
+        target_class: &NodeClass,
     ) -> Option<Vec<DLink>> {
-        match self.linker_for(target_type) {
+        match self.linker_for(target_class) {
             Some(linker) => linker.links_of(node_id),
             None => None,
         }
@@ -82,7 +84,11 @@ impl DeviceBucket {
         self.scheduler.add(node_id);
     }
 
-    fn linker_for(&mut self, target_type: &NodeType) -> Option<&mut Linker> {
+    fn linker_for(&mut self, target_class: &NodeClass) -> Option<&mut Linker> {
+        let target_type = match self.class_to_type.get(target_class) {
+            Some(t_type) => t_type,
+            None => return None,
+        };
         self.linker_holder
             .iter_mut()
             .find(|(node_type, _)| *node_type == *target_type)
@@ -100,7 +106,7 @@ impl DeviceBucket {
     fn update_stats(&mut self) {
         self.devices.iter().for_each(|(node_id, device)| {
             self.transfer_stats
-                .insert(*node_id, device.models.radio.in_stats.clone());
+                .insert(*node_id, device.models.rx_radio.in_stats.clone());
         });
     }
 }
@@ -129,10 +135,10 @@ impl Bucket for DeviceBucket {
 
     fn before_uplink(&mut self) {
         self.mapper_holder.iter_mut().for_each(|(_, mapper)| {
-            mapper.refresh_cache(self.step);
+            mapper.before_node_step(self.step);
         });
         self.linker_holder.iter_mut().for_each(|(_, linker)| {
-            linker.refresh_cache(self.step);
+            linker.before_node_step(self.step);
         });
     }
 
@@ -141,7 +147,7 @@ impl Bucket for DeviceBucket {
         self.save_device_stats(self.step);
         self.save_data_stats(self.step);
         if self.step == self.output_step {
-            self.resultant.result_writer.write_output(self.step);
+            self.resultant.write_output(self.step);
             self.output_step += self.output_step;
         }
     }
@@ -160,7 +166,6 @@ impl ResultSaver for DeviceBucket {
     fn save_device_stats(&mut self, step: TimeS) {
         for (node_id, device) in self.devices.iter() {
             self.resultant
-                .result_writer
                 .add_node_pos(step, *node_id, &device.map_state);
         }
     }
@@ -168,8 +173,7 @@ impl ResultSaver for DeviceBucket {
     fn save_data_stats(&mut self, step: TimeS) {
         for (node_id, device) in self.devices.iter() {
             self.resultant
-                .result_writer
-                .add_rx_data(step, *node_id, &device.models.radio.in_stats);
+                .add_rx_data(step, *node_id, &device.models.rx_radio.in_stats);
         }
     }
 }
