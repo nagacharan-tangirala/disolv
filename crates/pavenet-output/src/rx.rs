@@ -1,35 +1,32 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
-use log::debug;
-use pavenet_core::radio::InDataStats;
+use pavenet_core::message::{RxFailReason, RxMetrics, RxStatus};
 use pavenet_engine::bucket::{Resultant, TimeMS};
 use pavenet_engine::node::NodeId;
 use serde::Serialize;
 use std::path::PathBuf;
 
-#[derive(Default, Clone, Copy, Debug, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize)]
 pub struct DataRx {
-    pub(crate) time_step: u32,
-    pub(crate) node_id: u32,
-    pub(crate) attempted_in_node_count: u32,
-    pub(crate) attempted_in_data_size: f32,
-    pub(crate) attempted_in_data_count: u32,
-    pub(crate) feasible_in_node_count: u32,
-    pub(crate) feasible_in_data_size: f32,
-    pub(crate) feasible_in_data_count: u32,
+    time_step: u32,
+    from: u32,
+    to: u32,
+    rx_order: u32,
+    rx_status: RxStatus,
+    rx_fail_reason: RxFailReason,
+    latency: u32,
 }
 
 impl DataRx {
-    pub fn from_data(time_step: TimeMS, node_id: NodeId, in_data_stats: &InDataStats) -> Self {
+    fn from_data(time_step: TimeMS, to_node: NodeId, rx_metrics: &RxMetrics) -> Self {
         Self {
             time_step: time_step.as_u32(),
-            node_id: node_id.as_u32(),
-            attempted_in_node_count: in_data_stats.attempted.node_count,
-            attempted_in_data_size: in_data_stats.attempted.data_size,
-            attempted_in_data_count: in_data_stats.attempted.data_count,
-            feasible_in_node_count: in_data_stats.feasible.node_count,
-            feasible_in_data_size: in_data_stats.feasible.data_size,
-            feasible_in_data_count: in_data_stats.feasible.data_count,
+            to: to_node.as_u32(),
+            from: rx_metrics.from_node.as_u32(),
+            rx_order: rx_metrics.rx_order,
+            rx_status: rx_metrics.rx_status,
+            rx_fail_reason: rx_metrics.rx_fail_reason,
+            latency: rx_metrics.latency.as_u32(),
         }
     }
 }
@@ -51,20 +48,18 @@ impl RxDataWriter {
             .find(|&file_out_config| file_out_config.output_type == OutputType::RxData)
             .expect("RxDataWriter::new: No RxDataWriter config found");
         let output_file = output_path.join(&config.output_filename);
-        debug!("RxDataWriter::new: output_file: {:?}", output_file);
         Self {
             data_rx: Vec::new(),
             to_output: DataOutput::new(&output_file),
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, node_id: NodeId, in_data_stats: &InDataStats) {
-        self.data_rx
-            .push(DataRx::from_data(time_step, node_id, in_data_stats));
+    pub fn add_data(&mut self, time_step: TimeMS, to_node: NodeId, rx_metrics: &RxMetrics) {
+        let data_rx = DataRx::from_data(time_step, to_node, rx_metrics);
+        self.data_rx.push(data_rx);
     }
 
     pub fn write_to_file(&mut self) {
-        debug!("Writing tx data");
         self.to_output.write_to_file(&self.data_rx);
         self.data_rx.clear();
     }
