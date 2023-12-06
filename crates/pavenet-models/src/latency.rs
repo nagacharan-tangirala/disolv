@@ -179,10 +179,7 @@ impl Measurable<Latency> for OrderedLatency {
     }
 
     fn measure(&mut self, payload: &PayloadInfo) -> Feasibility<Latency> {
-        let order_factor = match payload.routing_info.tx_order {
-            Some(distance) => (distance as f32) * self.factor,
-            None => 0.0,
-        };
+        let order_factor = payload.routing_info.tx_order as f32 * self.factor;
         let latency = self.const_param.as_f32() + order_factor;
         let latency = Latency::from(latency);
         if latency > self.constraint {

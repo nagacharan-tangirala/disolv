@@ -71,7 +71,7 @@ impl DataUnit for DataBlob {
 pub struct TxInfo {
     pub selected_link: DLink,
     pub link_found_at: TimeMS,
-    pub tx_order: Option<u32>,
+    pub tx_order: u32,
     pub status: TxStatus,
 }
 
