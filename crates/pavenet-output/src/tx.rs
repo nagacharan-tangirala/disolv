@@ -1,7 +1,7 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
-use log::debug;
 use pavenet_core::message::DPayload;
+use pavenet_core::radio::DLink;
 use pavenet_engine::bucket::{Resultant, TimeMS};
 use serde::Serialize;
 use std::path::PathBuf;
@@ -14,25 +14,21 @@ struct DataTx {
     pub(crate) distance: f32,
     pub(crate) data_size: f32,
     pub(crate) data_count: u32,
+    pub(crate) link_found: u32,
 }
 
 impl Resultant for DataTx {}
 
 impl DataTx {
-    fn from_data(time_step: TimeMS, payload: &DPayload) -> Self {
+    fn from_data(time_step: TimeMS, link: &DLink, payload: &DPayload) -> Self {
         Self {
             time_step: time_step.as_u32(),
             node_id: payload.node_state.node_info.id.as_u32(),
-            selected_node: payload.metadata.routing_info.selected_link.target.as_u32(),
-            distance: payload
-                .metadata
-                .routing_info
-                .selected_link
-                .properties
-                .distance
-                .unwrap_or(-1.0),
+            selected_node: link.target.as_u32(),
+            distance: link.properties.distance.unwrap_or(-1.0),
             data_size: payload.metadata.total_size,
             data_count: payload.metadata.total_count,
+            link_found: time_step.as_u32(),
         }
     }
 }
@@ -58,12 +54,12 @@ impl TxDataWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, payload: &DPayload) {
-        self.data_tx.push(DataTx::from_data(time_step, payload));
+    pub fn add_data(&mut self, time_step: TimeMS, link: &DLink, payload: &DPayload) {
+        let data_tx = DataTx::from_data(time_step, link, payload);
+        self.data_tx.push(data_tx);
     }
 
     pub fn write_to_file(&mut self) {
-        debug!("Writing tx data");
         self.to_output.write_to_file(&self.data_tx);
         self.data_tx.clear();
     }
