@@ -3,7 +3,6 @@ use crate::entity::{Entity, Tier};
 use crate::node::{GNode, NodeId};
 use hashbrown::HashMap;
 use krabmaga::engine::schedule::Schedule;
-use log::debug;
 
 /// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
 /// of calling the scheduler's functions is important to ensure the correct behavior of the engine.
@@ -85,7 +84,7 @@ where
         }
     }
 
-    fn remove_from_schedule(&mut self, schedule: &mut Schedule) {
+    fn remove_from_schedule(&mut self, _schedule: &mut Schedule) {
         for id in self.to_pop.iter() {
             match self.nodes.get_mut(id) {
                 Some(node) => {

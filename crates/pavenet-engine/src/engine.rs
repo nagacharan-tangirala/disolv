@@ -68,8 +68,12 @@ where
         self.bucket.scheduler().clear_lists();
     }
 
-    fn end_condition(&mut self, _schedule: &mut Schedule) -> bool {
-        self.step == self.end_step
+    fn end_condition(&mut self, schedule: &mut Schedule) -> bool {
+        if self.step == self.end_step {
+            self.bucket.end(TimeMS::from(schedule.step));
+            return true;
+        }
+        false
     }
 }
 

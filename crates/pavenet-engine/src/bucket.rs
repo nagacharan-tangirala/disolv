@@ -93,6 +93,7 @@ pub trait Bucket: Clone + Send + Sync + 'static {
     fn before_uplink(&mut self);
     fn after_downlink(&mut self);
     fn streaming_step(&mut self, step: TimeMS);
+    fn end(&mut self, step: TimeMS);
 }
 
 /// The <code>ResultSaver</code> trait defines the methods that take the simulator data and
@@ -171,6 +172,10 @@ pub(crate) mod tests {
 
         fn streaming_step(&mut self, step: TimeMS) {
             println!("Streaming step in bucket at {}", step);
+        }
+
+        fn end(&mut self, step: TimeMS) {
+            println!("End in MyBucket at {}", step);
         }
     }
 
