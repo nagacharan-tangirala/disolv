@@ -12,6 +12,7 @@ readme = "README.md"
 pavenet-core = { path = "../pavenet-core" }
 pavenet-engine = { path = "../pavenet-engine" }
 typed-builder = "0.18.0"
+itertools = "0.12.0"
 log = "0.4.20"
 
 [dependencies.polars]
