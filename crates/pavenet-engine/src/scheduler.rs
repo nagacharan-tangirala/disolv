@@ -70,10 +70,6 @@ where
     }
 
     fn add_to_schedule(&mut self, schedule: &mut Schedule) {
-        debug!(
-            "Scheduling nodes {:?} to schedule at time {}",
-            self.to_add, schedule.step
-        );
         for id in self.to_add.iter() {
             match self.nodes.get_mut(id) {
                 Some(node) => {
@@ -90,10 +86,6 @@ where
     }
 
     fn remove_from_schedule(&mut self, schedule: &mut Schedule) {
-        debug!(
-            "Descheduling nodes {:?} from schedule at time {}",
-            self.to_pop, schedule.step
-        );
         for id in self.to_pop.iter() {
             match self.nodes.get_mut(id) {
                 Some(node) => {
@@ -105,7 +97,6 @@ where
     }
 
     fn clear_lists(&mut self) {
-        debug!("Clearing lists");
         self.to_add.clear();
         self.to_pop.clear();
     }
