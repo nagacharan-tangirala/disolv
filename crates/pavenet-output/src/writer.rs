@@ -72,8 +72,25 @@ impl WriterCsv {
     }
 
     fn write_to_file<R: Resultant>(&mut self, data: &Vec<R>) {
-        let mut writer = Self::build_writer(self.file_name.to_owned());
-        writer.serialize(data).expect("Error writing record");
+        let mut writer = Self::build_writer(self.file_name.clone());
+        for record in data {
+            writer.serialize(record).expect("Error writing record");
+        }
         writer.flush().expect("Error flushing writer");
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct WriterParquet {
+    file_name: PathBuf,
+}
+
+impl WriterParquet {
+    pub fn new(file_name: &PathBuf) -> Self {
+        Self {
+            file_name: file_name.to_owned(),
+        }
+    }
+
+    fn write_to_file<R: Resultant>(&mut self, data: &Vec<R>) {}
 }
