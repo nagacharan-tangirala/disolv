@@ -99,6 +99,7 @@ pub(super) mod df {
     use crate::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
     use crate::converter::series::{to_f32_vec, to_nodeid_vec, to_timestamp_vec};
     use crate::links::data::LinkMap;
+    use itertools::Itertools;
     use log::debug;
     use pavenet_core::radio::DLink;
     use pavenet_engine::bucket::TimeMS;
@@ -124,9 +125,9 @@ pub(super) mod df {
     ) -> Result<LinkMap, Box<dyn std::error::Error>> {
         validate_links_df(links_df)?;
         let ts_series: &Series = links_df.column(TIME_STEP)?;
-        let time_stamps: Vec<TimeMS> = to_timestamp_vec(ts_series)?;
+        let mut time_stamps: Vec<TimeMS> = to_timestamp_vec(ts_series)?;
+        time_stamps = time_stamps.into_iter().unique().collect();
         let mut links: LinkMap = HashMap::with_capacity(time_stamps.len());
-        debug!("Link DF height: {}", links_df.height());
 
         for time_stamp in time_stamps.iter() {
             let ts_df = links_df
@@ -134,11 +135,6 @@ pub(super) mod df {
                 .lazy()
                 .filter(col(TIME_STEP).eq(lit(time_stamp.as_u64())))
                 .collect()?;
-
-            if ts_df.height() == 0 {
-                links.entry(*time_stamp).or_insert(HashMap::new());
-                continue;
-            }
 
             let id_series: Series = ts_df.column(NODE_ID)?.explode()?;
             let node_ids: Vec<NodeId> = to_nodeid_vec(&id_series)?;
@@ -152,9 +148,11 @@ pub(super) mod df {
                     .or_insert(Vec::new())
                     .push(link);
             }
-            links.entry(*time_stamp).or_insert(link_map_entry);
+            links
+                .entry(*time_stamp)
+                .or_default()
+                .extend(link_map_entry.into_iter());
         }
-        debug!("Extracted links: {:?}", links.len());
         Ok(links)
     }
 
@@ -171,7 +169,7 @@ pub(super) mod df {
 
     fn build_links_data(df: &DataFrame) -> Result<Vec<DLink>, Box<dyn std::error::Error>> {
         let target_id_series: &Series = df.column(TARGET_ID)?;
-        let target_ids: Vec<NodeId> = to_nodeid_vec(&target_id_series)?;
+        let target_ids: Vec<NodeId> = to_nodeid_vec(target_id_series)?;
         let mut link_vec: Vec<DLink> = target_ids.into_iter().map(DLink::new).collect();
 
         let optional_columns = get_optional_columns(df);
@@ -186,7 +184,7 @@ pub(super) mod df {
                 }
                 LOAD_FACTOR => {
                     let lf_series: &Series = df.column(LOAD_FACTOR)?;
-                    let load_factors: Vec<f32> = to_f32_vec(&lf_series)?;
+                    let load_factors: Vec<f32> = to_f32_vec(lf_series)?;
                     for (idx, load_factor) in load_factors.into_iter().enumerate() {
                         link_vec[idx].properties.load_factor = Some(load_factor);
                     }
@@ -194,15 +192,14 @@ pub(super) mod df {
                 _ => return Err("Invalid column name".into()),
             }
         }
-        return Ok(link_vec);
+        Ok(link_vec)
     }
 
     fn get_optional_columns(df: &DataFrame) -> Vec<&str> {
         return df
             .get_column_names()
             .into_iter()
-            .filter(|col| optional::COLUMNS.contains(&col))
-            .map(|col| col)
+            .filter(|col| optional::COLUMNS.contains(col))
             .collect();
     }
 }
