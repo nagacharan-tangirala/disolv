@@ -135,9 +135,11 @@ impl Bucket for DeviceBucket {
         self.mapper_holder.iter_mut().for_each(|(_, mapper)| {
             mapper.before_node_step(self.step);
         });
-        self.linker_holder.iter_mut().for_each(|(_, linker)| {
+        self.linker_holder.iter_mut().for_each(|linker| {
             linker.before_node_step(self.step);
         });
+        // Clean up the messages
+        self.data_lake.clean_up_payloads();
     }
 
     fn after_downlink(&mut self) {
@@ -148,15 +150,21 @@ impl Bucket for DeviceBucket {
             self.resultant.write_output(self.step);
             self.output_step += self.output_step;
         }
+        // Clean up the responses
+        self.data_lake.clean_up_responses();
     }
 
     fn streaming_step(&mut self, step: TimeMS) {
         self.mapper_holder.iter_mut().for_each(|(_, space)| {
             space.stream_data(step);
         });
-        self.linker_holder.iter_mut().for_each(|(_, linker)| {
+        self.linker_holder.iter_mut().for_each(|linker| {
             linker.stream_data(step);
         });
+    }
+
+    fn end(&mut self, step: TimeMS) {
+        self.resultant.write_output(step);
     }
 }
 

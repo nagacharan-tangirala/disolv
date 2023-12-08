@@ -28,4 +28,12 @@ impl DataLake {
     pub fn add_response_to(&mut self, node_id: NodeId, response: DResponse) {
         self.responses.entry(node_id).or_insert(response);
     }
+
+    pub fn clean_up_payloads(&mut self) {
+        self.payloads.clear();
+    }
+
+    pub fn clean_up_responses(&mut self) {
+        self.responses.clear();
+    }
 }
