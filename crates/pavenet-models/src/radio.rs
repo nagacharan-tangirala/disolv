@@ -103,15 +103,22 @@ impl RxRadio {
 }
 
 impl RxChannel<PayloadInfo, NodeContent> for RxRadio {
+    type R = RxMetrics;
+
     fn reset_rx(&mut self) {
         self.in_stats.reset();
         self.in_link_nodes.clear();
-        self.transfer_stats.clear();
+        self.rx_metrics.clear();
     }
 
-    fn complete_transfers(&mut self, mut payloads: Vec<DPayload>) -> Vec<DPayload> {
+    fn complete_transfers(
+        &mut self,
+        mut payloads: Vec<DPayload>,
+    ) -> (Vec<DPayload>, Vec<RxMetrics>) {
         payloads.shuffle(&mut self.rng);
         let mut valid = Vec::with_capacity(payloads.len());
+        let mut rx_stats_vec = Vec::with_capacity(payloads.len());
+        let mut rx_order = 1;
 
         for payload in payloads.into_iter() {
             self.in_stats.add_attempted(&payload.metadata);
@@ -120,12 +127,17 @@ impl RxChannel<PayloadInfo, NodeContent> for RxRadio {
                 .or_insert(Vec::new())
                 .push(payload.node_state.node_info.id);
 
-            if self.check_feasible(&payload) {
+            let rx_stats = self.measure_rx(rx_order, &payload);
+            self.rx_metrics
+                .insert(payload.node_state.node_info.id, rx_stats);
+            if rx_stats.rx_status == RxStatus::Ok {
                 self.in_stats.add_feasible(&payload.metadata);
                 valid.push(payload);
             }
+            rx_stats_vec.push(rx_stats);
+            rx_order += 1;
         }
-        valid
+        (valid, rx_stats_vec)
     }
 
     fn perform_actions(

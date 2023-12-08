@@ -1,5 +1,5 @@
 use crate::entity::Class;
-use crate::message::{DataUnit, GPayload, Metadata, NodeState};
+use crate::message::{DataUnit, GPayload, Metadata, NodeState, RxReport};
 use crate::node::NodeId;
 use std::fmt::Debug;
 use typed_builder::TypedBuilder;
@@ -40,8 +40,13 @@ where
     M: Metadata,
     N: NodeState,
 {
+    type R: RxReport;
+
     fn reset_rx(&mut self);
-    fn complete_transfers(&mut self, payloads: Vec<GPayload<M, N>>) -> Vec<GPayload<M, N>>;
+    fn complete_transfers(
+        &mut self,
+        payloads: Vec<GPayload<M, N>>,
+    ) -> (Vec<GPayload<M, N>>, Vec<Self::R>);
     fn perform_actions(
         &mut self,
         node_state: &N,
