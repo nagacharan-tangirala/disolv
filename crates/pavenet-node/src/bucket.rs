@@ -24,7 +24,7 @@ pub struct DeviceBucket {
     pub space: Space,
     pub scheduler: DNodeScheduler,
     pub mapper_holder: Vec<(NodeType, Mapper)>,
-    pub linker_holder: Vec<(NodeType, Linker)>,
+    pub linker_holder: Vec<Linker>,
     pub class_to_type: HashMap<NodeClass, NodeType>,
     pub output_step: TimeMS,
     pub resultant: ResultWriter,
@@ -42,9 +42,10 @@ impl DeviceBucket {
     pub(crate) fn link_options_for(
         &mut self,
         node_id: NodeId,
+        source_type: &NodeType,
         target_class: &NodeClass,
     ) -> Option<Vec<DLink>> {
-        match self.linker_for(target_class) {
+        match self.linker_for(source_type, target_class) {
             Some(linker) => linker.links_of(node_id),
             None => None,
         }
@@ -85,15 +86,18 @@ impl DeviceBucket {
         self.scheduler.add(node_id);
     }
 
-    fn linker_for(&mut self, target_class: &NodeClass) -> Option<&mut Linker> {
+    fn linker_for(
+        &mut self,
+        source_type: &NodeType,
+        target_class: &NodeClass,
+    ) -> Option<&mut Linker> {
         let target_type = match self.class_to_type.get(target_class) {
             Some(t_type) => t_type,
             None => return None,
         };
         self.linker_holder
             .iter_mut()
-            .find(|(node_type, _)| *node_type == *target_type)
-            .map(|(_, linker)| linker)
+            .find(|linker| linker.source_type == *source_type && linker.target_type == *target_type)
     }
 
     fn mapper_for(&mut self, node_type: &NodeType) -> &mut Mapper {

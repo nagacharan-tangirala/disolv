@@ -1,7 +1,7 @@
 use crate::base::{BaseConfig, BaseConfigReader, NodeClassSettings, NodeSettings};
 use crate::logger;
 use krabmaga::rand_pcg::Pcg64Mcg;
-use log::info;
+use log::{debug, info};
 use pavenet_core::entity::{NodeClass, NodeInfo, NodeOrder, NodeType};
 use pavenet_core::power::PowerManager;
 use pavenet_engine::bucket::TimeMS;
@@ -251,15 +251,15 @@ impl PavenetBuilder {
         mapper_vec
     }
 
-    fn build_linker_vec(&self) -> Vec<(NodeType, Linker)> {
-        let mut linker_vec: Vec<(NodeType, Linker)> = Vec::new();
+    fn build_linker_vec(&self) -> Vec<Linker> {
+        let mut linker_vec: Vec<Linker> = Vec::new();
         for node_setting in self.base_config.nodes.iter() {
             let node_type = node_setting.node_type;
             match node_setting.linker {
                 Some(ref linker_settings) => {
                     for link_setting in linker_settings.iter() {
-                        let linker = self.build_linker(link_setting);
-                        linker_vec.push((node_type, linker));
+                        let linker = self.build_linker(&node_type, link_setting);
+                        linker_vec.push(linker);
                     }
                 }
                 None => {}
@@ -268,7 +268,7 @@ impl PavenetBuilder {
         linker_vec
     }
 
-    fn build_linker(&self, link_config: &LinkerSettings) -> Linker {
+    fn build_linker(&self, source_type: &NodeType, link_config: &LinkerSettings) -> Linker {
         let links_file = self.config_path.join(&link_config.links_file);
         if !links_file.exists() {
             panic!("Link file {} is not found.", links_file.display());
@@ -277,6 +277,8 @@ impl PavenetBuilder {
             LinkReader::new(links_file, self.streaming_step(), link_config.is_streaming);
         Linker::builder()
             .reader(link_reader)
+            .source_type(source_type.to_owned())
+            .target_type(link_config.target_type.to_owned())
             .is_static(!link_config.is_streaming)
             .build()
     }
