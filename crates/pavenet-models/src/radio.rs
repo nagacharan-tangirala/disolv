@@ -15,7 +15,6 @@ use typed_builder::TypedBuilder;
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct RxRadio {
-    pub my_class: NodeClass,
     pub latency_type: LatencyType,
     pub step_size: TimeMS,
     pub rng: Pcg64Mcg,
@@ -143,7 +142,6 @@ impl RxChannel<PayloadInfo, NodeContent> for RxRadio {
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct TxRadio {
-    pub my_class: NodeClass,
     pub rng: Pcg64Mcg,
     #[builder(default)]
     pub actions: HashMap<NodeClass, HashMap<DataType, ActionImpl>>,

@@ -195,7 +195,6 @@ impl PavenetBuilder {
 
     fn build_rx_radio(&self, class_settings: &NodeClassSettings) -> RxRadio {
         RxRadio::builder()
-            .my_class(class_settings.node_class)
             .latency_type(LatencyType::with_settings(class_settings.latency.clone()))
             .step_size(TimeMS::from(self.sim_step()))
             .rng(Pcg64Mcg::new(self.sim_seed()))
@@ -205,7 +204,6 @@ impl PavenetBuilder {
     fn build_tx_radio(&self, class_settings: &NodeClassSettings) -> TxRadio {
         TxRadio::builder()
             .rng(Pcg64Mcg::new(self.sim_seed()))
-            .my_class(class_settings.node_class)
             .build()
     }
 
