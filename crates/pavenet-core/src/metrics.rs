@@ -23,6 +23,9 @@ impl Latency {
     pub fn new(value: f32) -> Self {
         Self(value)
     }
+    pub fn as_u32(&self) -> u32 {
+        self.0 as u32
+    }
 }
 
 impl From<f32> for Latency {
