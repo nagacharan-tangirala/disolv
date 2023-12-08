@@ -1,7 +1,7 @@
 use crate::device::Device;
 use crate::linker::Linker;
 use crate::space::{Mapper, Space};
-use log::{debug, info};
+use log::debug;
 use pavenet_core::entity::{NodeClass, NodeOrder, NodeType};
 use pavenet_core::mobility::MapState;
 use pavenet_core::radio::{DLink, InDataStats};
@@ -59,8 +59,8 @@ impl DeviceBucket {
         self.mapper_for(node_type).map_state_of(node_id)
     }
 
-    pub(crate) fn node_of(&self, node_id: NodeId) -> Option<&Device> {
-        self.devices.get(&node_id)
+    pub(crate) fn node_of(&mut self, node_id: NodeId) -> Option<&mut Device> {
+        self.devices.get_mut(&node_id)
     }
 
     pub(crate) fn stats_for(&mut self, link_opts: &Vec<DLink>) -> Vec<Option<&InDataStats>> {
@@ -104,7 +104,7 @@ impl DeviceBucket {
     fn update_stats(&mut self) {
         self.devices.iter().for_each(|(node_id, device)| {
             self.transfer_stats
-                .insert(*node_id, device.models.rx_radio.in_stats.clone());
+                .insert(*node_id, device.models.rx_radio.in_stats);
         });
     }
 }
@@ -121,7 +121,7 @@ impl Bucket for DeviceBucket {
         self.mapper_holder.iter_mut().for_each(|(_, mapper)| {
             mapper.init(self.step);
         });
-        self.linker_holder.iter_mut().for_each(|(_, linker)| {
+        self.linker_holder.iter_mut().for_each(|linker| {
             linker.init(self.step);
         });
     }
@@ -185,7 +185,7 @@ impl ResultSaver for DeviceBucket {
                 continue;
             }
             self.resultant
-                .add_rx_data(step, *node_id, &device.models.rx_radio.in_stats);
+                .add_rx_counts(step, *node_id, &device.models.rx_radio.in_stats);
         }
     }
 }
