@@ -19,6 +19,8 @@ pub struct LinkerSettings {
 
 #[derive(Clone, TypedBuilder)]
 pub struct Linker {
+    pub source_type: NodeType,
+    pub target_type: NodeType,
     pub reader: LinkReader,
     pub is_static: bool,
     #[builder(default)]
@@ -29,7 +31,6 @@ pub struct Linker {
 
 impl Linker {
     pub fn links_of(&mut self, node_id: NodeId) -> Option<Vec<DLink>> {
-        debug!("Linker::links_of: node_id: {:?}", self.links.len());
         if self.is_static {
             return self.link_cache.get(&node_id).cloned();
         }
@@ -43,11 +44,6 @@ impl BucketModel for Linker {
             LinkReader::File(ref mut reader) => reader.read_links_data(step),
             LinkReader::Stream(ref mut reader) => reader.stream_links_data(step),
         };
-        // Refresh cache for the first time step
-        debug!(
-            "Reading links with settings: {} - {}",
-            self.is_static, self.reader
-        );
         self.link_cache = match self.links.remove(&step) {
             Some(links) => links,
             None => HashMap::new(),
