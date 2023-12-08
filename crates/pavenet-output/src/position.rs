@@ -40,7 +40,7 @@ impl PosWriter {
         let config = output_settings
             .file_out_config
             .iter()
-            .find(|&file_out_config| file_out_config.output_type == OutputType::RxData)
+            .find(|&file_out_config| file_out_config.output_type == OutputType::NodePos)
             .expect("PosWriter::new: No PosWriter config found");
         let output_file = output_path.join(&config.output_filename);
         Self {
@@ -55,7 +55,7 @@ impl PosWriter {
     }
 
     pub fn write_to_file(&mut self) {
-        debug!("Writing tx data");
+        debug!("Writing positions to file");
         self.to_output.write_to_file(&self.data_pos);
         self.data_pos.clear();
     }
