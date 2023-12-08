@@ -71,13 +71,6 @@ impl DeviceBucket {
         link_stats
     }
 
-    pub(crate) fn kind_for(&self, target_class: &NodeClass) -> &NodeType {
-        match self.class_to_type.get(target_class) {
-            Some(node_type) => node_type,
-            None => panic!("No node type for class: {:?}", target_class),
-        }
-    }
-
     pub fn stop_node(&mut self, node_id: NodeId) {
         self.scheduler.pop(node_id);
     }

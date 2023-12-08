@@ -53,7 +53,6 @@ impl RxCountWriter {
             .find(|&file_out_config| file_out_config.output_type == OutputType::RxCounts)
             .expect("RxDataWriter::new: No RxDataWriter config found");
         let output_file = output_path.join(&config.output_filename);
-        debug!("RxDataWriter::new: output_file: {:?}", output_file);
         Self {
             data_rx: Vec::new(),
             to_output: DataOutput::new(&output_file),

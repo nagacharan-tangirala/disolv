@@ -1,5 +1,5 @@
 use crate::model::{Model, ModelSettings};
-use pavenet_core::message::{DResponse, TransferMetrics};
+use pavenet_core::message::{DResponse, RxMetrics};
 use pavenet_engine::bucket::TimeMS;
 use serde::Deserialize;
 
@@ -30,7 +30,7 @@ impl Replier {
     pub fn compose_response(
         &mut self,
         in_response: Option<DResponse>,
-        transfer_stats: TransferMetrics,
+        transfer_stats: RxMetrics,
     ) -> DResponse {
         match self {
             Replier::Stats(responder) => responder.compose_response(in_response, transfer_stats),
@@ -53,7 +53,7 @@ impl StatsReplier {
     pub fn compose_response(
         &mut self,
         in_response: Option<DResponse>,
-        transfer_stats: TransferMetrics,
+        transfer_stats: RxMetrics,
     ) -> DResponse {
         let downstream = match in_response {
             Some(response) => response.downstream,

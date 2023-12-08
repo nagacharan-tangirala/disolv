@@ -76,6 +76,7 @@ impl BaseConfigReader {
     }
 }
 
+#[cfg(test)]
 mod tests {
     #[cfg(test)]
     fn test_base_config_reader() {
