@@ -1,7 +1,9 @@
 /target
 .idea
 /output
-/*/test/data/*
-/*/target
-/*/output
+crates/*/test/data
+target
+output
+crates/*/output
+crates/*/target
 ```
