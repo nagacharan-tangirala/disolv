@@ -99,6 +99,9 @@ impl InDataStats {
     }
 
     pub fn get_success_rate(&self) -> f32 {
+        if self.attempted.node_count == 0 {
+            return 0.0;
+        }
         self.feasible.node_count as f32 / self.attempted.node_count as f32
     }
 }
