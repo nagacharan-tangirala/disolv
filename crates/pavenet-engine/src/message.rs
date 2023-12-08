@@ -42,9 +42,7 @@ where
 }
 
 /// A trait to indicate a type that can be used to represent the transfer status of a payload.
-pub trait PayloadStatus: Clone + Send + Sync {
-    fn as_u8(&self) -> u8;
-}
+pub trait PayloadStatus: Clone + Send + Sync {}
 
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
 /// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
@@ -59,7 +57,7 @@ where
     type NodeClass: Class;
 
     fn collect(&mut self, bucket: &mut B) -> Vec<GPayload<M, N>>;
-    fn find_target(&self, target_class: &Self::NodeClass, bucket: &mut B) -> Option<GLink<F>>;
+    fn find_targets(&self, target_class: &Self::NodeClass, bucket: &mut B) -> Option<GLink<F>>;
     fn transmit(&mut self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
 }
 
@@ -67,7 +65,7 @@ where
 /// to the device that sent the payload.
 ///
 /// Metadata can contain transfer metrics such as the status, latency, etc.
-pub trait TxReport: Clone + Send + Sync {}
+pub trait RxReport: Clone + Send + Sync {}
 
 /// A trait to indicate a type that can be used to represent the content of a response. The content
 /// can contain queries that can be read by other devices.
@@ -82,7 +80,7 @@ pub trait Reply: Clone + Send + Sync {}
 pub struct GResponse<R, T>
 where
     R: Reply,
-    T: TxReport,
+    T: RxReport,
 {
     pub reply: Option<R>,
     pub downstream: Option<Vec<R>>,
@@ -96,7 +94,7 @@ pub trait Responder<B, R, T>
 where
     B: Bucket,
     R: Reply,
-    T: TxReport,
+    T: RxReport,
 {
     fn receive(&mut self, bucket: &mut B) -> Option<GResponse<R, T>>;
     fn respond(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
