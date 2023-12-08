@@ -1,4 +1,4 @@
-use crate::message::Metadata;
+use crate::message::{Metadata, RxReport};
 
 /// A trait that measures some quantity of the radio. It could be a struct or a simple named type.
 /// Any number of metrics can be used to measure the radio usage. The name should be unique and
@@ -32,8 +32,10 @@ where
 {
     type P: Metadata;
     type S: MetricSettings;
+    type T: RxReport;
+
     fn with_settings(settings: Self::S) -> Self;
-    fn measure(&mut self, metadata: &Self::P) -> Feasibility<M>;
+    fn measure(&mut self, tx_report: &Self::T, metadata: &Self::P) -> Feasibility<M>;
 }
 
 /// A trait that can be used to assess whether sufficient radio resources are available
