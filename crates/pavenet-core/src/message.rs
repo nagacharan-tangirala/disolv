@@ -4,8 +4,9 @@ use crate::mobility::MapState;
 use crate::radio::{ActionImpl, ActionType, DLink};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::message::{DataUnit, GPayload, Metadata, NodeState, PayloadStatus};
-use pavenet_engine::message::{GResponse, Queryable, Reply, TxReport};
-use serde::Deserialize;
+use pavenet_engine::message::{GResponse, Queryable, Reply, RxReport};
+use pavenet_engine::node::NodeId;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use typed_builder::TypedBuilder;
 use uuid::Uuid;
@@ -46,7 +47,6 @@ impl NodeState for NodeContent {}
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct DataBlob {
-    pub uuid: Uuid,
     pub data_type: DataType,
     pub data_size: f32,
     pub action: ActionImpl,

@@ -2,7 +2,7 @@ use crate::bucket::DeviceBucket;
 use log::debug;
 use pavenet_core::entity::{NodeClass, NodeInfo, NodeOrder};
 use pavenet_core::message::{DPayload, NodeContent, PayloadInfo};
-use pavenet_core::message::{DResponse, DataSource, TransferMetrics};
+use pavenet_core::message::{DResponse, DataSource, RxMetrics};
 use pavenet_core::mobility::MapState;
 use pavenet_core::power::{PowerManager, PowerState};
 use pavenet_core::radio::{DLink, LinkProperties};
@@ -110,15 +110,24 @@ impl Transmitter<DeviceBucket, LinkProperties, PayloadInfo, NodeContent> for Dev
             Some(incoming) => incoming,
             None => return Vec::new(),
         };
-        let feasible = self.models.rx_radio.complete_transfers(incoming);
+        let feasible_and_stats: (Vec<DPayload>, Vec<RxMetrics>) =
+            self.models.rx_radio.complete_transfers(incoming);
+        feasible_and_stats.1.iter().for_each(|rx_metrics| {
+            bucket
+                .resultant
+                .add_rx_data(self.step, self.node_info.id, rx_metrics)
+        });
         self.models
             .rx_radio
-            .perform_actions(&self.compose_content(), feasible)
+            .perform_actions(&self.compose_content(), feasible_and_stats.0)
     }
 
-    fn find_target(&self, target_class: &NodeClass, bucket: &mut DeviceBucket) -> Option<DLink> {
-        debug!("Finding target for {} at {}", self.node_info.id, self.step);
-        let link_options = match bucket.link_options_for(self.node_info.id, target_class) {
+    fn find_targets(&self, target_class: &NodeClass, bucket: &mut DeviceBucket) -> Option<DLink> {
+        let link_options = match bucket.link_options_for(
+            self.node_info.id,
+            &self.node_info.node_type,
+            target_class,
+        ) {
             Some(links) => links,
             None => return None,
         };
@@ -159,7 +168,10 @@ impl Responder<DeviceBucket, DataSource, TransferMetrics> for Device {
 
 impl Entity<DeviceBucket, NodeOrder> for Device {
     fn uplink_stage(&mut self, bucket: &mut DeviceBucket) {
-        debug!("Uplink stage for node: {} id", self.node_info.id);
+        debug!(
+            "Uplink stage for node: {} id at step: {}",
+            self.node_info.id, self.step
+        );
         self.step = bucket.step;
         self.power_state = PowerState::On;
         self.set_mobility(bucket);
@@ -167,7 +179,7 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
         let payloads_to_fwd = self.collect(bucket);
 
         for target_class in self.target_classes.clone().iter() {
-            if let Some(target_link) = self.find_target(target_class, bucket) {
+            if let Some(target_link) = self.find_targets(target_class, bucket) {
                 let mut payload = self.compose_payload(target_class);
                 let target_node_data = match bucket.node_of(target_link.target) {
                     Some(node) => node.compose_content(),
