@@ -16,7 +16,7 @@ pub enum DistType {
 #[derive(Debug, Clone, Deserialize)]
 pub struct DistParams {
     pub dist_name: String,
-    pub seed: Option<u128>,
+    pub seed: Option<u64>,
     pub mean: Option<f32>,
     pub std_dev: Option<f32>,
     pub location: Option<f32>,
@@ -29,7 +29,7 @@ pub struct DistParams {
 
 impl DistType {
     pub fn new(params: DistParams) -> Self {
-        match params.dist_name.as_str() {
+        match params.dist_name.to_lowercase().as_str() {
             "uniform" => match Self::build_uniform(params) {
                 Ok(dist) => dist,
                 Err(_) => panic!("Invalid distribution parameters"),
@@ -92,7 +92,7 @@ pub struct RngSampler {
 
 impl RngSampler {
     pub fn new(params: DistParams) -> Self {
-        let seed = params.seed.unwrap_or(0u128);
+        let seed: u128 = params.seed.unwrap_or(0) as u128;
         let dist = DistType::new(params);
         Self {
             dist,
