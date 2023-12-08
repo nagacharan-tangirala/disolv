@@ -1,6 +1,6 @@
 use log::error;
 use pavenet_core::dist::{DistParams, RngSampler};
-use pavenet_core::message::PayloadInfo;
+use pavenet_core::message::{PayloadInfo, RxMetrics};
 use pavenet_core::metrics::Latency;
 use pavenet_engine::metrics::{Feasibility, Measurable, Metric, MetricSettings};
 use serde::Deserialize;
@@ -34,6 +34,7 @@ pub enum LatencyType {
 impl Measurable<Latency> for LatencyType {
     type P = PayloadInfo;
     type S = LatencyConfig;
+    type T = RxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         match config.variant.to_lowercase().as_str() {
@@ -50,12 +51,16 @@ impl Measurable<Latency> for LatencyType {
         }
     }
 
-    fn measure(&mut self, payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(
+        &mut self,
+        transfer_metrics: &RxMetrics,
+        payload: &PayloadInfo,
+    ) -> Feasibility<Latency> {
         match self {
-            LatencyType::Constant(latency) => latency.measure(payload),
-            LatencyType::Random(latency) => latency.measure(payload),
-            LatencyType::Distance(latency) => latency.measure(payload),
-            LatencyType::Ordered(latency) => latency.measure(payload),
+            LatencyType::Constant(latency) => latency.measure(transfer_metrics, payload),
+            LatencyType::Random(latency) => latency.measure(transfer_metrics, payload),
+            LatencyType::Distance(latency) => latency.measure(transfer_metrics, payload),
+            LatencyType::Ordered(latency) => latency.measure(transfer_metrics, payload),
         }
     }
 }
@@ -68,6 +73,7 @@ pub struct ConstantLatency {
 impl Measurable<Latency> for ConstantLatency {
     type P = PayloadInfo;
     type S = LatencyConfig;
+    type T = RxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         let latency = match config.constant_term {
@@ -80,7 +86,7 @@ impl Measurable<Latency> for ConstantLatency {
         ConstantLatency { latency }
     }
 
-    fn measure(&mut self, _payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, _tr_metrics: &RxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
         Feasibility::Feasible(self.latency)
     }
 }
@@ -98,6 +104,7 @@ pub struct RandomLatency {
 impl Measurable<Latency> for RandomLatency {
     type P = PayloadInfo;
     type S = LatencyConfig;
+    type T = RxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         RandomLatency {
@@ -108,7 +115,7 @@ impl Measurable<Latency> for RandomLatency {
         }
     }
 
-    fn measure(&mut self, _payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, _tr_metrics: &RxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
         let latency_factor = self.sampler.sample();
         let lt_f32 = self.min_latency + (self.max_latency - self.min_latency) * latency_factor;
         let latency = Latency::from(lt_f32);
@@ -133,6 +140,7 @@ pub struct DistanceLatency {
 impl Measurable<Latency> for DistanceLatency {
     type P = PayloadInfo;
     type S = LatencyConfig;
+    type T = RxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         DistanceLatency {
@@ -142,8 +150,8 @@ impl Measurable<Latency> for DistanceLatency {
         }
     }
 
-    fn measure(&mut self, payload: &PayloadInfo) -> Feasibility<Latency> {
-        let distance_factor = match payload.routing_info.selected_link.properties.distance {
+    fn measure(&mut self, _tr_metrics: &RxMetrics, payload: &PayloadInfo) -> Feasibility<Latency> {
+        let distance_factor = match payload.selected_link.properties.distance {
             Some(distance) => distance * self.factor,
             None => 0.0,
         };
@@ -169,6 +177,7 @@ pub struct OrderedLatency {
 impl Measurable<Latency> for OrderedLatency {
     type P = PayloadInfo;
     type S = LatencyConfig;
+    type T = RxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         OrderedLatency {
@@ -178,8 +187,8 @@ impl Measurable<Latency> for OrderedLatency {
         }
     }
 
-    fn measure(&mut self, payload: &PayloadInfo) -> Feasibility<Latency> {
-        let order_factor = payload.routing_info.tx_order as f32 * self.factor;
+    fn measure(&mut self, tx_metrics: &RxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
+        let order_factor = tx_metrics.rx_order as f32 * self.factor;
         let latency = self.const_param.as_f32() + order_factor;
         let latency = Latency::from(latency);
         if latency > self.constraint {
