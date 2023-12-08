@@ -1,8 +1,8 @@
 use crate::latency::LatencyType;
 use log::error;
 use pavenet_core::entity::{NodeClass, NodeInfo};
-use pavenet_core::message::{DPayload, DataType, NodeContent, PayloadInfo};
-use pavenet_core::message::{DataBlob, TransferMetrics};
+use pavenet_core::message::{DPayload, DataType, NodeContent, PayloadInfo, RxFailReason, RxStatus};
+use pavenet_core::message::{DataBlob, RxMetrics};
 use pavenet_core::radio::{ActionImpl, ActionSettings, ActionType, InDataStats, OutDataStats};
 use pavenet_core::rand_pcg::Pcg64Mcg;
 use pavenet_engine::bucket::TimeMS;
@@ -23,25 +23,27 @@ pub struct RxRadio {
     #[builder(default)]
     pub in_stats: InDataStats,
     #[builder(default)]
-    pub transfer_stats: HashMap<NodeId, TransferMetrics>,
+    pub rx_metrics: HashMap<NodeId, RxMetrics>,
 }
 
 impl RxRadio {
-    fn check_feasible(&mut self, payload: &DPayload) -> bool {
-        match self.latency_type.measure(&payload.metadata) {
-            Feasibility::Feasible(latency) => {
-                self.transfer_stats.insert(
-                    payload.node_state.node_info.id,
-                    TransferMetrics::new(latency),
-                );
-                true
+    fn measure_rx(&mut self, rx_order: u32, payload: &DPayload) -> RxMetrics {
+        let mut rx_stats = RxMetrics::new(payload.node_state.node_info.id, rx_order);
+        match self.latency_type.measure(&rx_stats, &payload.metadata) {
+            Feasibility::Feasible(latency) => rx_stats.latency = latency,
+            Feasibility::Infeasible(latency) => {
+                rx_stats.latency = latency;
+                rx_stats.rx_status = RxStatus::Fail;
+                rx_stats.rx_fail_reason = RxFailReason::LatencyLimit;
+                return rx_stats;
             }
-            Feasibility::Infeasible(_) => false,
-        }
+        };
+        rx_stats.rx_status = RxStatus::Ok;
+        rx_stats
     }
 
-    pub fn transfer_stats(&mut self) -> HashMap<NodeId, TransferMetrics> {
-        self.transfer_stats.clone()
+    pub fn transfer_stats(&mut self) -> HashMap<NodeId, RxMetrics> {
+        self.rx_metrics.clone()
     }
 
     /// Performs the actions instructed by the sender.
