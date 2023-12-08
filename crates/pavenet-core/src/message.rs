@@ -68,19 +68,12 @@ impl DataUnit for DataBlob {
 }
 
 #[derive(Clone, Debug, Default, TypedBuilder)]
-pub struct TxInfo {
-    pub selected_link: DLink,
-    pub link_found_at: TimeMS,
-    pub tx_order: u32,
-    pub status: TxStatus,
-}
-
-#[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct PayloadInfo {
+    pub id: Uuid,
     pub total_size: f32,
     pub total_count: u32,
     pub data_blobs: Vec<DataBlob>,
-    pub routing_info: TxInfo,
+    pub selected_link: DLink,
 }
 
 impl PayloadInfo {
@@ -108,37 +101,42 @@ pub struct DataSource {
 
 impl Reply for DataSource {}
 
-#[derive(Clone, Eq, PartialEq, Copy, Debug, Default)]
-pub enum TxStatus {
+#[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
+pub enum RxStatus {
     Ok,
     #[default]
     Fail,
 }
 
-impl PayloadStatus for TxStatus {
-    fn as_u8(&self) -> u8 {
-        match self {
-            TxStatus::Ok => 1,
-            TxStatus::Fail => 0,
-        }
-    }
+impl PayloadStatus for RxStatus {}
+
+#[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
+pub enum RxFailReason {
+    #[default]
+    None,
+    LatencyLimit,
 }
 
 #[derive(Debug, Clone, Default, Copy)]
-pub struct TransferMetrics {
+pub struct RxMetrics {
+    pub from_node: NodeId,
+    pub rx_order: u32,
+    pub rx_status: RxStatus,
+    pub rx_fail_reason: RxFailReason,
+    pub link_found_at: TimeMS,
     pub latency: Latency,
-    pub transfer_status: TxStatus,
 }
 
-impl TxReport for TransferMetrics {}
-
-impl TransferMetrics {
-    pub fn new(latency: Latency) -> Self {
+impl RxMetrics {
+    pub fn new(from_node: NodeId, rx_order: u32) -> Self {
         Self {
-            latency,
+            from_node,
+            rx_order,
             ..Default::default()
         }
     }
 }
 
-pub type DResponse = GResponse<DataSource, TransferMetrics>;
+impl RxReport for RxMetrics {}
+
+pub type DResponse = GResponse<DataSource, RxMetrics>;
