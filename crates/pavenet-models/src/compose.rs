@@ -1,8 +1,8 @@
 use crate::model::{Model, ModelSettings};
-use log::error;
+use log::{debug, error};
 use pavenet_core::entity::NodeClass;
-use pavenet_core::message::{DPayload, DataBlob, DataSource, NodeContent, PayloadInfo, TxInfo};
-use pavenet_core::radio::ActionImpl;
+use pavenet_core::message::{DPayload, DataBlob, DataSource, NodeContent, PayloadInfo};
+use pavenet_core::radio::{ActionImpl, DLink};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::uuid;
 use serde::Deserialize;
@@ -97,19 +97,20 @@ impl BasicComposer {
             let data_blob = DataBlob::builder()
                 .data_type(ds_settings.data_type)
                 .data_size(ds_settings.data_size)
-                .uuid(uuid::Uuid::new_v4())
                 .action(ActionImpl::default())
                 .build();
             data_blobs.push(data_blob);
             data_count += 1;
         }
         let payload_info = PayloadInfo::builder()
+            .id(uuid::Uuid::new_v4())
             .total_size(data_blobs.iter().map(|x| x.data_size).sum())
             .data_blobs(data_blobs)
             .total_count(data_count)
-            .routing_info(TxInfo::default())
+            .selected_link(DLink::default())
             .build();
-        return payload_info;
+        debug!("Created payload with id {}", payload_info.id);
+        payload_info
     }
 }
 
