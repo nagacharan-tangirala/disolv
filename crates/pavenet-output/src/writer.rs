@@ -23,6 +23,16 @@ impl DataOutput {
     }
 
     fn build_csv_writer(file_name: &PathBuf) -> DataOutput {
+        // Delete file if it exists
+        if file_name.exists() {
+            match std::fs::remove_file(file_name) {
+                Ok(_) => {}
+                Err(e) => {
+                    error!("Error deleting file: {}", file_name.to_str().unwrap());
+                    panic!("Error deleting file: {}", e);
+                }
+            }
+        }
         DataOutput::Csv(WriterCsv::new(file_name))
     }
 
