@@ -63,7 +63,7 @@ where
     }
 
     fn after_step(&mut self, schedule: &mut Schedule) {
-        self.bucket.after_downlink();
+        self.bucket.before_downlink();
         self.bucket.scheduler().remove_from_schedule(schedule);
         self.bucket.scheduler().clear_lists();
     }
