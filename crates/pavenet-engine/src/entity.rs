@@ -197,7 +197,7 @@ pub(crate) mod tests {
             todo!()
         }
 
-        fn set_mobility(&mut self, bucket: &mut MyBucket) {
+        fn set_mobility(&mut self, _bucket: &mut MyBucket) {
             todo!()
         }
     }
@@ -205,11 +205,18 @@ pub(crate) mod tests {
     impl Entity<MyBucket, Level> for TDevice {
         fn uplink_stage(&mut self, bucket: &mut MyBucket) {
             self.step = bucket.step;
-            println!("step {} in TDevice of type {}", self.step, self.device_type);
+            println!(
+                "uplink stage {} in TDevice of type {}",
+                self.step, self.device_type
+            );
+        }
+
+        fn sidelink_stage(&mut self, _bucket: &mut MyBucket) {
+            println!("sidelink stage in TDevice of type {}", self.device_type);
         }
 
         fn downlink_stage(&mut self, _bucket: &mut MyBucket) {
-            println!("after_step in TDevice of type {}", self.device_type);
+            println!("downlink stage in TDevice of type {}", self.device_type);
         }
     }
 
