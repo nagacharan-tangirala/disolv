@@ -71,9 +71,14 @@ where
     E: Entity<B, T>,
     T: Tier,
 {
-    fn step(&mut self, state: &mut dyn State) {
+    fn before_step(&mut self, state: &mut dyn State) {
         let engine: &mut GEngine<B> = state.as_any_mut().downcast_mut::<GEngine<B>>().unwrap();
         self.entity.uplink_stage(&mut engine.bucket);
+    }
+
+    fn step(&mut self, state: &mut dyn State) {
+        let engine = state.as_any_mut().downcast_mut::<GEngine<B>>().unwrap();
+        self.entity.sidelink_stage(&mut engine.bucket);
     }
 
     fn after_step(&mut self, state: &mut dyn State) {
