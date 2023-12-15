@@ -91,6 +91,7 @@ where
     T: Tier,
 {
     fn uplink_stage(&mut self, bucket: &mut B);
+    fn sidelink_stage(&mut self, bucket: &mut B);
     fn downlink_stage(&mut self, bucket: &mut B);
 }
 
