@@ -1,5 +1,5 @@
 use crate::entity::Class;
-use crate::message::{DataUnit, GPayload, Metadata, NodeState, RxReport};
+use crate::message::{GPayload, Metadata, NodeState};
 use crate::node::NodeId;
 use std::fmt::Debug;
 use typed_builder::TypedBuilder;
@@ -35,46 +35,30 @@ where
 
 /// A trait that represents a radio that can be used to transfer data. It performs the actual
 /// data transfer and can be used to measure the radio usage.
-pub trait RxChannel<M, N>
-where
-    M: Metadata,
-    N: NodeState,
-{
-    type R: RxReport;
-
-    fn reset_rx(&mut self);
-    fn complete_transfers(
-        &mut self,
-        payloads: Vec<GPayload<M, N>>,
-    ) -> (Vec<GPayload<M, N>>, Vec<Self::R>);
-    fn perform_actions(
-        &mut self,
-        node_state: &N,
-        payloads: Vec<GPayload<M, N>>,
-    ) -> Vec<GPayload<M, N>>;
-}
-
-/// A trait that represents a channel that can be used to transmit data. It prepares the data
-/// for transmission and applies the actions to the data blobs before transmission.
-pub trait TxChannel<M, N>
+pub trait Channel<M, N>
 where
     M: Metadata,
     N: NodeState,
 {
     type C: Class;
-    type D: DataUnit;
-
     fn reset(&mut self);
-    fn prepare_blobs_to_fwd(
-        &mut self,
-        target_class: &N,
-        to_forward: &Vec<GPayload<M, N>>,
-    ) -> Vec<Self::D>;
     fn prepare_transfer(
         &mut self,
         target_class: &Self::C,
         payload: GPayload<M, N>,
     ) -> GPayload<M, N>;
+    fn do_receive(&mut self, node_state: &N, payloads: Vec<GPayload<M, N>>);
+}
+
+/// A trait that represents a channel that can be used to transmit p2p data over Sidelink.
+pub trait SlChannel<M, N>
+where
+    M: Metadata,
+    N: NodeState,
+{
+    fn reset(&mut self);
+    fn prepare_transfer(&mut self, payload: GPayload<M, N>) -> GPayload<M, N>;
+    fn do_receive(&mut self, node_state: &N, payloads: Vec<GPayload<M, N>>);
 }
 
 /// A trait to represent a type that holds statistics of the radio usage for incoming data.
