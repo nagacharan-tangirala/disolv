@@ -1,6 +1,7 @@
 use crate::position::PosWriter;
 use crate::rx::RxDataWriter;
 use crate::rx_counts::RxCountWriter;
+use crate::sl::SlDataWriter;
 use crate::tx::TxDataWriter;
 use log::debug;
 use pavenet_core::message::{DPayload, RxMetrics};
@@ -16,6 +17,7 @@ pub enum OutputType {
     RxData,
     TxData,
     NodePos,
+    SlData,
 }
 
 #[derive(Deserialize, Debug, Clone, Copy)]
@@ -42,6 +44,7 @@ pub struct OutputSettings {
 pub struct ResultWriter {
     tx_writer: Option<TxDataWriter>,
     rx_writer: Option<RxDataWriter>,
+    sl_writer: Option<SlDataWriter>,
     rx_count_writer: Option<RxCountWriter>,
     node_pos_writer: Option<PosWriter>,
 }
@@ -53,25 +56,31 @@ impl ResultWriter {
             .iter()
             .find(|&file_out_config| file_out_config.output_type == OutputType::TxData)
             .map(|_| TxDataWriter::new(output_settings));
-        let rx_count_writer = output_settings
+        let rx_writer = output_settings
             .file_out_config
             .iter()
             .find(|&file_out_config| file_out_config.output_type == OutputType::RxData)
-            .map(|_| RxCountWriter::new(output_settings));
+            .map(|_| RxDataWriter::new(output_settings));
+        let sl_writer = output_settings
+            .file_out_config
+            .iter()
+            .find(|&file_out_config| file_out_config.output_type == OutputType::SlData)
+            .map(|_| SlDataWriter::new(output_settings));
         let node_pos_writer = output_settings
             .file_out_config
             .iter()
             .find(|&file_out_config| file_out_config.output_type == OutputType::NodePos)
             .map(|_| PosWriter::new(output_settings));
-        let rx_writer = output_settings
+        let rx_count_writer = output_settings
             .file_out_config
             .iter()
             .find(|&file_out_config| file_out_config.output_type == OutputType::RxCounts)
-            .map(|_| RxDataWriter::new(output_settings));
+            .map(|_| RxCountWriter::new(output_settings));
         Self {
             tx_writer,
             rx_count_writer,
             rx_writer,
+            sl_writer,
             node_pos_writer,
         }
     }
@@ -79,11 +88,6 @@ impl ResultWriter {
     pub fn add_tx_data(&mut self, time_step: TimeMS, link: &DLink, payload: &DPayload) {
         match &mut self.tx_writer {
             Some(tx) => {
-                debug!(
-                    "Payload from node {} to node {}",
-                    payload.node_state.node_info.id.as_u32(),
-                    link.target.as_u32()
-                );
                 tx.add_data(time_step, link, payload);
             }
             None => (),
@@ -113,6 +117,15 @@ impl ResultWriter {
         }
     }
 
+    pub fn add_sl_data(&mut self, time_step: TimeMS, to_node: NodeId, rx_metrics: &RxMetrics) {
+        match &mut self.sl_writer {
+            Some(sl) => {
+                sl.add_data(time_step, to_node, rx_metrics);
+            }
+            None => (),
+        }
+    }
+
     pub fn add_node_pos(&mut self, time_step: TimeMS, node_id: NodeId, map_state: &MapState) {
         match &mut self.node_pos_writer {
             Some(pos) => pos.add_data(time_step, node_id, map_state),
@@ -135,6 +148,10 @@ impl ResultWriter {
             None => (),
         };
         match &mut self.rx_writer {
+            Some(writer) => writer.write_to_file(),
+            None => (),
+        };
+        match &mut self.sl_writer {
             Some(writer) => writer.write_to_file(),
             None => (),
         };
