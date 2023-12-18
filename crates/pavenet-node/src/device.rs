@@ -52,11 +52,91 @@ impl Device {
         }
     }
 
-    fn compose_payload(&self, target_class: &NodeClass) -> DPayload {
-        let node_content = self.compose_content();
-        self.models
+    fn talk_to_class(&mut self, target_class: &NodeClass, bucket: &mut DeviceBucket) {
+        let link_options = match bucket.link_options_for(
+            self.node_info.id,
+            &self.node_info.node_type,
+            target_class,
+        ) {
+            Some(links) => links,
+            None => return,
+        };
+        let stats = bucket.stats_for(&link_options);
+        let targets = self.models.select_links(link_options, target_class, &stats);
+
+        let payload = self
+            .models
             .composer
-            .compose_payload(target_class, node_content)
+            .compose_payload(target_class, self.content);
+        targets.into_iter().for_each(|target_link| {
+            if let Some(target_node) = bucket.node_of(target_link.target) {
+                let mut this_payload = payload.clone();
+
+                debug!(
+                    "Preparing to forward {} payloads to node {}",
+                    &self.models.radio.rx_payloads.len(),
+                    &target_node.content.node_info.id
+                );
+                let mut blobs =
+                    prepare_blobs_to_fwd(&target_node.content, &self.models.radio.rx_payloads);
+                debug!(
+                    "In rx_payload size: {}, blobs: {}",
+                    &self.models.radio.rx_payloads.len(),
+                    blobs.len()
+                );
+                self.models
+                    .composer
+                    .append_blobs_to(&mut this_payload, &mut blobs);
+                let prepared_payload = self
+                    .models
+                    .radio
+                    .prepare_transfer(target_class, this_payload);
+                self.transmit(prepared_payload, target_link, bucket);
+            } else {
+                debug!("Missing node ID {} ", target_link.target);
+            }
+        });
+    }
+
+    fn talk_to_peers(&mut self, bucket: &mut DeviceBucket) {
+        let sl_links = match bucket.link_options_for(
+            self.node_info.id,
+            &self.node_info.node_type,
+            &self.node_info.node_class,
+        ) {
+            Some(link_opts) => link_opts,
+            None => return,
+        };
+        let stats = bucket.stats_for(&sl_links);
+        let sl_targets = self
+            .models
+            .select_links(sl_links, &self.node_info.node_class, &stats);
+
+        let payload = self
+            .models
+            .composer
+            .compose_payload(&self.node_info.node_class, self.content);
+
+        sl_targets.into_iter().for_each(|target_link| {
+            if let Some(target_node) = bucket.node_of(target_link.target) {
+                let mut this_payload = payload.clone();
+                debug!(
+                    "SL Preparing to forward {} payloads to node {}",
+                    &self.models.sl_radio.sl_payloads.len(),
+                    &target_node.content.node_info.id
+                );
+                let mut blobs =
+                    prepare_blobs_to_fwd(&target_node.content, &self.models.sl_radio.sl_payloads);
+                self.models
+                    .composer
+                    .append_blobs_to(&mut this_payload, &mut blobs);
+
+                let prepared_payload = self.models.sl_radio.prepare_transfer(this_payload);
+                self.transmit_sl(prepared_payload, target_link, bucket);
+            } else {
+                debug!("Missing node ID {} ", target_link.target);
+            }
+        });
     }
 }
 
