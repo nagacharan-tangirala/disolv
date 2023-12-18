@@ -1,5 +1,6 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
+use log::debug;
 use pavenet_core::message::{RxFailReason, RxMetrics, RxStatus};
 use pavenet_engine::bucket::{Resultant, TimeMS};
 use pavenet_engine::node::NodeId;
@@ -13,18 +14,20 @@ pub struct DataRx {
     to: u32,
     rx_order: u32,
     rx_status: RxStatus,
+    payload_size: f32,
     rx_fail_reason: RxFailReason,
     latency: u32,
 }
 
 impl DataRx {
-    fn from_data(time_step: TimeMS, to_node: NodeId, rx_metrics: &RxMetrics) -> Self {
+    pub(crate) fn from_data(time_step: TimeMS, to_node: NodeId, rx_metrics: &RxMetrics) -> Self {
         Self {
             time_step: time_step.as_u32(),
             to: to_node.as_u32(),
             from: rx_metrics.from_node.as_u32(),
             rx_order: rx_metrics.rx_order,
             rx_status: rx_metrics.rx_status,
+            payload_size: rx_metrics.payload_size,
             rx_fail_reason: rx_metrics.rx_fail_reason,
             latency: rx_metrics.latency.as_u32(),
         }
@@ -48,6 +51,7 @@ impl RxDataWriter {
             .find(|&file_out_config| file_out_config.output_type == OutputType::RxData)
             .expect("RxDataWriter::new: No RxDataWriter config found");
         let output_file = output_path.join(&config.output_filename);
+        debug!("RxDataWriter::new: output_file: {:?}", output_file);
         Self {
             data_rx: Vec::new(),
             to_output: DataOutput::new(&output_file),
