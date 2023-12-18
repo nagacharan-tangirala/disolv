@@ -102,9 +102,10 @@ impl DeviceBucket {
     }
 
     fn update_stats(&mut self) {
+        self.transfer_stats.clear();
         self.devices.iter().for_each(|(node_id, device)| {
             self.transfer_stats
-                .insert(*node_id, device.models.rx_radio.in_stats);
+                .insert(*node_id, device.models.radio.in_stats);
         });
     }
 }
@@ -128,7 +129,16 @@ impl Bucket for DeviceBucket {
 
     fn update(&mut self, step: TimeMS) {
         self.step = step;
+        debug!("Update step in bucket at step {}", step);
         self.update_stats();
+        self.save_device_stats(self.step);
+        self.save_data_stats(self.step);
+        if self.step == self.output_step {
+            self.resultant.write_output(self.step);
+            self.output_step += self.output_step;
+        }
+        self.data_lake.clean_payloads();
+        self.data_lake.clean_responses();
     }
 
     fn before_uplink(&mut self) {
@@ -138,21 +148,9 @@ impl Bucket for DeviceBucket {
         self.linker_holder.iter_mut().for_each(|linker| {
             linker.before_node_step(self.step);
         });
-        // Clean up the messages
-        self.data_lake.clean_up_payloads();
     }
 
-    fn after_downlink(&mut self) {
-        self.transfer_stats.clear();
-        self.save_device_stats(self.step);
-        self.save_data_stats(self.step);
-        if self.step == self.output_step {
-            self.resultant.write_output(self.step);
-            self.output_step += self.output_step;
-        }
-        // Clean up the responses
-        self.data_lake.clean_up_responses();
-    }
+    fn before_downlink(&mut self) {}
 
     fn streaming_step(&mut self, step: TimeMS) {
         self.mapper_holder.iter_mut().for_each(|(_, space)| {
@@ -185,7 +183,7 @@ impl ResultSaver for DeviceBucket {
                 continue;
             }
             self.resultant
-                .add_rx_counts(step, *node_id, &device.models.rx_radio.in_stats);
+                .add_rx_counts(step, *node_id, &device.models.radio.in_stats);
         }
     }
 }
