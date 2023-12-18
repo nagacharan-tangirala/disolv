@@ -56,9 +56,22 @@ where
 {
     type NodeClass: Class;
 
-    fn collect(&mut self, bucket: &mut B) -> Vec<GPayload<M, N>>;
-    fn find_targets(&self, target_class: &Self::NodeClass, bucket: &mut B) -> Option<GLink<F>>;
-    fn transmit(&mut self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
+    fn transmit(&self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
+    fn transmit_sl(&self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
+}
+
+/// A trait that an entity must implement to receive messages from other entities in the
+/// simulation. The messages can be from the same class or from up/downstream.
+pub trait Receiver<B, M, N>
+where
+    B: Bucket,
+    M: Metadata,
+    N: NodeState,
+{
+    type C: Class;
+
+    fn receive(&mut self, bucket: &mut B);
+    fn receive_sl(&mut self, bucket: &mut B);
 }
 
 /// A trait to indicate a type that can be used to convey the payload transfer status back
@@ -96,6 +109,6 @@ where
     R: Reply,
     T: RxReport,
 {
-    fn receive(&mut self, bucket: &mut B) -> Option<GResponse<R, T>>;
     fn respond(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
+    fn respond_sl(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
 }
