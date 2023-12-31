@@ -51,15 +51,15 @@ where
     fn update(&mut self, step: u64) {
         self.step = TimeMS::from(step) * self.step_size;
         self.bucket.update(self.step);
+        if self.step == self.streaming_step {
+            self.bucket.streaming_step(self.step);
+            self.streaming_step += self.streaming_interval;
+        }
     }
 
     fn before_step(&mut self, schedule: &mut Schedule) {
         self.bucket.scheduler().add_to_schedule(schedule);
         self.bucket.before_uplink();
-        if self.step == self.streaming_step {
-            self.bucket.streaming_step(self.step);
-            self.streaming_step += self.streaming_interval;
-        }
     }
 
     fn after_step(&mut self, schedule: &mut Schedule) {
