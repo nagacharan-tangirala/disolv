@@ -58,14 +58,14 @@ where
     }
 
     fn before_step(&mut self, schedule: &mut Schedule) {
+        self.bucket.scheduler().remove_from_schedule(schedule);
+        self.bucket.scheduler().clear_lists();
         self.bucket.scheduler().add_to_schedule(schedule);
         self.bucket.before_uplink();
     }
 
     fn after_step(&mut self, schedule: &mut Schedule) {
         self.bucket.before_downlink();
-        self.bucket.scheduler().remove_from_schedule(schedule);
-        self.bucket.scheduler().clear_lists();
     }
 
     fn end_condition(&mut self, schedule: &mut Schedule) -> bool {

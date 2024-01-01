@@ -349,7 +349,9 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
 
         if self.step == self.models.power.peek_time_to_off() {
             self.power_state = PowerState::Off;
-            bucket.add_to_schedule(self.node_info.id);
+            if self.models.power.has_next_time_to_on() {
+                bucket.add_to_schedule(self.node_info.id);
+            }
             bucket.stop_node(self.node_info.id);
             bucket
                 .devices
