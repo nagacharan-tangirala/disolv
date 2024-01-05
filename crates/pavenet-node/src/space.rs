@@ -94,10 +94,10 @@ impl BucketModel for Mapper {
     }
 
     fn before_node_step(&mut self, step: TimeMS) {
-        self.map_cache = match self.map_states.remove(&step) {
-            Some(traces) => traces,
-            None => HashMap::new(),
-        };
+        self.map_cache = self
+            .map_states
+            .remove(&step)
+            .unwrap_or_else(|| HashMap::new());
     }
 }
 

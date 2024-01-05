@@ -2,7 +2,7 @@ use pavenet_core::entity::{NodeClass, NodeOrder, NodeType};
 use pavenet_core::radio::ActionSettings;
 use pavenet_engine::bucket::TimeMS;
 use pavenet_models::compose::ComposerSettings;
-use pavenet_models::latency::LatencyConfig;
+use pavenet_models::radio::{RxSettings, SlSettings};
 use pavenet_models::reply::ReplierSettings;
 use pavenet_models::select::SelectorSettings;
 use pavenet_node::linker::LinkerSettings;
@@ -52,11 +52,13 @@ pub struct NodeClassSettings {
     pub node_share: f32,
     pub node_class: NodeClass,
     pub node_order: NodeOrder,
-    pub latency: LatencyConfig,
+    pub rx: RxSettings,
+    pub sl: SlSettings,
     pub composer: ComposerSettings,
-    pub selector: SelectorSettings,
+    pub selector: Vec<SelectorSettings>,
     pub replier: ReplierSettings,
-    pub actions: Vec<ActionSettings>,
+    pub tx_actions: Vec<ActionSettings>,
+    pub sl_actions: Vec<ActionSettings>,
 }
 
 pub struct BaseConfigReader {

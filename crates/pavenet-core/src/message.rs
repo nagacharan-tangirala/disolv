@@ -79,8 +79,10 @@ pub struct PayloadInfo {
 impl PayloadInfo {
     pub fn consume(&mut self) {
         self.data_blobs.iter_mut().for_each(|blob| {
-            self.total_size -= blob.data_size;
-            self.total_count -= 1;
+            if blob.action.action_type == ActionType::Consume {
+                self.total_size -= blob.data_size;
+                self.total_count -= 1;
+            }
         });
         self.data_blobs
             .retain(|blob| blob.action.action_type != ActionType::Consume);
@@ -103,6 +105,7 @@ impl Reply for DataSource {}
 
 #[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
 pub enum RxStatus {
+    Composed,
     Ok,
     #[default]
     Fail,
@@ -122,15 +125,17 @@ pub struct RxMetrics {
     pub from_node: NodeId,
     pub rx_order: u32,
     pub rx_status: RxStatus,
+    pub payload_size: f32,
     pub rx_fail_reason: RxFailReason,
     pub link_found_at: TimeMS,
     pub latency: Latency,
 }
 
 impl RxMetrics {
-    pub fn new(from_node: NodeId, rx_order: u32) -> Self {
+    pub fn new(payload: &DPayload, rx_order: u32) -> Self {
         Self {
-            from_node,
+            from_node: payload.node_state.node_info.id,
+            payload_size: payload.metadata.total_size,
             rx_order,
             ..Default::default()
         }

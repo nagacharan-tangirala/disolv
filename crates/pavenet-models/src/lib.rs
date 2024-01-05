@@ -1,3 +1,4 @@
+pub mod actions;
 pub mod compose;
 pub mod lake;
 pub mod latency;

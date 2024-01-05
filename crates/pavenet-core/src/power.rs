@@ -24,11 +24,14 @@ impl PowerManager {
         }
     }
 
+    pub fn has_next_time_to_on(&self) -> bool {
+        self.array_idx < self.on_times.len()
+    }
+
     pub fn pop_time_to_on(&mut self) -> TimeMS {
-        match self.on_times.pop_front() {
-            Some(time_stamp) => time_stamp,
-            None => TimeMS::default(),
-        }
+        self.on_times
+            .pop_front()
+            .unwrap_or_else(|| TimeMS::default())
     }
 
     pub fn pop_time_to_off(&mut self) {

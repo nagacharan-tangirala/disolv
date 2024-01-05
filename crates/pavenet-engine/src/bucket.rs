@@ -91,7 +91,7 @@ pub trait Bucket: Clone + Send + Sync + 'static {
     fn init(&mut self, step: TimeMS);
     fn update(&mut self, step: TimeMS);
     fn before_uplink(&mut self);
-    fn after_downlink(&mut self);
+    fn before_downlink(&mut self);
     fn streaming_step(&mut self, step: TimeMS);
     fn end(&mut self, step: TimeMS);
 }
@@ -120,7 +120,6 @@ pub(crate) mod tests {
     use super::ResultSaver;
     use super::TimeMS;
     use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
-    use std::fmt::Display;
 
     #[derive(Default, Clone)]
     pub(crate) struct MyBucket {
@@ -166,8 +165,8 @@ pub(crate) mod tests {
             println!("before_uplink in MyBucket");
         }
 
-        fn after_downlink(&mut self) {
-            println!("after_downlink in MyBucket");
+        fn before_downlink(&mut self) {
+            println!("before_downlink in MyBucket");
         }
 
         fn streaming_step(&mut self, step: TimeMS) {

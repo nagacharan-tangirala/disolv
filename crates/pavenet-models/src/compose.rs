@@ -50,6 +50,14 @@ impl Composer {
             Composer::Status(_) => (),
         }
     }
+
+    pub fn append_blobs_to(&mut self, payload: &mut DPayload, blobs: &mut Vec<DataBlob>) {
+        blobs.iter().for_each(|blob| {
+            payload.metadata.total_size += blob.data_size;
+            payload.metadata.total_count += 1;
+        });
+        payload.metadata.data_blobs.append(blobs);
+    }
 }
 
 #[derive(Clone, Debug, Default)]
