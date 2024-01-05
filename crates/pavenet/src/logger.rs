@@ -9,7 +9,6 @@ use std::path::PathBuf;
 
 pub fn setup_logging(log_level: &str, log_file_path: PathBuf) -> Result<Config, ConfigErrors> {
     let log_level = get_logging_level(log_level);
-
     let log_file = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new(
             "{d(%Y.%m.%d %H:%M:%S)} | {({l}):5.5} | {({f}:{L}):>40.40} — {m}{n}",
@@ -39,7 +38,7 @@ pub fn initiate_logger(config_path: &PathBuf, log_settings: &LogSettings) {
     let log_path = config_path.join(log_settings.log_path);
 
     if log_path.exists() == false {
-        fs::create_dir(&log_path)
+        fs::create_dir_all(&log_path)
             .unwrap_or_else(|_| panic!("Error while creating the log directory"));
     }
 
