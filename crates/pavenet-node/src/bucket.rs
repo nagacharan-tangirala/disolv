@@ -1,7 +1,7 @@
 use crate::device::Device;
 use crate::linker::Linker;
 use crate::space::{Mapper, Space};
-use log::debug;
+use log::info;
 use pavenet_core::entity::{NodeClass, NodeOrder, NodeType};
 use pavenet_core::mobility::MapState;
 use pavenet_core::radio::{DLink, InDataStats};
@@ -129,7 +129,7 @@ impl Bucket for DeviceBucket {
 
     fn update(&mut self, step: TimeMS) {
         self.step = step;
-        debug!("Update step in bucket at step {}", step);
+        info!("Update step in bucket at step {}", step);
         self.update_stats();
         self.save_device_stats(self.step);
         self.save_data_stats(self.step);
