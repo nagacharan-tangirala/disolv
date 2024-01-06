@@ -8,6 +8,6 @@ pavenet-engine = { version="0.0.0", path = "../pavenet-engine" }
 rand_distr = "0.4.3"
 rand_pcg = "0.3.1"
 typed-builder = "0.18.0"
-serde = { version = "1.0.190", features = ["derive"] }
+serde = { version = "1.0.195", features = ["derive"] }
 serde_with = "3.4.0"
 uuid = { version = "1.6.1", features = ["v4"] }
