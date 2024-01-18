@@ -28,7 +28,8 @@ fn main() {
     let mut builder = PavenetBuilder::new(&args.config);
     let sim_engine: DEngine = builder.build();
     let duration = builder.duration().as_u64();
-    simulate!(sim_engine, duration, 1);
+    let step_size = builder.step_size().as_f32();
+    simulate!(sim_engine, duration, step_size, 1);
 }
 
 // Visualization specific imports
