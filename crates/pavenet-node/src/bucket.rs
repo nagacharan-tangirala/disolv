@@ -184,7 +184,13 @@ impl ResultSaver for DeviceBucket {
                 continue;
             }
             self.resultant
-                .add_rx_counts(step, *node_id, &device.models.radio.in_stats);
+                .add_rx_counts(step, *node_id, &device.models.flow.out_stats);
+        }
+    }
+
+    fn save_network_stats(&mut self, step: TimeMS) {
+        for slice in self.network.slices.iter() {
+            self.resultant.add_net_stats(step, slice);
         }
     }
 }
