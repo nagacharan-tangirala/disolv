@@ -2,10 +2,11 @@ use crate::model::{Model, ModelSettings};
 use log::{debug, error};
 use pavenet_core::entity::NodeClass;
 use pavenet_core::message::{DPayload, DataBlob, DataSource, NodeContent, PayloadInfo};
-use pavenet_core::radio::{ActionImpl, DLink};
+use pavenet_core::radio::{Action, DLink};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::uuid;
 use serde::Deserialize;
+use std::collections::VecDeque;
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct ComposerSettings {
@@ -105,7 +106,7 @@ impl BasicComposer {
             let data_blob = DataBlob::builder()
                 .data_type(ds_settings.data_type)
                 .data_size(ds_settings.data_size)
-                .action(ActionImpl::default())
+                .action(Action::default())
                 .build();
             data_blobs.push(data_blob);
             data_count += 1;

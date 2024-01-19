@@ -1,7 +1,7 @@
 use crate::model::{Model, ModelSettings};
 use log::error;
 use pavenet_core::entity::NodeClass;
-use pavenet_core::radio::{DLink, InDataStats};
+use pavenet_core::radio::{DLink, OutgoingStats};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -51,7 +51,11 @@ impl Model for Selector {
 }
 
 impl Selector {
-    pub fn do_selection(&self, links: Vec<DLink>, stats: &Vec<Option<&InDataStats>>) -> Vec<DLink> {
+    pub fn do_selection(
+        &self,
+        links: Vec<DLink>,
+        stats: &Vec<Option<&OutgoingStats>>,
+    ) -> Vec<DLink> {
         if links.len() == 1 {
             return links;
         }
@@ -118,7 +122,7 @@ impl MinimumNeighborSelector {
         }
     }
 
-    fn select_link(&self, links: Vec<DLink>, stats: &Vec<Option<&InDataStats>>) -> Vec<DLink> {
+    fn select_link(&self, links: Vec<DLink>, stats: &Vec<Option<&OutgoingStats>>) -> Vec<DLink> {
         return links;
     }
 }
@@ -137,7 +141,7 @@ impl MinimumDataSelector {
         }
     }
 
-    fn select_link(&self, links: Vec<DLink>, stats: &Vec<Option<&InDataStats>>) -> Vec<DLink> {
+    fn select_link(&self, links: Vec<DLink>, stats: &Vec<Option<&OutgoingStats>>) -> Vec<DLink> {
         return links;
     }
 }
