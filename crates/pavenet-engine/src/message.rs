@@ -39,41 +39,11 @@ where
 /// A trait to indicate a type that can be used to represent the transfer status of a payload.
 pub trait PayloadStatus: Clone + Send + Sync {}
 
-/// A trait that an entity must implement to transmit payloads. Transmission of payloads
-/// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
-/// This should be called in the <code>uplink_stage</code> method of the entity.
-pub trait Transmitter<B, F, M, N>
-where
-    B: Bucket,
-    F: LinkFeatures,
-    M: Metadata,
-    N: NodeState,
-{
-    type NodeClass: Class;
-
-    fn transmit(&self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
-    fn transmit_sl(&self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
-}
-
-/// A trait that an entity must implement to receive messages from other entities in the
-/// simulation. The messages can be from the same class or from up/downstream.
-pub trait Receiver<B, M, N>
-where
-    B: Bucket,
-    M: Metadata,
-    N: NodeState,
-{
-    type C: Class;
-
-    fn receive(&mut self, bucket: &mut B);
-    fn receive_sl(&mut self, bucket: &mut B);
-}
-
 /// A trait to indicate a type that can be used to convey the payload transfer status back
 /// to the device that sent the payload.
 ///
 /// Metadata can contain transfer metrics such as the status, latency, etc.
-pub trait RxReport: Clone + Send + Sync {}
+pub trait TxReport: Clone + Send + Sync {}
 
 /// A trait to indicate a type that can be used to represent the content of a response. The content
 /// can contain queries that can be read by other devices.
@@ -88,22 +58,9 @@ pub trait Reply: Clone + Send + Sync {}
 pub struct GResponse<R, T>
 where
     R: Reply,
-    T: RxReport,
+    T: TxReport,
 {
     pub reply: Option<R>,
     pub downstream: Option<Vec<R>>,
     pub tx_report: T,
-}
-
-/// A trait that an entity must implement to respond to payloads. Transmission of payloads
-/// can be flexibly handled by the entity transfer payloads to devices of any tier.
-/// This should be called in the <code>downlink_stage</code> method of the entity.
-pub trait Responder<B, R, T>
-where
-    B: Bucket,
-    R: Reply,
-    T: RxReport,
-{
-    fn respond(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
-    fn respond_sl(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
 }
