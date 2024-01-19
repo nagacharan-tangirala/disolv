@@ -33,47 +33,89 @@ where
     }
 }
 
-/// A trait that represents a radio that can be used to transfer data. It performs the actual
-/// data transfer and can be used to measure the radio usage.
-pub trait Channel<M, N>
+/// Use this trait to mark a type as an action. This can be used to define custom actions
+/// that can be performed on a payload in the form of enum to indicate actions such as
+/// consume, forward, etc.
+pub trait Actionable: Default + Copy + Clone + Send + Sync {}
+
+/// A trait that contains information that can assist in performing an action on a payload.
+/// Use this on a struct that contains information about the action to be performed.
+/// For example, the action can be to forward the payload to a specific node or class.
+pub trait ActionInfo: Copy + Clone + Send + Sync {
+    type A: Actionable;
+    fn get_action(&self) -> Self::A;
+}
+
+/// A struct that represents an action that can be performed on a payload.
+/// Action can be different for different data types.
+#[derive(Debug, Clone, Default)]
+pub struct Actions<I, Q>
 where
+    I: ActionInfo,
+    Q: Queryable,
+{
+    pub data_type: Vec<Q>,
+    pub action_info: Vec<I>,
+}
+
+impl<I, Q> Actions<I, Q>
+where
+    I: ActionInfo,
+    Q: Queryable,
+{
+    pub fn add_action(&mut self, data_type: Q, action_info: I) {
+        self.data_type.push(data_type);
+        self.action_info.push(action_info);
+    }
+
+    pub fn action_for(&self, data_type: &Q) -> Option<&I> {
+        self.data_type
+            .iter()
+            .zip(self.action_info.iter())
+            .find(|(dt, _)| *dt == data_type)
+            .map(|(_, ai)| ai)
+    }
+}
+
+/// A trait that an entity must implement to transmit payloads. Transmission of payloads
+/// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
+/// This should be called in the <code>uplink_stage</code> method of the entity.
+pub trait Transmitter<B, F, M, N>
+where
+    B: Bucket,
+    F: LinkFeatures,
+    M: Metadata,
+    N: NodeState,
+{
+    type NodeClass: Class;
+
+    fn transmit(&mut self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
+    fn transmit_sl(&mut self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
+}
+
+/// A trait that an entity must implement to receive messages from other entities in the
+/// simulation. The messages can be from the same class or from up/downstream.
+pub trait Receiver<B, M, N>
+where
+    B: Bucket,
     M: Metadata,
     N: NodeState,
 {
     type C: Class;
-    fn reset(&mut self);
-    fn prepare_transfer(
-        &mut self,
-        target_class: &Self::C,
-        payload: GPayload<M, N>,
-    ) -> GPayload<M, N>;
-    fn do_receive(&mut self, node_state: &N, payloads: Vec<GPayload<M, N>>);
+
+    fn receive(&mut self, bucket: &mut B) -> Option<Vec<GPayload<M, N>>>;
+    fn receive_sl(&mut self, bucket: &mut B) -> Option<Vec<GPayload<M, N>>>;
 }
 
-/// A trait that represents a channel that can be used to transmit p2p data over Sidelink.
-pub trait SlChannel<M, N>
+/// A trait that an entity must implement to respond to payloads. Transmission of payloads
+/// can be flexibly handled by the entity transfer payloads to devices of any tier.
+/// This should be called in the <code>downlink_stage</code> method of the entity.
+pub trait Responder<B, R, T>
 where
-    M: Metadata,
-    N: NodeState,
+    B: Bucket,
+    R: Reply,
+    T: TxReport,
 {
-    fn reset(&mut self);
-    fn prepare_transfer(&mut self, payload: GPayload<M, N>) -> GPayload<M, N>;
-    fn do_receive(&mut self, node_state: &N, payloads: Vec<GPayload<M, N>>);
-}
-
-/// A trait to represent a type that holds statistics of the radio usage for incoming data.
-pub trait IncomingStats<M>: Clone + Copy + Debug
-where
-    M: Metadata,
-{
-    fn add_attempted(&mut self, metadata: &M);
-    fn add_feasible(&mut self, metadata: &M);
-}
-
-/// A trait to represent a type that holds statistics of the radio usage for outgoing data.
-pub trait OutgoingStats<M>: Clone + Copy + Debug
-where
-    M: Metadata,
-{
-    fn update(&mut self, metadata: &M);
+    fn respond(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
+    fn respond_sl(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
 }
