@@ -108,16 +108,14 @@ impl InDataStats {
         }
         self.feasible.node_count as f32 / self.attempted.node_count as f32
     }
-}
 
-impl IncomingStats<PayloadInfo> for InDataStats {
-    fn add_attempted(&mut self, metadata: &PayloadInfo) {
+    pub fn add_attempted(&mut self, metadata: &PayloadInfo) {
         self.attempted.node_count += 1;
         self.attempted.data_size += metadata.total_size;
         self.attempted.data_count += metadata.total_count;
     }
 
-    fn add_feasible(&mut self, metadata: &PayloadInfo) {
+    pub fn add_feasible(&mut self, metadata: &PayloadInfo) {
         self.feasible.node_count += 1;
         self.feasible.data_size += metadata.total_size;
         self.feasible.data_count += metadata.total_count;
@@ -125,22 +123,16 @@ impl IncomingStats<PayloadInfo> for InDataStats {
 }
 
 #[derive(Default, Copy, Clone, Debug)]
-pub struct OutDataStats {
+pub struct IncomingStats {
     pub out_counts: Counts,
 }
 
-impl OutDataStats {
-    pub fn new() -> Self {
-        OutDataStats::default()
-    }
-
+impl IncomingStats {
     pub fn reset(&mut self) {
         self.out_counts.reset();
     }
-}
 
-impl OutgoingStats<PayloadInfo> for OutDataStats {
-    fn update(&mut self, metadata: &PayloadInfo) {
+    pub fn update(&mut self, metadata: &PayloadInfo) {
         self.out_counts.node_count += 1;
         self.out_counts.data_size += metadata.total_size;
         self.out_counts.data_count += metadata.total_count;
