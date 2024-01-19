@@ -4,22 +4,27 @@ use krabmaga::rand_pcg::Pcg64Mcg;
 use log::{debug, info};
 use pavenet_core::entity::{NodeClass, NodeInfo, NodeOrder, NodeType};
 use pavenet_core::power::PowerManager;
+use pavenet_core::radio::{Action, ActionSettings, DActions};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::engine::GEngine;
 use pavenet_engine::hashbrown::HashMap;
-use pavenet_engine::metrics::Measurable;
+use pavenet_engine::metrics::{Consumable, Measurable};
 use pavenet_engine::node::{GNode, NodeId};
 use pavenet_input::links::data::LinkReader;
 use pavenet_input::power::data::{read_power_schedule, PowerTimes};
+use pavenet_models::actor::Actor;
+use pavenet_models::bandwidth::BandwidthType;
 use pavenet_models::compose::Composer;
+use pavenet_models::flow::FlowRegister;
 use pavenet_models::latency::LatencyType;
 use pavenet_models::model::Model;
-use pavenet_models::radio::{Radio, RadioModels, SlRadio};
 use pavenet_models::reply::Replier;
 use pavenet_models::select::Selector;
+use pavenet_models::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use pavenet_node::bucket::{DNodeScheduler, DeviceBucket};
 use pavenet_node::device::{Device, DeviceModel};
 use pavenet_node::linker::{Linker, LinkerSettings};
+use pavenet_node::network::Network;
 use pavenet_node::space::{Mapper, Space};
 use pavenet_output::result::ResultWriter;
 use std::path::{Path, PathBuf};
@@ -151,12 +156,6 @@ impl PavenetBuilder {
     ) -> Device {
         let node_info = Self::build_node_info(node_id, node_type, class_settings);
 
-        let mut radio = self.build_radio(class_settings);
-        radio.update_settings(&class_settings.tx_actions);
-        let mut sl_radio = self.build_sl_radio(class_settings);
-        sl_radio.update_settings(&class_settings.sl_actions);
-
-        let target_classes = self.read_target_classes(class_settings);
         let power_manager = PowerManager::builder()
             .on_times(power_times.0.into())
             .off_times(power_times.1.into())
@@ -171,17 +170,17 @@ impl PavenetBuilder {
 
         let device_model = DeviceModel::builder()
             .power(power_manager)
-            .radio(radio)
-            .sl_radio(sl_radio)
+            .flow(FlowRegister::default())
+            .sl_flow(FlowRegister::default())
             .composer(Composer::with_settings(&class_settings.composer))
             .selector(selector_vec)
+            .actor(Actor::new(&class_settings.actions.clone()))
             .replier(Replier::with_settings(&class_settings.replier))
             .build();
 
         let device = Device::builder()
             .node_info(node_info)
             .models(device_model)
-            .target_classes(target_classes)
             .build();
 
         return device;
@@ -198,44 +197,6 @@ impl PavenetBuilder {
             .node_class(class_settings.node_class)
             .node_order(class_settings.node_order)
             .build()
-    }
-
-    fn build_radio(&self, class_settings: &NodeClassSettings) -> Radio {
-        let radio_models = RadioModels::builder()
-            .latency_type(LatencyType::with_settings(
-                class_settings.rx.latency.clone(),
-            ))
-            .build();
-
-        Radio::builder()
-            .models(radio_models)
-            .step_size(TimeMS::from(self.sim_step()))
-            .rng(Pcg64Mcg::new(self.sim_seed()))
-            .build()
-    }
-
-    fn build_sl_radio(&self, class_settings: &NodeClassSettings) -> SlRadio {
-        let radio_models = RadioModels::builder()
-            .latency_type(LatencyType::with_settings(
-                class_settings.sl.latency.clone(),
-            ))
-            .build();
-
-        SlRadio::builder()
-            .models(radio_models)
-            .step_size(TimeMS::from(self.sim_step()))
-            .rng(Pcg64Mcg::new(self.sim_seed()))
-            .build()
-    }
-
-    fn read_target_classes(&self, class_settings: &NodeClassSettings) -> Vec<NodeClass> {
-        class_settings
-            .composer
-            .source_settings
-            .iter()
-            .filter(|x| x.node_class != class_settings.node_class)
-            .map(|x| x.node_class)
-            .collect()
     }
 
     fn build_nodes(&self, devices: HashMap<NodeId, Device>) -> HashMap<NodeId, DNode> {
@@ -256,6 +217,7 @@ impl PavenetBuilder {
             .class_to_type(self.read_class_to_type_map())
             .output_step(self.output_step())
             .resultant(ResultWriter::new(&self.base_config.output_settings))
+            .network(self.build_network())
             .build()
     }
 
@@ -325,6 +287,35 @@ impl PavenetBuilder {
         class_to_type
     }
 
+    fn build_network(&self) -> Network {
+        let mut slices: Vec<Slice> = Vec::new();
+        for slice_setting in self.base_config.network_settings.slice.iter() {
+            let slice = Slice::builder()
+                .id(slice_setting.id)
+                .name(slice_setting.name.clone())
+                .step_size(self.step_size())
+                .resources(self.build_network_resources(slice_setting))
+                .metrics(self.build_network_metrics(slice_setting))
+                .build();
+            slices.push(slice);
+        }
+        Network::builder().slices(slices).build()
+    }
+
+    fn build_network_resources(&self, slice_settings: &SliceSettings) -> RadioResources {
+        RadioResources::builder()
+            .bandwidth_type(BandwidthType::with_settings(
+                slice_settings.bandwidth.clone(),
+            ))
+            .build()
+    }
+
+    fn build_network_metrics(&self, slice_settings: &SliceSettings) -> RadioMetrics {
+        RadioMetrics::builder()
+            .latency_type(LatencyType::with_settings(slice_settings.latency.clone()))
+            .build()
+    }
+
     fn streaming_step(&self) -> TimeMS {
         return self.base_config.simulation_settings.sim_streaming_step;
     }
@@ -333,7 +324,7 @@ impl PavenetBuilder {
         return self.base_config.simulation_settings.sim_duration;
     }
 
-    fn step_size(&self) -> TimeMS {
+    pub(crate) fn step_size(&self) -> TimeMS {
         return self.base_config.simulation_settings.sim_step_size;
     }
 

@@ -1,10 +1,10 @@
 use crate::entity::{NodeClass, NodeInfo};
-use crate::metrics::Latency;
+use crate::metrics::{Bandwidth, Bytes, Latency};
 use crate::mobility::MapState;
-use crate::radio::{ActionImpl, ActionType, DLink};
+use crate::radio::{Action, ActionType, DLink};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::message::{DataUnit, GPayload, Metadata, NodeState, PayloadStatus};
-use pavenet_engine::message::{GResponse, Queryable, Reply, RxReport};
+use pavenet_engine::message::{GResponse, Queryable, Reply, TxReport};
 use pavenet_engine::node::NodeId;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -48,29 +48,16 @@ impl NodeState for NodeContent {}
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct DataBlob {
     pub data_type: DataType,
-    pub data_size: f32,
-    pub action: ActionImpl,
+    pub data_size: Bytes,
+    pub action: Action,
 }
 
-impl DataUnit for DataBlob {
-    type Action = ActionImpl;
-    fn size(&self) -> f32 {
-        self.data_size
-    }
-
-    fn action(&self) -> Self::Action {
-        self.action
-    }
-
-    fn set_action(&mut self, action: Self::Action) {
-        self.action = action;
-    }
-}
+impl DataUnit for DataBlob {}
 
 #[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct PayloadInfo {
     pub id: Uuid,
-    pub total_size: f32,
+    pub total_size: Bytes,
     pub total_count: u32,
     pub data_blobs: Vec<DataBlob>,
     pub selected_link: DLink,
@@ -97,51 +84,53 @@ pub type DPayload = GPayload<PayloadInfo, NodeContent>;
 pub struct DataSource {
     pub data_type: DataType,
     pub node_class: NodeClass,
-    pub data_size: f32,
+    pub data_size: Bytes,
     pub source_step: TimeMS,
 }
 
 impl Reply for DataSource {}
 
 #[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
-pub enum RxStatus {
+pub enum TxStatus {
     Composed,
     Ok,
     #[default]
     Fail,
 }
 
-impl PayloadStatus for RxStatus {}
+impl PayloadStatus for TxStatus {}
 
 #[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
-pub enum RxFailReason {
+pub enum TxFailReason {
     #[default]
     None,
     LatencyLimit,
+    NoBandwidth,
 }
 
 #[derive(Debug, Clone, Default, Copy)]
-pub struct RxMetrics {
+pub struct TxMetrics {
     pub from_node: NodeId,
-    pub rx_order: u32,
-    pub rx_status: RxStatus,
-    pub payload_size: f32,
-    pub rx_fail_reason: RxFailReason,
+    pub tx_order: u32,
+    pub tx_status: TxStatus,
+    pub payload_size: Bytes,
+    pub tx_fail_reason: TxFailReason,
     pub link_found_at: TimeMS,
     pub latency: Latency,
+    pub bandwidth: Bandwidth,
 }
 
-impl RxMetrics {
-    pub fn new(payload: &DPayload, rx_order: u32) -> Self {
+impl TxMetrics {
+    pub fn new(payload: &DPayload, tx_order: u32) -> Self {
         Self {
             from_node: payload.node_state.node_info.id,
             payload_size: payload.metadata.total_size,
-            rx_order,
+            tx_order,
             ..Default::default()
         }
     }
 }
 
-impl RxReport for RxMetrics {}
+impl TxReport for TxMetrics {}
 
-pub type DResponse = GResponse<DataSource, RxMetrics>;
+pub type DResponse = GResponse<DataSource, TxMetrics>;

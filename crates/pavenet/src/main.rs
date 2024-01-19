@@ -25,10 +25,18 @@ Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
     let args = CliArgs::parse();
+    let start = std::time::Instant::now();
     let mut builder = PavenetBuilder::new(&args.config);
     let sim_engine: DEngine = builder.build();
     let duration = builder.duration().as_u64();
-    simulate!(sim_engine, duration, 1);
+    let step_size = builder.step_size().as_f32();
+    simulate!(sim_engine, duration, step_size, 1);
+    let elapsed = start.elapsed();
+    println!(
+        "Simulation finished in {}.{:03} seconds.",
+        elapsed.as_secs(),
+        elapsed.subsec_millis()
+    );
 }
 
 // Visualization specific imports

@@ -1,6 +1,7 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
-use pavenet_core::message::DPayload;
+use pavenet_core::message::{DPayload, TxFailReason, TxMetrics, TxStatus};
+use pavenet_core::metrics::Bytes;
 use pavenet_core::radio::DLink;
 use pavenet_engine::bucket::{Resultant, TimeMS};
 use serde::Serialize;
@@ -12,23 +13,36 @@ struct DataTx {
     pub(crate) node_id: u32,
     pub(crate) selected_node: u32,
     pub(crate) distance: f32,
-    pub(crate) data_size: f32,
     pub(crate) data_count: u32,
     pub(crate) link_found: u32,
+    pub(crate) tx_order: u32,
+    pub(crate) tx_status: TxStatus,
+    pub(crate) payload_size: Bytes,
+    pub(crate) tx_fail_reason: TxFailReason,
+    pub(crate) latency: u64,
 }
 
 impl Resultant for DataTx {}
 
 impl DataTx {
-    fn from_data(time_step: TimeMS, link: &DLink, payload: &DPayload) -> Self {
+    fn from_data(
+        time_step: TimeMS,
+        link: &DLink,
+        tx_metrics: TxMetrics,
+        payload: &DPayload,
+    ) -> Self {
         Self {
             time_step: time_step.as_u32(),
             node_id: payload.node_state.node_info.id.as_u32(),
             selected_node: link.target.as_u32(),
             distance: link.properties.distance.unwrap_or(-1.0),
-            data_size: payload.metadata.total_size,
             data_count: payload.metadata.total_count,
             link_found: time_step.as_u32(),
+            tx_order: tx_metrics.tx_order,
+            tx_status: tx_metrics.tx_status,
+            payload_size: tx_metrics.payload_size,
+            tx_fail_reason: tx_metrics.tx_fail_reason,
+            latency: tx_metrics.latency.as_u64(),
         }
     }
 }
@@ -54,8 +68,14 @@ impl TxDataWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, link: &DLink, payload: &DPayload) {
-        let data_tx = DataTx::from_data(time_step, link, payload);
+    pub fn add_data(
+        &mut self,
+        time_step: TimeMS,
+        link: &DLink,
+        payload: &DPayload,
+        tx_metrics: TxMetrics,
+    ) {
+        let data_tx = DataTx::from_data(time_step, link, tx_metrics, payload);
         self.data_tx.push(data_tx);
     }
 

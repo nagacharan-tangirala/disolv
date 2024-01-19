@@ -1,7 +1,8 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
 use log::debug;
-use pavenet_core::radio::InDataStats;
+use pavenet_core::metrics::Bytes;
+use pavenet_core::radio::OutgoingStats;
 use pavenet_engine::bucket::{Resultant, TimeMS};
 use pavenet_engine::node::NodeId;
 use serde::Serialize;
@@ -12,16 +13,16 @@ pub struct DataRxCounts {
     time_step: u32,
     node_id: u32,
     attempted_in_node_count: u32,
-    attempted_in_data_size: f32,
+    attempted_in_data_size: Bytes,
     attempted_in_data_count: u32,
     feasible_in_node_count: u32,
-    feasible_in_data_size: f32,
+    feasible_in_data_size: Bytes,
     feasible_in_data_count: u32,
     success_rate: f32,
 }
 
 impl DataRxCounts {
-    pub fn from_data(time_step: TimeMS, node_id: NodeId, in_data_stats: &InDataStats) -> Self {
+    pub fn from_data(time_step: TimeMS, node_id: NodeId, in_data_stats: &OutgoingStats) -> Self {
         Self {
             time_step: time_step.as_u32(),
             node_id: node_id.as_u32(),
@@ -59,7 +60,7 @@ impl RxCountWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, node_id: NodeId, in_data_stats: &InDataStats) {
+    pub fn add_data(&mut self, time_step: TimeMS, node_id: NodeId, in_data_stats: &OutgoingStats) {
         self.data_rx
             .push(DataRxCounts::from_data(time_step, node_id, in_data_stats));
     }

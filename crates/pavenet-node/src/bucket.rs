@@ -1,10 +1,11 @@
 use crate::device::Device;
 use crate::linker::Linker;
+use crate::network::Network;
 use crate::space::{Mapper, Space};
 use log::info;
 use pavenet_core::entity::{NodeClass, NodeOrder, NodeType};
 use pavenet_core::mobility::MapState;
-use pavenet_core::radio::{DLink, InDataStats};
+use pavenet_core::radio::{DLink, OutgoingStats};
 use pavenet_engine::bucket::Bucket;
 use pavenet_engine::bucket::ResultSaver;
 use pavenet_engine::bucket::TimeMS;
@@ -28,6 +29,7 @@ pub struct DeviceBucket {
     pub class_to_type: HashMap<NodeClass, NodeType>,
     pub output_step: TimeMS,
     pub resultant: ResultWriter,
+    pub network: Network,
     #[builder(default)]
     pub step: TimeMS,
     #[builder(default)]
@@ -35,7 +37,7 @@ pub struct DeviceBucket {
     #[builder(default)]
     pub(crate) devices: HashMap<NodeId, Device>,
     #[builder(default)]
-    transfer_stats: HashMap<NodeId, InDataStats>,
+    transfer_stats: HashMap<NodeId, OutgoingStats>,
 }
 
 impl DeviceBucket {
@@ -63,7 +65,7 @@ impl DeviceBucket {
         self.devices.get_mut(&node_id)
     }
 
-    pub(crate) fn stats_for(&mut self, link_opts: &Vec<DLink>) -> Vec<Option<&InDataStats>> {
+    pub(crate) fn stats_for(&mut self, link_opts: &Vec<DLink>) -> Vec<Option<&OutgoingStats>> {
         let mut link_stats = Vec::with_capacity(link_opts.len());
         for link_opt in link_opts.iter() {
             link_stats.push(self.transfer_stats.get(&link_opt.target));
@@ -105,7 +107,7 @@ impl DeviceBucket {
         self.transfer_stats.clear();
         self.devices.iter().for_each(|(node_id, device)| {
             self.transfer_stats
-                .insert(*node_id, device.models.radio.in_stats);
+                .insert(*node_id, device.models.flow.out_stats);
         });
     }
 }
@@ -133,10 +135,14 @@ impl Bucket for DeviceBucket {
         self.update_stats();
         self.save_device_stats(self.step);
         self.save_data_stats(self.step);
+        self.save_network_stats(self.step);
+        self.network.reset_slices();
+
         if self.step == self.output_step {
             self.resultant.write_output(self.step);
             self.output_step += self.output_step;
         }
+
         self.data_lake.clean_payloads();
         self.data_lake.clean_responses();
     }
@@ -183,7 +189,13 @@ impl ResultSaver for DeviceBucket {
                 continue;
             }
             self.resultant
-                .add_rx_counts(step, *node_id, &device.models.radio.in_stats);
+                .add_rx_counts(step, *node_id, &device.models.flow.out_stats);
+        }
+    }
+
+    fn save_network_stats(&mut self, step: TimeMS) {
+        for slice in self.network.slices.iter() {
+            self.resultant.add_net_stats(step, slice);
         }
     }
 }

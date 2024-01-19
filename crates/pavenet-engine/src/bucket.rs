@@ -101,6 +101,7 @@ pub trait Bucket: Clone + Send + Sync + 'static {
 pub trait ResultSaver: Bucket {
     fn save_device_stats(&mut self, step: TimeMS);
     fn save_data_stats(&mut self, step: TimeMS);
+    fn save_network_stats(&mut self, step: TimeMS);
 }
 
 /// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark
@@ -142,6 +143,10 @@ pub(crate) mod tests {
             todo!()
         }
         fn save_data_stats(&mut self, time: TimeMS) {
+            todo!()
+        }
+
+        fn save_network_stats(&mut self, step: TimeMS) {
             todo!()
         }
     }
