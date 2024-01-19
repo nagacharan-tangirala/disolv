@@ -1,7 +1,61 @@
 use log::{debug, error};
 use pavenet_core::entity::NodeInfo;
 use pavenet_core::message::{DPayload, DataBlob, NodeContent};
-use pavenet_core::radio::{ActionImpl, ActionType};
+use pavenet_core::radio::{Action, ActionType, DActions};
+
+/// Prepares a list of data blobs that the payload should consider forwarding.
+///
+/// # Arguments
+/// * `target_info` - The target node details
+/// * `to_forward` - Payloads that requested to be forwarded
+///
+/// # Returns
+/// * `Vec<DataBlob>` - List of data blobs that need to be forwarded
+pub fn filter_blobs_to_fwd(target_info: &NodeContent, to_forward: &Vec<DPayload>) -> Vec<DataBlob> {
+    let mut blobs_to_forward: Vec<DataBlob> = Vec::new();
+    for payload in to_forward.iter() {
+        debug!(
+            "Checking to forward blob count {} from node {} to node {}",
+            payload.metadata.data_blobs.len(),
+            payload.node_state.node_info.id,
+            target_info.node_info.id
+        );
+        for blob in payload.metadata.data_blobs.iter() {
+            if should_i_forward(blob, &target_info.node_info) {
+                blobs_to_forward.push(blob.to_owned());
+            } else {
+                debug!(
+                    "Decided not to forward blob {} from node {} to node {}",
+                    blob.data_type, payload.node_state.node_info.id, target_info.node_info.id
+                );
+            }
+        }
+    }
+    blobs_to_forward
+}
+
+/// Assigns the actions to the data blobs in the payload. This is done by the sender
+/// as a last step before sending the payload.
+///
+/// # Arguments
+/// * `payload` - The payload to set actions for
+/// * `actions` - The actions to set
+///
+/// # Returns
+/// * `DPayload` - The payload with the new actions set
+pub fn set_actions_before_tx(mut payload: DPayload, actions: &DActions) -> DPayload {
+    payload.metadata.data_blobs.iter_mut().for_each(|blob| {
+        let new_action = match actions.action_for(&blob.data_type) {
+            Some(action) => action,
+            None => {
+                error!("No action found for data type {}", blob.data_type);
+                panic!("Action missing for data type {}", blob.data_type);
+            }
+        };
+        assign_actions(blob, new_action);
+    });
+    payload
+}
 
 /// Performs the actions instructed by the sender.
 /// At this point, we have received the data blobs with actions instructed by the sender.
@@ -112,38 +166,4 @@ pub(crate) fn should_i_forward(blob: &DataBlob, target_info: &NodeInfo) -> bool 
         }
     }
     false
-}
-
-/// Prepares a list of data blobs that the payload should consider forwarding.
-///
-/// # Arguments
-/// * `target_info` - The target node details
-/// * `to_forward` - Payloads that requested to be forwarded
-///
-/// # Returns
-/// * `Vec<DataBlob>` - List of data blobs that need to be forwarded
-pub fn prepare_blobs_to_fwd(
-    target_info: &NodeContent,
-    to_forward: &Vec<DPayload>,
-) -> Vec<DataBlob> {
-    let mut blobs_to_forward: Vec<DataBlob> = Vec::new();
-    for payload in to_forward.iter() {
-        debug!(
-            "Checking to forward blob count {} from node {} to node {}",
-            payload.metadata.data_blobs.len(),
-            payload.node_state.node_info.id,
-            target_info.node_info.id
-        );
-        for blob in payload.metadata.data_blobs.iter() {
-            if should_i_forward(blob, &target_info.node_info) {
-                blobs_to_forward.push(blob.to_owned());
-            } else {
-                debug!(
-                    "Decided not to forward blob {} from node {} to node {}",
-                    blob.data_type, payload.node_state.node_info.id, target_info.node_info.id
-                );
-            }
-        }
-    }
-    blobs_to_forward
 }
