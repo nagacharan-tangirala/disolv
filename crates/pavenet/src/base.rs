@@ -16,6 +16,7 @@ use std::path::PathBuf;
 pub struct BaseConfig {
     pub simulation_settings: SimSettings,
     pub field_settings: FieldSettings,
+    pub network_settings: NetworkSettings,
     pub log_settings: LogSettings,
     pub output_settings: OutputSettings,
     pub nodes: Vec<NodeSettings>,
@@ -48,17 +49,20 @@ pub struct NodeSettings {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct NetworkSettings {
+    pub slice: Vec<SliceSettings>,
+}
+
+#[serde_with::skip_serializing_none]
+#[derive(Deserialize, Debug, Clone)]
 pub struct NodeClassSettings {
     pub node_share: f32,
     pub node_class: NodeClass,
     pub node_order: NodeOrder,
-    pub rx: RxSettings,
-    pub sl: SlSettings,
     pub composer: ComposerSettings,
     pub selector: Vec<SelectorSettings>,
     pub replier: ReplierSettings,
-    pub tx_actions: Vec<ActionSettings>,
-    pub sl_actions: Vec<ActionSettings>,
+    pub actions: Option<Vec<ActionSettings>>,
 }
 
 pub struct BaseConfigReader {
