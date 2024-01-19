@@ -28,6 +28,7 @@ pub struct DeviceBucket {
     pub class_to_type: HashMap<NodeClass, NodeType>,
     pub output_step: TimeMS,
     pub resultant: ResultWriter,
+    pub network: Network,
     #[builder(default)]
     pub step: TimeMS,
     #[builder(default)]
