@@ -142,3 +142,29 @@ impl StatusComposer {
             .build()
     }
 }
+
+// #[derive(Clone, Debug)]
+// pub struct CachedComposer {
+//     pub data_sources: Vec<DataSource>,
+//     pub data_cache: VecDeque<DataBlob>,
+//     pub last_contacted: TimeMS,
+// }
+//
+// impl CachedComposer {
+//     pub fn new(composer_settings: &ComposerSettings) -> Self {
+//         Self {
+//             data_sources: composer_settings.source_settings.to_owned(),
+//             data_cache: VecDeque::new(),
+//             last_contacted: TimeMS::default(),
+//         }
+//     }
+//
+//     fn compose_payload(&self, target_class: &NodeClass, content: NodeContent) -> DPayload {
+//         let payload_info = self.compose_metadata(target_class);
+//         DPayload::builder()
+//             .metadata(payload_info)
+//             .node_state(content)
+//             .gathered_states(Some(Vec::new()))
+//             .build()
+//     }
+// }
