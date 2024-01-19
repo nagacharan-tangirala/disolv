@@ -205,44 +205,6 @@ impl PavenetBuilder {
             .build()
     }
 
-    fn build_radio(&self, class_settings: &NodeClassSettings) -> Radio {
-        let radio_models = RadioModels::builder()
-            .latency_type(LatencyType::with_settings(
-                class_settings.rx.latency.clone(),
-            ))
-            .build();
-
-        Radio::builder()
-            .models(radio_models)
-            .step_size(TimeMS::from(self.sim_step()))
-            .rng(Pcg64Mcg::new(self.sim_seed()))
-            .build()
-    }
-
-    fn build_sl_radio(&self, class_settings: &NodeClassSettings) -> SlRadio {
-        let radio_models = RadioModels::builder()
-            .latency_type(LatencyType::with_settings(
-                class_settings.sl.latency.clone(),
-            ))
-            .build();
-
-        SlRadio::builder()
-            .models(radio_models)
-            .step_size(TimeMS::from(self.sim_step()))
-            .rng(Pcg64Mcg::new(self.sim_seed()))
-            .build()
-    }
-
-    fn read_target_classes(&self, class_settings: &NodeClassSettings) -> Vec<NodeClass> {
-        class_settings
-            .composer
-            .source_settings
-            .iter()
-            .filter(|x| x.node_class != class_settings.node_class)
-            .map(|x| x.node_class)
-            .collect()
-    }
-
     fn build_nodes(&self, devices: HashMap<NodeId, Device>) -> HashMap<NodeId, DNode> {
         let mut node_map = HashMap::with_capacity(devices.len());
         for (node_id, device) in devices.iter() {
@@ -328,6 +290,35 @@ impl PavenetBuilder {
             }
         }
         class_to_type
+    }
+
+    fn build_network(&self) -> Network {
+        let mut slices: Vec<Slice> = Vec::new();
+        for slice_setting in self.base_config.network_settings.slice.iter() {
+            let slice = Slice::builder()
+                .id(slice_setting.id)
+                .name(slice_setting.name.clone())
+                .step_size(self.step_size())
+                .resources(self.build_network_resources(slice_setting))
+                .metrics(self.build_network_metrics(slice_setting))
+                .build();
+            slices.push(slice);
+        }
+        Network::builder().slices(slices).build()
+    }
+
+    fn build_network_resources(&self, slice_settings: &SliceSettings) -> RadioResources {
+        RadioResources::builder()
+            .bandwidth_type(BandwidthType::with_settings(
+                slice_settings.bandwidth.clone(),
+            ))
+            .build()
+    }
+
+    fn build_network_metrics(&self, slice_settings: &SliceSettings) -> RadioMetrics {
+        RadioMetrics::builder()
+            .latency_type(LatencyType::with_settings(slice_settings.latency.clone()))
+            .build()
     }
 
     fn streaming_step(&self) -> TimeMS {
