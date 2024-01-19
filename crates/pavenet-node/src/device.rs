@@ -309,14 +309,21 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
             "Uplink stage for node: {} id at step: {}",
             self.node_info.id, self.step
         );
-        self.models.radio.reset();
-        self.models.sl_radio.reset();
+        self.models.flow.reset();
 
-        self.receive(bucket);
-        for target_class in self.target_classes.clone().iter() {
-            self.talk_to_class(target_class, bucket);
+        // Receive data from the downstream nodes.
+        let mut rx_payloads = self.receive(bucket).unwrap_or_else(Vec::new);
+        self.models.flow.register_incoming(&rx_payloads);
+
+        // Apply actions to the received data.
+        rx_payloads.iter_mut().for_each(|payload| {
+            do_actions(payload, &self.content);
+        });
+
+        for target_class in self.models.actor.target_classes.clone().iter() {
+            self.talk_to_class(target_class, &rx_payloads, bucket);
         }
-        self.talk_to_peers(bucket);
+        self.talk_to_class(&self.node_info.node_class.clone(), &rx_payloads, bucket);
 
         bucket
             .devices
