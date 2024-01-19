@@ -24,10 +24,11 @@ pub type TNode = GNode<DeviceBucket, Device, NodeOrder>;
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct DeviceModel {
     pub power: PowerManager,
-    pub radio: Radio,
-    pub sl_radio: SlRadio,
+    pub flow: FlowRegister,
+    pub sl_flow: FlowRegister,
     pub composer: Composer,
     pub replier: Replier,
+    pub actor: Actor,
     pub selector: Vec<(NodeClass, Selector)>,
 }
 
