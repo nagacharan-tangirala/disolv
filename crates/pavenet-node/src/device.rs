@@ -164,94 +164,63 @@ impl Schedulable for Device {
 impl Transmitter<DeviceBucket, LinkProperties, PayloadInfo, NodeContent> for Device {
     type NodeClass = NodeClass;
 
-    fn transmit(&self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
-        bucket
-            .resultant
-            .add_tx_data(self.step, &target_link, &payload);
+    fn transmit(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
         debug!(
             "Transmitting payload from node {} to node {} with blobs {}",
             payload.node_state.node_info.id.as_u32(),
             target_link.target.as_u32(),
             payload.metadata.data_blobs.len()
         );
-        bucket.data_lake.add_payload_to(target_link.target, payload);
-    }
 
-    fn transmit_sl(&self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
+        self.models.flow.register_outgoing_attempt(&payload);
+        let tx_metrics = bucket.network.transfer(&payload);
         bucket
             .resultant
-            .add_tx_data(self.step, &target_link, &payload);
+            .add_tx_data(self.step, &target_link, &payload, tx_metrics);
+
+        if tx_metrics.tx_status == TxStatus::Ok {
+            self.models.flow.register_outgoing_feasible(&payload);
+            bucket.data_lake.add_payload_to(target_link.target, payload);
+        }
+    }
+
+    fn transmit_sl(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
         debug!(
             "Transmitting payload from node {} to node {}",
             payload.node_state.node_info.id.as_u32(),
             target_link.target.as_u32()
         );
+
+        self.models.sl_flow.register_outgoing_attempt(&payload);
+        let sl_metrics = bucket.network.transfer(&payload);
         bucket
-            .data_lake
-            .add_sl_payload_to(target_link.target, payload);
+            .resultant
+            .add_tx_data(self.step, &target_link, &payload, sl_metrics);
+
+        if sl_metrics.tx_status == TxStatus::Ok {
+            self.models.sl_flow.register_outgoing_feasible(&payload);
+            bucket
+                .data_lake
+                .add_sl_payload_to(target_link.target, payload);
+        }
     }
 }
 
 impl Receiver<DeviceBucket, PayloadInfo, NodeContent> for Device {
     type C = NodeClass;
 
-    fn receive(&mut self, bucket: &mut DeviceBucket) {
-        let payloads = match bucket.data_lake.payloads_for(self.node_info.id) {
-            Some(payloads) => payloads,
-            None => return,
-        };
-        debug!(
-            "Receiving payload at node {} at step {} payloads: {}",
-            self.node_info.id,
-            self.step,
-            payloads.len()
-        );
-        self.models.radio.do_receive(&self.content, payloads);
-
-        self.models.radio.rx_metrics.iter().for_each(|rx_metrics| {
-            bucket
-                .resultant
-                .add_rx_data(self.step, self.node_info.id, rx_metrics)
-        });
+    fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<DPayload>> {
+        bucket.data_lake.payloads_for(self.node_info.id)
     }
 
-    fn receive_sl(&mut self, bucket: &mut DeviceBucket) {
-        let sl_payloads = match bucket.data_lake.sl_payloads_for(self.node_info.id) {
-            Some(payloads) => payloads,
-            None => return,
-        };
-
-        debug!(
-            "Receiving SL payload at node {} at step {} payloads: {}",
-            self.node_info.id,
-            self.step,
-            sl_payloads.len()
-        );
-        self.models.sl_radio.do_receive(&self.content, sl_payloads);
-
-        self.models
-            .sl_radio
-            .sl_metrics
-            .iter()
-            .for_each(|sl_metrics| {
-                bucket
-                    .resultant
-                    .add_sl_data(self.step, self.node_info.id, sl_metrics)
-            });
+    fn receive_sl(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<DPayload>> {
+        bucket.data_lake.sl_payloads_for(self.node_info.id)
     }
 }
 
-impl Responder<DeviceBucket, DataSource, RxMetrics> for Device {
+impl Responder<DeviceBucket, DataSource, TxMetrics> for Device {
     fn respond(&mut self, response: Option<DResponse>, bucket: &mut DeviceBucket) {
-        for transfer_stats in self.models.radio.transfer_stats().into_iter() {
-            let this_response = self
-                .models
-                .replier
-                .compose_response(response.clone(), transfer_stats);
-            bucket
-                .data_lake
-                .add_response_to(transfer_stats.from_node, this_response);
-        }
+        // send to talk_to_peers
     }
 
     fn respond_sl(&mut self, response: Option<DResponse>, bucket: &mut DeviceBucket) {
