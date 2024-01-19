@@ -329,7 +329,7 @@ impl PavenetBuilder {
         return self.base_config.simulation_settings.sim_duration;
     }
 
-    fn step_size(&self) -> TimeMS {
+    pub(crate) fn step_size(&self) -> TimeMS {
         return self.base_config.simulation_settings.sim_step_size;
     }
 
