@@ -3588,6 +3588,7 @@ dependencies = [
  "log",
  "pavenet-core",
  "pavenet-engine",
+ "pavenet-models",
  "polars",
  "polars-io",
  "serde",
