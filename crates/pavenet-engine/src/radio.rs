@@ -40,10 +40,7 @@ pub trait Actionable: Default + Copy + Clone + Send + Sync {}
 /// A trait that contains information that can assist in performing an action on a payload.
 /// Use this on a struct that contains information about the action to be performed.
 /// For example, the action can be to forward the payload to a specific node or class.
-pub trait ActionInfo: Copy + Clone + Send + Sync {
-    type A: Actionable;
-    fn get_action(&self) -> Self::A;
-}
+pub trait ActionInfo: Copy + Clone + Send + Sync {}
 
 /// A struct that represents an action that can be performed on a payload.
 /// Action can be different for different data types.

@@ -24,15 +24,19 @@ pub enum ActionType {
     Forward,
 }
 
+impl Actionable for ActionType {}
+
 #[derive(Clone, Default, Debug, Copy, TypedBuilder)]
-pub struct ActionImpl {
+pub struct Action {
     pub action_type: ActionType,
     pub to_class: Option<NodeClass>,
     pub to_node: Option<NodeId>,
     pub to_kind: Option<NodeType>,
 }
 
-impl Action for ActionImpl {}
+impl ActionInfo for Action {}
+
+pub type DActions = Actions<Action, DataType>;
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde_with::skip_serializing_none]
