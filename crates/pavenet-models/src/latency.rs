@@ -1,8 +1,9 @@
 use log::error;
 use pavenet_core::dist::{DistParams, RngSampler};
-use pavenet_core::message::{PayloadInfo, RxMetrics};
+use pavenet_core::message::{PayloadInfo, TxMetrics};
 use pavenet_core::metrics::Latency;
 use pavenet_engine::metrics::{Feasibility, Measurable, Metric, MetricSettings};
+use rand::RngCore;
 use serde::Deserialize;
 
 /// All the latency configuration parameters are optional, but at least one of them must be present.
@@ -13,8 +14,8 @@ pub struct LatencyConfig {
     pub variant: String,
     pub constraint: Latency,
     pub constant_term: Option<Latency>,
-    pub min_latency: Option<f32>,
-    pub max_latency: Option<f32>,
+    pub min_latency: Option<Latency>,
+    pub max_latency: Option<Latency>,
     pub factor: Option<f32>,
     pub dist_params: Option<DistParams>,
 }
@@ -34,7 +35,7 @@ pub enum LatencyType {
 impl Measurable<Latency> for LatencyType {
     type P = PayloadInfo;
     type S = LatencyConfig;
-    type T = RxMetrics;
+    type T = TxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         match config.variant.to_lowercase().as_str() {
@@ -53,7 +54,7 @@ impl Measurable<Latency> for LatencyType {
 
     fn measure(
         &mut self,
-        transfer_metrics: &RxMetrics,
+        transfer_metrics: &TxMetrics,
         payload: &PayloadInfo,
     ) -> Feasibility<Latency> {
         match self {
@@ -73,20 +74,17 @@ pub struct ConstantLatency {
 impl Measurable<Latency> for ConstantLatency {
     type P = PayloadInfo;
     type S = LatencyConfig;
-    type T = RxMetrics;
+    type T = TxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
-        let latency = match config.constant_term {
-            Some(latency) => latency,
-            None => {
-                error!("Missing constant, setting it to 0.");
-                Latency::from(0.)
-            }
-        };
+        let latency = config.constant_term.unwrap_or_else(|| {
+            error!("Missing constant, setting it to 0.");
+            Latency::new(0)
+        });
         ConstantLatency { latency }
     }
 
-    fn measure(&mut self, _tr_metrics: &RxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, _rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
         Feasibility::Feasible(self.latency)
     }
 }
@@ -95,8 +93,8 @@ impl Measurable<Latency> for ConstantLatency {
 /// mandatory and must be valid for the chosen distribution.
 #[derive(Debug, Clone)]
 pub struct RandomLatency {
-    pub min_latency: f32,
-    pub max_latency: f32,
+    pub min_latency: Latency,
+    pub max_latency: Latency,
     pub constraint: Latency,
     pub sampler: RngSampler,
 }
@@ -104,7 +102,7 @@ pub struct RandomLatency {
 impl Measurable<Latency> for RandomLatency {
     type P = PayloadInfo;
     type S = LatencyConfig;
-    type T = RxMetrics;
+    type T = TxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         RandomLatency {
@@ -115,10 +113,9 @@ impl Measurable<Latency> for RandomLatency {
         }
     }
 
-    fn measure(&mut self, _tr_metrics: &RxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
-        let latency_factor = self.sampler.sample();
-        let lt_f32 = self.min_latency + (self.max_latency - self.min_latency) * latency_factor;
-        let latency = Latency::from(lt_f32);
+    fn measure(&mut self, _rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
+        let latency_factor = self.sampler.rng.next_u64();
+        let latency = Latency::new(5); // todo: Fix this
         if latency > self.constraint {
             return Feasibility::Infeasible(latency);
         }
@@ -140,23 +137,22 @@ pub struct DistanceLatency {
 impl Measurable<Latency> for DistanceLatency {
     type P = PayloadInfo;
     type S = LatencyConfig;
-    type T = RxMetrics;
+    type T = TxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         DistanceLatency {
-            constant_term: config.constant_term.unwrap_or(Latency::from(0.)),
+            constant_term: config.constant_term.unwrap_or(Latency::new(0)),
             factor: config.factor.unwrap_or(1.),
             constraint: config.constraint,
         }
     }
 
-    fn measure(&mut self, _tr_metrics: &RxMetrics, payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, _rx_metrics: &TxMetrics, payload: &PayloadInfo) -> Feasibility<Latency> {
         let distance_factor = match payload.selected_link.properties.distance {
             Some(distance) => distance * self.factor,
             None => 0.0,
         };
-        let latency = self.constant_term.as_f32() + distance_factor;
-        let latency = Latency::from(latency);
+        let latency = Latency::new(self.constant_term.as_u64() + distance_factor as u64);
         if latency > self.constraint {
             return Feasibility::Infeasible(latency);
         }
@@ -177,20 +173,19 @@ pub struct OrderedLatency {
 impl Measurable<Latency> for OrderedLatency {
     type P = PayloadInfo;
     type S = LatencyConfig;
-    type T = RxMetrics;
+    type T = TxMetrics;
 
     fn with_settings(config: LatencyConfig) -> Self {
         OrderedLatency {
-            const_param: config.constant_term.unwrap_or(Latency::from(0.)),
+            const_param: config.constant_term.unwrap_or(Latency::new(0)),
             factor: config.factor.unwrap_or(1.),
             constraint: config.constraint,
         }
     }
 
-    fn measure(&mut self, tx_metrics: &RxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
-        let order_factor = tx_metrics.rx_order as f32 * self.factor;
-        let latency = self.const_param.as_f32() + order_factor;
-        let latency = Latency::from(latency);
+    fn measure(&mut self, rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
+        let order_factor = rx_metrics.tx_order as f32 * self.factor;
+        let latency = Latency::new(self.const_param.as_u64() + order_factor as u64);
         if latency > self.constraint {
             return Feasibility::Infeasible(latency);
         }
