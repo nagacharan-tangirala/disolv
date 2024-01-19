@@ -1,12 +1,11 @@
+use crate::bucket::Bucket;
 use crate::entity::Class;
-use crate::message::{GPayload, Metadata, NodeState};
+use crate::message::{
+    DataUnit, GPayload, GResponse, Metadata, NodeState, Queryable, Reply, TxReport,
+};
 use crate::node::NodeId;
 use std::fmt::Debug;
 use typed_builder::TypedBuilder;
-
-/// Use this trait to mark a type as a rule. This trait is used to enforce rules
-/// on the payload transmission.
-pub trait Action: Default + Copy + Clone + Send + Sync {}
 
 /// A trait that contains information about a link. It could be distance, load, etc.
 pub trait LinkFeatures: Copy + Clone + Debug + Default {}
