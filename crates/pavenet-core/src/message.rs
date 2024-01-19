@@ -1,10 +1,10 @@
 use crate::entity::{NodeClass, NodeInfo};
-use crate::metrics::Latency;
+use crate::metrics::{Bandwidth, Bytes, Latency};
 use crate::mobility::MapState;
-use crate::radio::{ActionImpl, ActionType, DLink};
+use crate::radio::{Action, ActionType, DLink};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::message::{DataUnit, GPayload, Metadata, NodeState, PayloadStatus};
-use pavenet_engine::message::{GResponse, Queryable, Reply, RxReport};
+use pavenet_engine::message::{GResponse, Queryable, Reply, TxReport};
 use pavenet_engine::node::NodeId;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -48,29 +48,16 @@ impl NodeState for NodeContent {}
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct DataBlob {
     pub data_type: DataType,
-    pub data_size: f32,
-    pub action: ActionImpl,
+    pub data_size: Bytes,
+    pub action: Action,
 }
 
-impl DataUnit for DataBlob {
-    type Action = ActionImpl;
-    fn size(&self) -> f32 {
-        self.data_size
-    }
-
-    fn action(&self) -> Self::Action {
-        self.action
-    }
-
-    fn set_action(&mut self, action: Self::Action) {
-        self.action = action;
-    }
-}
+impl DataUnit for DataBlob {}
 
 #[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct PayloadInfo {
     pub id: Uuid,
-    pub total_size: f32,
+    pub total_size: Bytes,
     pub total_count: u32,
     pub data_blobs: Vec<DataBlob>,
     pub selected_link: DLink,
