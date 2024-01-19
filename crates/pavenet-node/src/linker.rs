@@ -44,10 +44,7 @@ impl BucketModel for Linker {
             LinkReader::File(ref mut reader) => reader.read_links_data(step),
             LinkReader::Stream(ref mut reader) => reader.stream_links_data(step),
         };
-        self.link_cache = match self.links.remove(&step) {
-            Some(links) => links,
-            None => HashMap::new(),
-        };
+        self.link_cache = self.links.remove(&step).unwrap_or_else(|| HashMap::new());
     }
 
     fn stream_data(&mut self, step: TimeMS) {
@@ -61,9 +58,6 @@ impl BucketModel for Linker {
             return;
         }
 
-        self.link_cache = match self.links.remove(&step) {
-            Some(links) => links,
-            None => HashMap::new(),
-        };
+        self.link_cache = self.links.remove(&step).unwrap_or_else(|| HashMap::new());
     }
 }
