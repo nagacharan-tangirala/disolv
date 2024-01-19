@@ -1,11 +1,9 @@
-use crate::message::{Metadata, RxReport};
+use crate::message::{Metadata, TxReport};
 
 /// A trait that measures some quantity of the radio. It could be a struct or a simple named type.
 /// Any number of metrics can be used to measure the radio usage. The name should be unique and
 /// must be added to the enum that implements the <code>MetricName</code> trait.
-pub trait Metric: Default + PartialEq + PartialOrd + Copy + Clone + Send + Sync {
-    fn as_f32(&self) -> f32;
-}
+pub trait Metric: Default + PartialEq + PartialOrd + Copy + Clone + Send + Sync {}
 
 /// An enum that represents the feasibility of a metric. This is used as return type of the
 /// feasibility evaluation so that the caller can get the feasibility and the actual value of the
