@@ -1,6 +1,3 @@
-use crate::bucket::Bucket;
-use crate::entity::Class;
-use crate::radio::{Action, GLink, LinkFeatures};
 use typed_builder::TypedBuilder;
 
 /// A trait to represent a type that can be used to query content from other devices.
@@ -24,7 +21,8 @@ pub trait Metadata: Clone + Send + Sync {}
 
 /// A generic struct that represents a payload of a device. A message exchange between two devices
 /// can be represented by a payload. Gathered content can be used to represent the aggregated
-/// content from the downstream devices that require forwarding.
+/// content from the downstream devices that require forwarding. A payload is a combination of
+/// the node state, metadata, and gathered states.
 #[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct GPayload<M, N>
 where

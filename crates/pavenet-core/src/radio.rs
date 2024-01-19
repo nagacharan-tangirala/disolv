@@ -1,8 +1,8 @@
 use crate::entity::{NodeClass, NodeType};
 use crate::message::{DataType, PayloadInfo};
-use crate::metrics::Latency;
+use crate::metrics::{Bytes, Latency};
 use pavenet_engine::node::NodeId;
-use pavenet_engine::radio::{Action, GLink, IncomingStats, LinkFeatures, OutgoingStats};
+use pavenet_engine::radio::{ActionInfo, Actionable, Actions, GLink, LinkFeatures};
 use serde::Deserialize;
 use std::fmt::Display;
 use typed_builder::TypedBuilder;
