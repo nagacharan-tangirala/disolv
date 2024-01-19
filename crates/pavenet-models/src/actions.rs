@@ -67,7 +67,7 @@ pub fn set_actions_before_tx(mut payload: DPayload, actions: &DActions) -> DPayl
 ///
 /// # Returns
 /// * `DPayload` - The payload with the new actions set
-pub(crate) fn do_actions(payload: &mut DPayload, node_content: &NodeContent) {
+pub fn do_actions(payload: &mut DPayload, node_content: &NodeContent) {
     payload
         .metadata
         .data_blobs
@@ -91,7 +91,7 @@ pub(crate) fn do_actions(payload: &mut DPayload, node_content: &NodeContent) {
 ///
 /// # Returns
 /// * `bool` - True if the current node is the intended target, false otherwise
-pub(crate) fn am_i_target(action: &ActionImpl, node_info: &NodeInfo) -> bool {
+pub(crate) fn am_i_target(action: &Action, node_info: &NodeInfo) -> bool {
     // Order of precedence: Node -> Class -> Kind
     if let Some(target_node) = action.to_node {
         if target_node == node_info.id {
@@ -116,7 +116,7 @@ pub(crate) fn am_i_target(action: &ActionImpl, node_info: &NodeInfo) -> bool {
 /// # Arguments
 /// * `data_blob` - The data blob to set the action for
 /// * `new_action` - The new action to set
-pub(crate) fn assign_actions(data_blob: &mut DataBlob, new_action: &ActionImpl) {
+fn assign_actions(data_blob: &mut DataBlob, new_action: &Action) {
     match new_action.action_type {
         ActionType::Consume => {
             data_blob.action.action_type = ActionType::Consume;
@@ -145,10 +145,10 @@ pub(crate) fn assign_actions(data_blob: &mut DataBlob, new_action: &ActionImpl) 
 ///
 /// # Returns
 /// * `bool` - True if the current node should forward the data blob, false otherwise
-pub(crate) fn should_i_forward(blob: &DataBlob, target_info: &NodeInfo) -> bool {
+fn should_i_forward(blob: &DataBlob, target_info: &NodeInfo) -> bool {
     if blob.action.action_type == ActionType::Consume {
         error!("This should have been consumed by now");
-        panic!("consume payload appears to be forwarded");
+        panic!("This should have been consumed by now");
     }
     if let Some(target_id) = blob.action.to_node {
         if target_id == target_info.id {
