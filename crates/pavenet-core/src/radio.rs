@@ -52,14 +52,14 @@ pub struct ActionSettings {
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Counts {
     pub node_count: u32,
-    pub data_size: f32,
+    pub data_size: Bytes,
     pub data_count: u32,
 }
 
 impl Counts {
     pub fn reset(&mut self) {
         self.node_count = 0;
-        self.data_size = 0.0;
+        self.data_size = Bytes::default();
         self.data_count = 0;
     }
 }
@@ -75,13 +75,13 @@ impl Display for Counts {
 }
 
 #[derive(Default, Clone, Copy, Debug)]
-pub struct InDataStats {
+pub struct OutgoingStats {
     pub attempted: Counts,
     pub feasible: Counts,
     pub avg_latency: Latency,
 }
 
-impl Display for InDataStats {
+impl Display for OutgoingStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -91,11 +91,7 @@ impl Display for InDataStats {
     }
 }
 
-impl InDataStats {
-    pub fn new() -> Self {
-        InDataStats::default()
-    }
-
+impl OutgoingStats {
     pub fn reset(&mut self) {
         self.attempted.reset();
         self.feasible.reset();
