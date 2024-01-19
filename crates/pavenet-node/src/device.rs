@@ -1,20 +1,19 @@
 use crate::bucket::DeviceBucket;
-use log::debug;
+use log::{debug, warn};
 use pavenet_core::entity::{NodeClass, NodeInfo, NodeOrder};
-use pavenet_core::message::{DPayload, NodeContent, PayloadInfo};
-use pavenet_core::message::{DResponse, DataSource, RxMetrics};
+use pavenet_core::message::{DPayload, NodeContent, PayloadInfo, TxStatus};
+use pavenet_core::message::{DResponse, DataSource, TxMetrics};
 use pavenet_core::mobility::MapState;
 use pavenet_core::power::{PowerManager, PowerState};
-use pavenet_core::radio::{DLink, InDataStats, LinkProperties};
+use pavenet_core::radio::{DActions, DLink, LinkProperties, OutgoingStats};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::entity::{Entity, Movable, Schedulable, Tiered};
-use pavenet_engine::message::Transmitter;
-use pavenet_engine::message::{Receiver, Responder};
 use pavenet_engine::node::GNode;
-use pavenet_engine::radio::{Channel, SlChannel};
-use pavenet_models::actions::prepare_blobs_to_fwd;
+use pavenet_engine::radio::{Receiver, Responder, Transmitter};
+use pavenet_models::actions::{do_actions, filter_blobs_to_fwd, set_actions_before_tx};
+use pavenet_models::actor::Actor;
 use pavenet_models::compose::Composer;
-use pavenet_models::radio::{Radio, SlRadio};
+use pavenet_models::flow::FlowRegister;
 use pavenet_models::reply::Replier;
 use pavenet_models::select::Selector;
 use typed_builder::TypedBuilder;
@@ -37,14 +36,14 @@ impl DeviceModel {
         &self,
         link_options: Vec<DLink>,
         target_class: &NodeClass,
-        stats: &Vec<Option<&InDataStats>>,
-    ) -> Vec<DLink> {
+        stats: &Vec<Option<&OutgoingStats>>,
+    ) -> Option<Vec<DLink>> {
         for selectors in self.selector.iter() {
             if selectors.0 == *target_class {
-                return selectors.1.do_selection(link_options, stats);
+                return Some(selectors.1.do_selection(link_options, stats));
             }
         }
-        return vec![];
+        None
     }
 }
 
@@ -263,8 +262,6 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
     }
 
     fn sidelink_stage(&mut self, bucket: &mut DeviceBucket) {
-        // Receive data from the uplink.
-        self.receive(bucket);
         // Receive data from the peers.
         self.receive_sl(bucket);
         // Store any data that needs to be forwarded in the next step.
