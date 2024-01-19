@@ -156,12 +156,6 @@ impl PavenetBuilder {
     ) -> Device {
         let node_info = Self::build_node_info(node_id, node_type, class_settings);
 
-        let mut radio = self.build_radio(class_settings);
-        radio.update_settings(&class_settings.tx_actions);
-        let mut sl_radio = self.build_sl_radio(class_settings);
-        sl_radio.update_settings(&class_settings.sl_actions);
-
-        let target_classes = self.read_target_classes(class_settings);
         let power_manager = PowerManager::builder()
             .on_times(power_times.0.into())
             .off_times(power_times.1.into())
@@ -176,17 +170,17 @@ impl PavenetBuilder {
 
         let device_model = DeviceModel::builder()
             .power(power_manager)
-            .radio(radio)
-            .sl_radio(sl_radio)
+            .flow(FlowRegister::default())
+            .sl_flow(FlowRegister::default())
             .composer(Composer::with_settings(&class_settings.composer))
             .selector(selector_vec)
+            .actor(Actor::new(&class_settings.actions.clone()))
             .replier(Replier::with_settings(&class_settings.replier))
             .build();
 
         let device = Device::builder()
             .node_info(node_info)
             .models(device_model)
-            .target_classes(target_classes)
             .build();
 
         return device;
@@ -223,6 +217,7 @@ impl PavenetBuilder {
             .class_to_type(self.read_class_to_type_map())
             .output_step(self.output_step())
             .resultant(ResultWriter::new(&self.base_config.output_settings))
+            .network(self.build_network())
             .build()
     }
 
