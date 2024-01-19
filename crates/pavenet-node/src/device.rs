@@ -53,8 +53,6 @@ pub struct Device {
     pub node_info: NodeInfo,
     pub models: DeviceModel,
     #[builder(default)]
-    pub target_classes: Vec<NodeClass>,
-    #[builder(default)]
     pub step: TimeMS,
     #[builder(default)]
     pub power_state: PowerState,
