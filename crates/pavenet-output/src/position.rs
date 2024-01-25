@@ -56,7 +56,7 @@ impl PosWriter {
 
     pub fn write_to_file(&mut self) {
         debug!("Writing positions to file");
-        self.to_output.write_to_file(&self.data_pos);
-        self.data_pos.clear();
+        self.to_output
+            .write_to_file(std::mem::take(&mut self.data_pos));
     }
 }
