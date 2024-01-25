@@ -241,13 +241,19 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
         self.models.flow.reset();
 
         // Receive data from the downstream nodes.
-        let mut rx_payloads = self.receive(bucket).unwrap_or_else(Vec::new);
-        self.models.flow.register_incoming(&rx_payloads);
-
-        // Apply actions to the received data.
-        rx_payloads.iter_mut().for_each(|payload| {
-            do_actions(payload, &self.content);
-        });
+        let mut rx_payloads = self.receive(bucket);
+        if let Some(ref mut payloads) = rx_payloads {
+            self.models.flow.register_incoming(payloads);
+            payloads.iter_mut().for_each(|payload| {
+                do_actions(payload, &self.content);
+            });
+            debug!(
+                "Node {} received {} payloads at step {}",
+                self.node_info.id,
+                payloads.len(),
+                self.step
+            );
+        }
 
         for target_class in self.models.actor.target_classes.clone().iter() {
             self.talk_to_class(target_class, &rx_payloads, bucket);
