@@ -104,11 +104,15 @@ impl Device {
         targets.into_iter().for_each(|target_link| {
             if let Some(target_node) = bucket.node_of(target_link.target) {
                 let mut this_payload = payload.clone();
-                let mut blobs = filter_blobs_to_fwd(&target_node.content, &rx_payloads);
-                self.models
-                    .composer
-                    .append_blobs_to(&mut this_payload, &mut blobs);
-
+                match rx_payloads {
+                    Some(ref payloads) => {
+                        let mut blobs = filter_blobs_to_fwd(&target_node.content, payloads);
+                        self.models
+                            .composer
+                            .append_blobs_to(&mut this_payload, &mut blobs);
+                    }
+                    None => (),
+                }
                 let actions = self.models.actor.actions_for(target_class);
                 let prepared_payload = set_actions_before_tx(this_payload, actions);
                 self.transmit(prepared_payload, target_link, bucket);
