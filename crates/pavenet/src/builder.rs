@@ -1,17 +1,15 @@
 use crate::base::{BaseConfig, BaseConfigReader, NodeClassSettings, NodeSettings};
 use crate::logger;
-use krabmaga::rand_pcg::Pcg64Mcg;
 use log::{debug, info};
 use pavenet_core::entity::{NodeClass, NodeInfo, NodeOrder, NodeType};
 use pavenet_core::power::PowerManager;
-use pavenet_core::radio::{Action, ActionSettings, DActions};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::engine::GEngine;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::metrics::{Consumable, Measurable};
 use pavenet_engine::node::{GNode, NodeId};
-use pavenet_input::links::data::LinkReader;
-use pavenet_input::power::data::{read_power_schedule, PowerTimes};
+use pavenet_input::links::LinkReader;
+use pavenet_input::power::{read_power_schedule, PowerTimes};
 use pavenet_models::actor::Actor;
 use pavenet_models::bandwidth::BandwidthType;
 use pavenet_models::compose::Composer;
@@ -89,19 +87,10 @@ impl PavenetBuilder {
             .unwrap_or_else(|| panic!("Invalid node type: {}", node_type));
 
         let power_file = Path::new(&self.config_path).join(&node_settings.power_file);
-        Self::read_power_file(&power_file)
-    }
-
-    fn read_power_file(power_file: &PathBuf) -> HashMap<NodeId, PowerTimes> {
         if !power_file.exists() {
             panic!("Power schedule file {} is not found.", power_file.display());
         }
-        return match read_power_schedule(&power_file) {
-            Ok(power_schedule) => power_schedule,
-            Err(e) => {
-                panic!("Error while parsing the power schedule file: {}", e);
-            }
-        };
+        read_power_schedule(&power_file)
     }
 
     fn read_node_ids(power_schedules: &HashMap<NodeId, PowerTimes>) -> Vec<NodeId> {
@@ -257,8 +246,11 @@ impl PavenetBuilder {
         if !links_file.exists() {
             panic!("Link file {} is not found.", links_file.display());
         }
-        let link_reader =
-            LinkReader::new(links_file, self.streaming_step(), link_config.is_streaming);
+        let link_reader = LinkReader::builder()
+            .is_streaming(link_config.is_streaming)
+            .file_path(links_file)
+            .streaming_step(self.streaming_step())
+            .build();
         Linker::builder()
             .reader(link_reader)
             .source_type(source_type.to_owned())
