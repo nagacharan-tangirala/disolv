@@ -13,15 +13,15 @@ pub enum MobilityType {
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct Point2D {
-    pub x: f32,
-    pub y: f32,
+    pub x: f64,
+    pub y: f64,
 }
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct MapState {
     pub pos: Point2D,
     #[builder(default = None)]
-    pub z: Option<f32>,
+    pub z: Option<f64>,
     #[builder(default = None)]
     pub velocity: Option<Velocity>,
     #[builder(default = None)]
@@ -49,6 +49,12 @@ pub mod road {
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             let id = s.parse::<u32>()?;
             Ok(Self(id))
+        }
+    }
+
+    impl From<u32> for RoadId {
+        fn from(f: u32) -> Self {
+            Self(f)
         }
     }
 
@@ -126,6 +132,12 @@ pub mod cell {
 
     impl From<f32> for CellId {
         fn from(f: f32) -> Self {
+            Self(f as u32)
+        }
+    }
+
+    impl From<f64> for CellId {
+        fn from(f: f64) -> Self {
             Self(f as u32)
         }
     }
