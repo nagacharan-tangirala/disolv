@@ -1,10 +1,9 @@
-use log::debug;
 use pavenet_core::entity::NodeType;
 use pavenet_core::radio::DLink;
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::node::NodeId;
-use pavenet_input::links::data::{LinkMap, LinkReader};
+use pavenet_input::links::{LinkMap, LinkReader};
 use pavenet_models::model::BucketModel;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
@@ -40,24 +39,20 @@ impl Linker {
 
 impl BucketModel for Linker {
     fn init(&mut self, step: TimeMS) {
-        self.links = match self.reader {
-            LinkReader::File(ref mut reader) => reader.read_links_data(step),
-            LinkReader::Stream(ref mut reader) => reader.stream_links_data(step),
-        };
-        self.link_cache = self.links.remove(&step).unwrap_or_else(|| HashMap::new());
+        self.links = self.reader.fetch_links_data(step);
+        self.link_cache = self.links.remove(&step).unwrap_or_default();
     }
 
     fn stream_data(&mut self, step: TimeMS) {
-        if let LinkReader::Stream(ref mut reader) = self.reader {
-            self.links = reader.stream_links_data(step)
-        };
+        if self.reader.is_streaming {
+            self.links = self.reader.fetch_links_data(step);
+        }
     }
 
     fn before_node_step(&mut self, step: TimeMS) {
         if self.is_static {
             return;
         }
-
-        self.link_cache = self.links.remove(&step).unwrap_or_else(|| HashMap::new());
+        self.link_cache = self.links.remove(&step).unwrap_or_default();
     }
 }
