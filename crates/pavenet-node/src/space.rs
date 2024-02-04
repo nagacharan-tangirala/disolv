@@ -14,9 +14,9 @@ use typed_builder::TypedBuilder;
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct Space {
-    width: f32,
-    height: f32,
-    cell_size: f32,
+    width: f64,
+    height: f64,
+    cell_size: f64,
     #[builder(default)]
     cell2node: HashMap<CellId, HashSet<NodeId>>,
     #[builder(default)]
@@ -59,9 +59,9 @@ impl Space {
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct FieldSettings {
-    pub width: f32,
-    pub height: f32,
-    pub cell_size: f32,
+    pub width: f64,
+    pub height: f64,
+    pub cell_size: f64,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -176,21 +176,21 @@ mod tests {
         assert_eq!(map_state.pos.y, 0.0);
         assert_eq!(map_state.z, Some(0.0));
         assert_eq!(map_state.velocity, Some(Velocity::from(0.0)));
-        assert_eq!(map_state.road_id, Some(RoadId::from(0)));
+        assert_eq!(map_state.road_id, Some(RoadId::from(0u32)));
     }
 
     #[test]
     fn map_state_builder() {
         let map_state = MapState::builder()
             .pos(Point2D::builder().x(1.0).y(2.0).build())
-            .z(Some(3.0f32))
+            .z(Some(3.0f64))
             .velocity(Some(Velocity::from(4.0)))
-            .road_id(Some(RoadId::from(5)))
+            .road_id(Some(RoadId::from(5u32)))
             .build();
         assert_eq!(map_state.pos.x, 1.0);
         assert_eq!(map_state.pos.y, 2.0);
         assert_eq!(map_state.z, Some(3.0));
         assert_eq!(map_state.velocity, Some(Velocity::from(4.0)));
-        assert_eq!(map_state.road_id, Some(RoadId::from(5)));
+        assert_eq!(map_state.road_id, Some(RoadId::from(5u32)));
     }
 }

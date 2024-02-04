@@ -11,8 +11,8 @@ use std::path::PathBuf;
 pub struct NodePosition {
     pub(crate) time_step: u32,
     pub(crate) node_id: u32,
-    pub(crate) x: f32,
-    pub(crate) y: f32,
+    pub(crate) x: f64,
+    pub(crate) y: f64,
 }
 
 impl Resultant for NodePosition {}
