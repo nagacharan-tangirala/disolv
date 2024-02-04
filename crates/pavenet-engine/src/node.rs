@@ -9,7 +9,7 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 #[derive(Deserialize, Default, Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub struct NodeId(u32);
+pub struct NodeId(u64);
 
 impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -21,26 +21,14 @@ impl FromStr for NodeId {
     type Err = std::num::ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let id = s.parse::<u32>()?;
+        let id = s.parse::<u64>()?;
         Ok(Self(id))
     }
 }
 
-impl From<u32> for NodeId {
-    fn from(f: u32) -> Self {
+impl From<u64> for NodeId {
+    fn from(f: u64) -> Self {
         Self(f)
-    }
-}
-
-impl From<i64> for NodeId {
-    fn from(f: i64) -> Self {
-        Self(f as u32)
-    }
-}
-
-impl From<i32> for NodeId {
-    fn from(f: i32) -> Self {
-        Self(f as u32)
     }
 }
 
@@ -48,8 +36,11 @@ impl NodeId {
     pub fn as_i64(&self) -> i64 {
         self.0 as i64
     }
-    pub fn as_u32(&self) -> u32 {
+    pub fn as_u64(&self) -> u64 {
         self.0
+    }
+    pub fn as_u32(&self) -> u32 {
+        self.0 as u32
     }
 }
 
