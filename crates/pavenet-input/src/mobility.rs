@@ -1,7 +1,7 @@
 use crate::batch::{get_row_groups_for_time, read_f64_column, read_u32_column, read_u64_column};
 use crate::columns::{COORD_X, COORD_Y, COORD_Z, NODE_ID, ROAD_ID, TIME_STEP, VELOCITY};
 use arrow_array::RecordBatch;
-use log::debug;
+use log::{debug, info};
 use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use pavenet_core::mobility::road::RoadId;
 use pavenet_core::mobility::velocity::Velocity;
@@ -11,6 +11,7 @@ use pavenet_engine::hashbrown::HashMap;
 use pavenet_engine::node::NodeId;
 use std::fs::File;
 use std::path::PathBuf;
+use std::time::Instant;
 use typed_builder::TypedBuilder;
 
 pub type TraceMap = HashMap<TimeMS, HashMap<NodeId, MapState>>;
@@ -116,10 +117,9 @@ impl MapReader {
             Ok(builder) => builder.with_row_groups(selected_groups),
             Err(e) => panic!("Error building parquet reader: {}", e),
         };
-        let reader = match builder.build() {
+        match builder.build() {
             Ok(reader) => reader,
             Err(e) => panic!("Error building reader: {}", e),
-        };
-        reader
+        }
     }
 }

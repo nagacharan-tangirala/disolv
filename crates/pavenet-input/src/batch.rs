@@ -1,6 +1,6 @@
 use crate::columns::TIME_STEP;
 use arrow_array::RecordBatch;
-use log::debug;
+use log::{debug, error};
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::file::statistics::Statistics;
 use pavenet_engine::bucket::TimeMS;
@@ -69,17 +69,47 @@ pub(crate) fn get_row_groups_for_time(
             if column.column_descr().name() == TIME_STEP {
                 match column.statistics() {
                     Some(Statistics::Int64(stats)) => {
-                        if start_time.as_i64() >= *stats.max() || end_time.as_i64() <= *stats.min()
-                        {
+                        if start_time.as_i64() > *stats.max() {
+                            continue 'row_group_loop;
+                        }
+                        if end_time.as_i64() < *stats.min() {
                             break 'row_group_loop;
                         }
                         interested_groups.push(row_group);
                     }
-                    _ => panic!("Time step column is not of type int64"),
+                    None => {
+                        break 'row_group_loop;
+                    }
+                    _ => {
+                        error!(
+                            "Time step column is not of type int64 in file {}",
+                            file_path.to_str().unwrap()
+                        );
+                        panic!(
+                            "Time step column is not of type int64 in file {}",
+                            file_path.to_str().unwrap()
+                        )
+                    }
                 }
                 break;
             }
         }
     }
     interested_groups
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_row_groups_for_time() {
+        let parquet_file = "/mnt/hdd/workspace/pavenet/input/medium/links/r2v_links.parquet";
+        let parquet_filepath = PathBuf::from(parquet_file);
+        let start_time = TimeMS::from(3750000);
+        let end_time = TimeMS::from(3799900);
+        let row_groups = get_row_groups_for_time(&parquet_filepath, true, start_time, end_time);
+        println!("Row groups: {:?}", row_groups);
+        assert_eq!(row_groups.len(), 1);
+    }
 }

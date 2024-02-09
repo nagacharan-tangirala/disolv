@@ -58,9 +58,8 @@ pub(crate) fn get_batch_reader(file_path: &PathBuf) -> ParquetRecordBatchReader 
         Ok(builder) => builder,
         Err(e) => panic!("Error building parquet reader: {}", e),
     };
-    let reader = match builder.build() {
+    match builder.build() {
         Ok(reader) => reader,
         Err(e) => panic!("Error building reader: {}", e),
-    };
-    reader
+    }
 }

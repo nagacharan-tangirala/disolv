@@ -1,6 +1,6 @@
 use crate::batch::{get_row_groups_for_time, read_f64_column, read_u64_column};
 use crate::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
-use log::debug;
+use log::{debug, info};
 use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use pavenet_core::radio::DLink;
 use pavenet_engine::bucket::TimeMS;
@@ -49,8 +49,6 @@ impl LinkReader {
                 for (idx, link) in link_vec.iter_mut().enumerate() {
                     link.properties.distance = Some(distance[idx] as f32);
                 }
-            } else {
-                distance = vec![];
             }
 
             let load_factor: Vec<f64>;
@@ -59,8 +57,6 @@ impl LinkReader {
                 for (idx, link) in link_vec.iter_mut().enumerate() {
                     link.properties.load_factor = Some(load_factor[idx] as f32);
                 }
-            } else {
-                load_factor = vec![];
             }
 
             for ((time, node_id), link) in time_steps
@@ -103,13 +99,12 @@ impl LinkReader {
                 panic!("Error building parquet reader: {}", e);
             }
         };
-        let reader = match builder.build() {
+        match builder.build() {
             Ok(reader) => reader,
             Err(e) => {
                 debug!("Error building reader: {}", e);
                 panic!("Error building reader: {}", e);
             }
-        };
-        reader
+        }
     }
 }
