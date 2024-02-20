@@ -1,0 +1,20 @@
+[package]
+name = "advaitars-engine"
+version = "0.0.0"
+authors = [
+    "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
+]
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+krabmaga = { version = "0.4.1", path= "../../../krABMaga" }
+typed-builder = "0.18.0"
+hashbrown = "0.14.3"
+serde = { version = "1.0.197", features = ["derive"] }
+uuid = { version = "1.7.0", features = ["fast-rng", "v4"] }
+log = "0.4.20"
+
+[features]
+visualization = ["krabmaga/visualization"]
