@@ -1,0 +1,13 @@
+[package]
+name = "advaitars-core"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+advaitars-engine = { version="0.0.0", path = "../advaitars-engine" }
+rand_distr = "0.4.3"
+rand_pcg = "0.3.1"
+typed-builder = "0.18.1"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_with = "3.6.1"
+uuid = { version = "1.7.0", features = ["v4"] }
