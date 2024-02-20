@@ -54,7 +54,7 @@ impl NetStatWriter {
     }
 
     pub fn write_to_file(&mut self) {
-        self.to_output.write_to_file(&self.net_stats);
-        self.net_stats.clear();
+        self.to_output
+            .write_to_file(std::mem::take(&mut self.net_stats));
     }
 }

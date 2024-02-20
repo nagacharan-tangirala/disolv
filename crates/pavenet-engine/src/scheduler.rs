@@ -124,7 +124,7 @@ pub(crate) mod tests {
     #[test]
     fn test_scheduler_init() {
         let mut scheduler = make_scheduler_with_2_devices();
-        let mut schedule = Schedule::new();
+        let mut schedule = Schedule::new(1.);
         scheduler.init(&mut schedule);
         assert_eq!(schedule.events.len(), 2);
     }

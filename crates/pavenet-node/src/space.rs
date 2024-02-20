@@ -4,9 +4,7 @@ use pavenet_core::mobility::{MapState, MobilityType, Point2D};
 use pavenet_engine::bucket::TimeMS;
 use pavenet_engine::hashbrown::{HashMap, HashSet};
 use pavenet_engine::node::NodeId;
-use pavenet_input::mobility::data::{
-    MapFetcher, MapReader, MapStateReader, MapStateStreamer, TraceMap,
-};
+use pavenet_input::mobility::{MapReader, TraceMap};
 use pavenet_models::model::BucketModel;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -14,9 +12,9 @@ use typed_builder::TypedBuilder;
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct Space {
-    width: f32,
-    height: f32,
-    cell_size: f32,
+    width: f64,
+    height: f64,
+    cell_size: f64,
     #[builder(default)]
     cell2node: HashMap<CellId, HashSet<NodeId>>,
     #[builder(default)]
@@ -59,9 +57,9 @@ impl Space {
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct FieldSettings {
-    pub width: f32,
-    pub height: f32,
-    pub cell_size: f32,
+    pub width: f64,
+    pub height: f64,
+    pub cell_size: f64,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -81,15 +79,12 @@ pub struct Mapper {
 
 impl BucketModel for Mapper {
     fn init(&mut self, step: TimeMS) {
-        self.map_states = match self.reader {
-            MapReader::File(ref mut reader) => reader.fetch_traffic_data(step),
-            MapReader::Stream(ref mut reader) => reader.fetch_traffic_data(step),
-        };
+        self.map_states = self.reader.fetch_traffic_data(step);
     }
 
     fn stream_data(&mut self, step: TimeMS) {
-        if let MapReader::Stream(ref mut reader) = self.reader {
-            self.map_states = reader.fetch_traffic_data(step);
+        if self.reader.is_streaming {
+            self.map_states = self.reader.fetch_traffic_data(step);
         }
     }
 
@@ -144,19 +139,14 @@ impl MapperBuilder {
 
     pub fn build(self) -> Mapper {
         let file_path = self.config_path.join(&self.space_settings.trace_file);
-
-        let map_state_reader: MapReader = match self.space_settings.is_streaming {
-            true => MapReader::Stream(
-                MapStateStreamer::builder()
-                    .file_path(file_path)
-                    .streaming_step(self.streaming_step)
-                    .build(),
-            ),
-            false => MapReader::File(MapStateReader::builder().file_path(file_path).build()),
-        };
+        let map_reader = MapReader::builder()
+            .file_path(file_path)
+            .streaming_step(self.streaming_step)
+            .is_streaming(self.space_settings.is_streaming)
+            .build();
 
         Mapper {
-            reader: map_state_reader,
+            reader: map_reader,
             map_states: HashMap::default(),
             map_cache: HashMap::default(),
         }
@@ -176,21 +166,21 @@ mod tests {
         assert_eq!(map_state.pos.y, 0.0);
         assert_eq!(map_state.z, Some(0.0));
         assert_eq!(map_state.velocity, Some(Velocity::from(0.0)));
-        assert_eq!(map_state.road_id, Some(RoadId::from(0)));
+        assert_eq!(map_state.road_id, Some(RoadId::from(0u32)));
     }
 
     #[test]
     fn map_state_builder() {
         let map_state = MapState::builder()
             .pos(Point2D::builder().x(1.0).y(2.0).build())
-            .z(Some(3.0f32))
+            .z(Some(3.0f64))
             .velocity(Some(Velocity::from(4.0)))
-            .road_id(Some(RoadId::from(5)))
+            .road_id(Some(RoadId::from(5u32)))
             .build();
         assert_eq!(map_state.pos.x, 1.0);
         assert_eq!(map_state.pos.y, 2.0);
         assert_eq!(map_state.z, Some(3.0));
         assert_eq!(map_state.velocity, Some(Velocity::from(4.0)));
-        assert_eq!(map_state.road_id, Some(RoadId::from(5)));
+        assert_eq!(map_state.road_id, Some(RoadId::from(5u32)));
     }
 }

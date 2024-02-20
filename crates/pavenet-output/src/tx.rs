@@ -80,7 +80,7 @@ impl TxDataWriter {
     }
 
     pub fn write_to_file(&mut self) {
-        self.to_output.write_to_file(&self.data_tx);
-        self.data_tx.clear();
+        self.to_output
+            .write_to_file(std::mem::take(&mut self.data_tx));
     }
 }

@@ -1,205 +1,110 @@
-pub mod data {
-    use crate::file_reader::{read_file, stream_parquet_in_interval};
-    use crate::links::df::extract_link_traces;
-    use log::debug;
-    use pavenet_core::radio::DLink;
-    use pavenet_engine::bucket::TimeMS;
-    use pavenet_engine::hashbrown::HashMap;
-    use pavenet_engine::node::NodeId;
-    use std::fmt::Display;
-    use std::path::PathBuf;
-    use typed_builder::TypedBuilder;
+use crate::batch::{get_row_groups_for_time, read_f64_column, read_u64_column};
+use crate::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
+use log::{debug, info};
+use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
+use pavenet_core::radio::DLink;
+use pavenet_engine::bucket::TimeMS;
+use pavenet_engine::hashbrown::HashMap;
+use pavenet_engine::node::NodeId;
+use std::fs::File;
+use std::path::PathBuf;
+use typed_builder::TypedBuilder;
 
-    pub type LinkMap = HashMap<TimeMS, HashMap<NodeId, Vec<DLink>>>;
+pub type LinkMap = HashMap<TimeMS, HashMap<NodeId, Vec<DLink>>>;
 
-    #[derive(Clone)]
-    pub enum LinkReader {
-        File(ReadLinks),
-        Stream(StreamLinks),
-    }
-
-    impl Display for LinkReader {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            match self {
-                LinkReader::File(file) => {
-                    write!(f, "Reader: {}", file.links_file.to_str().unwrap())
-                }
-                LinkReader::Stream(stream) => {
-                    write!(f, "Reader: {}", stream.links_file.to_str().unwrap())
-                }
-            }
-        }
-    }
-
-    impl LinkReader {
-        pub fn new(
-            links_file: PathBuf,
-            streaming_interval: TimeMS,
-            is_streaming: bool,
-        ) -> LinkReader {
-            if is_streaming {
-                LinkReader::Stream(
-                    StreamLinks::builder()
-                        .links_file(links_file)
-                        .streaming_interval(streaming_interval)
-                        .build(),
-                )
-            } else {
-                LinkReader::File(ReadLinks::builder().links_file(links_file).build())
-            }
-        }
-    }
-
-    #[derive(Clone, TypedBuilder)]
-    pub struct ReadLinks {
-        links_file: PathBuf,
-    }
-
-    impl ReadLinks {
-        pub fn read_links_data(&self, _step: TimeMS) -> LinkMap {
-            let links_df = match read_file(&self.links_file) {
-                Ok(links_df) => links_df,
-                Err(e) => panic!("ReadLinks::read_links_data error {:?}", e),
-            };
-            match extract_link_traces(&links_df) {
-                Ok(links) => links,
-                Err(e) => panic!("ReadLinks::read_links_data error {:?}", e),
-            }
-        }
-    }
-
-    #[derive(Clone, TypedBuilder)]
-    pub struct StreamLinks {
-        links_file: PathBuf,
-        streaming_interval: TimeMS,
-    }
-
-    impl StreamLinks {
-        pub fn stream_links_data(&self, step: TimeMS) -> LinkMap {
-            let starting_time = step;
-            let ending_time = step + self.streaming_interval;
-            debug!(
-                "Streaming links from {:?} to {:?}",
-                starting_time, ending_time
-            );
-            let links_df =
-                match stream_parquet_in_interval(&self.links_file, starting_time, ending_time) {
-                    Ok(links_df) => links_df,
-                    Err(e) => panic!("StreamLinks::fetch_links_data error {:?}", e),
-                };
-            match extract_link_traces(&links_df) {
-                Ok(links) => links,
-                Err(e) => panic!("ReadLinks::read_links_data error {:?}", e),
-            }
-        }
-    }
+#[derive(Clone, TypedBuilder)]
+pub struct LinkReader {
+    pub is_streaming: bool,
+    pub file_path: PathBuf,
+    streaming_step: TimeMS,
 }
 
-pub(super) mod df {
-    use crate::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
-    use crate::converter::series::{to_f32_vec, to_nodeid_vec, to_timestamp_vec};
-    use crate::links::data::LinkMap;
-    use itertools::Itertools;
-    use log::debug;
-    use pavenet_core::radio::DLink;
-    use pavenet_engine::bucket::TimeMS;
-    use pavenet_engine::hashbrown::HashMap;
-    use pavenet_engine::node::NodeId;
-    use polars::error::ErrString;
-    use polars::prelude::{col, lit, DataFrame, IntoLazy, PolarsError, Series};
+impl LinkReader {
+    pub fn fetch_links_data(&self, step: TimeMS) -> LinkMap {
+        let mut link_map: LinkMap = HashMap::new();
+        let reader = self.get_batch_reader(step);
 
-    mod mandatory {
-        use crate::columns::*;
+        for record_bath in reader {
+            let record_batch = match record_bath {
+                Ok(batch) => batch,
+                Err(e) => panic!("Error reading record batch: {}", e),
+            };
+            let time_steps: Vec<TimeMS> = read_u64_column(TIME_STEP, &record_batch)
+                .into_iter()
+                .map(TimeMS::from)
+                .collect();
+            let node_ids: Vec<NodeId> = read_u64_column(NODE_ID, &record_batch)
+                .into_iter()
+                .map(NodeId::from)
+                .collect();
+            let target_ids: Vec<NodeId> = read_u64_column(TARGET_ID, &record_batch)
+                .into_iter()
+                .map(NodeId::from)
+                .collect();
+            let mut link_vec: Vec<DLink> = target_ids.into_iter().map(DLink::new).collect();
 
-        pub const COLUMNS: [&str; 2] = [TIME_STEP, TARGET_ID];
-    }
+            let distance: Vec<f64>;
+            if record_batch.column_by_name(DISTANCE).is_some() {
+                distance = read_f64_column(DISTANCE, &record_batch);
+                for (idx, link) in link_vec.iter_mut().enumerate() {
+                    link.properties.distance = Some(distance[idx] as f32);
+                }
+            }
 
-    mod optional {
-        use crate::columns::*;
+            let load_factor: Vec<f64>;
+            if record_batch.column_by_name(LOAD_FACTOR).is_some() {
+                load_factor = read_f64_column(LOAD_FACTOR, &record_batch);
+                for (idx, link) in link_vec.iter_mut().enumerate() {
+                    link.properties.load_factor = Some(load_factor[idx] as f32);
+                }
+            }
 
-        pub const COLUMNS: [&str; 2] = [DISTANCE, LOAD_FACTOR];
-    }
-
-    pub(crate) fn extract_link_traces(
-        links_df: &DataFrame,
-    ) -> Result<LinkMap, Box<dyn std::error::Error>> {
-        validate_links_df(links_df)?;
-        let ts_series: &Series = links_df.column(TIME_STEP)?;
-        let mut time_stamps: Vec<TimeMS> = to_timestamp_vec(ts_series)?;
-        time_stamps = time_stamps.into_iter().unique().collect();
-        let mut links: LinkMap = HashMap::with_capacity(time_stamps.len());
-
-        for time_stamp in time_stamps.iter() {
-            let ts_df = links_df
-                .clone()
-                .lazy()
-                .filter(col(TIME_STEP).eq(lit(time_stamp.as_u64())))
-                .collect()?;
-
-            let id_series: Series = ts_df.column(NODE_ID)?.explode()?;
-            let node_ids: Vec<NodeId> = to_nodeid_vec(&id_series)?;
-            let link_vec: Vec<DLink> = build_links_data(&ts_df)?;
-
-            let mut link_map_entry: HashMap<NodeId, Vec<DLink>> =
-                HashMap::with_capacity(node_ids.len());
-            for (node_id, link) in node_ids.into_iter().zip(link_vec.into_iter()) {
-                link_map_entry
+            for ((time, node_id), link) in time_steps
+                .into_iter()
+                .zip(node_ids.into_iter())
+                .zip(link_vec.into_iter())
+            {
+                link_map
+                    .entry(time)
+                    .or_default()
                     .entry(node_id)
-                    .or_insert(Vec::new())
+                    .or_default()
                     .push(link);
             }
-            links
-                .entry(*time_stamp)
-                .or_default()
-                .extend(link_map_entry.into_iter());
         }
-        Ok(links)
+        link_map
     }
 
-    fn validate_links_df(df: &DataFrame) -> Result<(), PolarsError> {
-        for column in mandatory::COLUMNS.iter() {
-            if !df.get_column_names().contains(column) {
-                return Err(PolarsError::ColumnNotFound(ErrString::from(
-                    column.to_string(),
-                )));
+    pub(crate) fn get_batch_reader(&self, step: TimeMS) -> ParquetRecordBatchReader {
+        let start_interval = step;
+        let end_interval = step + self.streaming_step;
+        let map_file = match File::open(&self.file_path) {
+            Ok(file) => file,
+            Err(e) => {
+                debug!("Error reading file from disk: {}", e);
+                panic!("Error reading file from disk: {}", e);
+            }
+        };
+
+        let selected_groups = get_row_groups_for_time(
+            &self.file_path,
+            self.is_streaming,
+            start_interval,
+            end_interval,
+        );
+        let builder = match ParquetRecordBatchReaderBuilder::try_new(map_file) {
+            Ok(builder) => builder.with_row_groups(selected_groups),
+            Err(e) => {
+                debug!("Error building parquet reader: {}", e);
+                panic!("Error building parquet reader: {}", e);
+            }
+        };
+        match builder.build() {
+            Ok(reader) => reader,
+            Err(e) => {
+                debug!("Error building reader: {}", e);
+                panic!("Error building reader: {}", e);
             }
         }
-        Ok(())
-    }
-
-    fn build_links_data(df: &DataFrame) -> Result<Vec<DLink>, Box<dyn std::error::Error>> {
-        let target_id_series: &Series = df.column(TARGET_ID)?;
-        let target_ids: Vec<NodeId> = to_nodeid_vec(target_id_series)?;
-        let mut link_vec: Vec<DLink> = target_ids.into_iter().map(DLink::new).collect();
-
-        let optional_columns = get_optional_columns(df);
-        for optional_col in optional_columns.into_iter() {
-            match optional_col {
-                DISTANCE => {
-                    let distance_series: &Series = df.column(DISTANCE)?;
-                    let distances: Vec<f32> = to_f32_vec(distance_series)?;
-                    for (idx, distance) in distances.into_iter().enumerate() {
-                        link_vec[idx].properties.distance = Some(distance);
-                    }
-                }
-                LOAD_FACTOR => {
-                    let lf_series: &Series = df.column(LOAD_FACTOR)?;
-                    let load_factors: Vec<f32> = to_f32_vec(lf_series)?;
-                    for (idx, load_factor) in load_factors.into_iter().enumerate() {
-                        link_vec[idx].properties.load_factor = Some(load_factor);
-                    }
-                }
-                _ => return Err("Invalid column name".into()),
-            }
-        }
-        Ok(link_vec)
-    }
-
-    fn get_optional_columns(df: &DataFrame) -> Vec<&str> {
-        return df
-            .get_column_names()
-            .into_iter()
-            .filter(|col| optional::COLUMNS.contains(col))
-            .collect();
     }
 }

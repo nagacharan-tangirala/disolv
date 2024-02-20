@@ -67,7 +67,7 @@ impl RxCountWriter {
 
     pub fn write_to_file(&mut self) {
         debug!("Writing tx data");
-        self.to_output.write_to_file(&self.data_rx);
-        self.data_rx.clear();
+        self.to_output
+            .write_to_file(std::mem::take(&mut self.data_rx));
     }
 }

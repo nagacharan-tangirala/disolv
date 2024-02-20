@@ -72,7 +72,7 @@ impl Device {
     fn talk_to_class(
         &mut self,
         target_class: &NodeClass,
-        rx_payloads: &Vec<DPayload>,
+        rx_payloads: &Option<Vec<DPayload>>,
         bucket: &mut DeviceBucket,
     ) {
         let link_options = match bucket.link_options_for(
@@ -83,12 +83,6 @@ impl Device {
             Some(links) => links,
             None => return,
         };
-        debug!(
-            "Node {} received {} payloads at step {}",
-            self.node_info.id,
-            rx_payloads.len(),
-            self.step
-        );
 
         let stats = bucket.stats_for(&link_options);
         let targets = match self.models.select_links(link_options, target_class, &stats) {
@@ -104,11 +98,15 @@ impl Device {
         targets.into_iter().for_each(|target_link| {
             if let Some(target_node) = bucket.node_of(target_link.target) {
                 let mut this_payload = payload.clone();
-                let mut blobs = filter_blobs_to_fwd(&target_node.content, &rx_payloads);
-                self.models
-                    .composer
-                    .append_blobs_to(&mut this_payload, &mut blobs);
-
+                match rx_payloads {
+                    Some(ref payloads) => {
+                        let mut blobs = filter_blobs_to_fwd(&target_node.content, payloads);
+                        self.models
+                            .composer
+                            .append_blobs_to(&mut this_payload, &mut blobs);
+                    }
+                    None => (),
+                }
                 let actions = self.models.actor.actions_for(target_class);
                 let prepared_payload = set_actions_before_tx(this_payload, actions);
                 self.transmit(prepared_payload, target_link, bucket);
@@ -241,13 +239,19 @@ impl Entity<DeviceBucket, NodeOrder> for Device {
         self.models.flow.reset();
 
         // Receive data from the downstream nodes.
-        let mut rx_payloads = self.receive(bucket).unwrap_or_else(Vec::new);
-        self.models.flow.register_incoming(&rx_payloads);
-
-        // Apply actions to the received data.
-        rx_payloads.iter_mut().for_each(|payload| {
-            do_actions(payload, &self.content);
-        });
+        let mut rx_payloads = self.receive(bucket);
+        if let Some(ref mut payloads) = rx_payloads {
+            self.models.flow.register_incoming(payloads);
+            payloads.iter_mut().for_each(|payload| {
+                do_actions(payload, &self.content);
+            });
+            debug!(
+                "Node {} received {} payloads at step {}",
+                self.node_info.id,
+                payloads.len(),
+                self.step
+            );
+        }
 
         for target_class in self.models.actor.target_classes.clone().iter() {
             self.talk_to_class(target_class, &rx_payloads, bucket);

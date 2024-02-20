@@ -8,7 +8,6 @@ use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub enum DataOutput {
     Csv(WriterCsv),
-    Parquet,
 }
 
 impl DataOutput {
@@ -36,10 +35,9 @@ impl DataOutput {
         DataOutput::Csv(WriterCsv::new(file_name))
     }
 
-    pub fn write_to_file<R: Resultant>(&mut self, data: &Vec<R>) {
+    pub fn write_to_file<R: Resultant>(&mut self, data: Vec<R>) {
         match self {
             DataOutput::Csv(writer) => writer.write_to_file(data),
-            DataOutput::Parquet => {}
         }
     }
 }
@@ -81,26 +79,11 @@ impl WriterCsv {
         writer
     }
 
-    fn write_to_file<R: Resultant>(&mut self, data: &Vec<R>) {
+    fn write_to_file<R: Resultant>(&mut self, data: Vec<R>) {
         let mut writer = Self::build_writer(self.file_name.clone());
-        for record in data {
+        data.iter().for_each(|record| {
             writer.serialize(record).expect("Error writing record");
-        }
+        });
         writer.flush().expect("Error flushing writer");
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct WriterParquet {
-    file_name: PathBuf,
-}
-
-impl WriterParquet {
-    pub fn new(file_name: &PathBuf) -> Self {
-        Self {
-            file_name: file_name.to_owned(),
-        }
-    }
-
-    fn write_to_file<R: Resultant>(&mut self, data: &Vec<R>) {}
 }

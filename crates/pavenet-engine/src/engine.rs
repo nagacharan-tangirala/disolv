@@ -134,7 +134,7 @@ pub(crate) mod tests {
         let stream_step = TimeMS::from(50);
         let step_size = TimeMS::from(10);
         let engine = make_engine(end_step, stream_step, step_size);
-        simulate!(engine, end_step.as_u64(), 1);
+        simulate!(engine, end_step.as_u64(), 1., 1);
     }
 
     #[test]

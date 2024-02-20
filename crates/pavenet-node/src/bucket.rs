@@ -61,8 +61,8 @@ impl DeviceBucket {
         self.mapper_for(node_type).map_state_of(node_id)
     }
 
-    pub(crate) fn node_of(&mut self, node_id: NodeId) -> Option<&mut Device> {
-        self.devices.get_mut(&node_id)
+    pub(crate) fn node_of(&mut self, node_id: NodeId) -> Option<&Device> {
+        self.devices.get(&node_id)
     }
 
     pub(crate) fn stats_for(&mut self, link_opts: &Vec<DLink>) -> Vec<Option<&OutgoingStats>> {
