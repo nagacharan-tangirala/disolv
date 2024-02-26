@@ -20,7 +20,7 @@ fn main() {
     let start = std::time::Instant::now();
     let mut builder = SimulationBuilder::new(&args.config);
     let mut scheduler: DScheduler = builder.build();
-    run_simulation(&mut scheduler);
+    run_simulation(&mut scheduler, builder.metadata());
     let elapsed = start.elapsed();
     println!("Simulation finished in {} ms.", elapsed.as_millis());
 }
