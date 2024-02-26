@@ -1,9 +1,9 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
-use advaitars_core::metrics::Bytes;
-use advaitars_core::radio::OutgoingStats;
-use advaitars_engine::bucket::{Resultant, TimeMS};
-use advaitars_engine::node::NodeId;
+use advaitars_core::agent::AgentId;
+use advaitars_core::bucket::{Resultant, TimeMS};
+use advaitars_models::net::metrics::Bytes;
+use advaitars_models::net::radio::OutgoingStats;
 use log::debug;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -22,7 +22,7 @@ pub struct DataRxCounts {
 }
 
 impl DataRxCounts {
-    pub fn from_data(time_step: TimeMS, node_id: NodeId, in_data_stats: &OutgoingStats) -> Self {
+    pub fn from_data(time_step: TimeMS, node_id: AgentId, in_data_stats: &OutgoingStats) -> Self {
         Self {
             time_step: time_step.as_u32(),
             node_id: node_id.as_u32(),
@@ -60,7 +60,7 @@ impl RxCountWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, node_id: NodeId, in_data_stats: &OutgoingStats) {
+    pub fn add_data(&mut self, time_step: TimeMS, node_id: AgentId, in_data_stats: &OutgoingStats) {
         self.data_rx
             .push(DataRxCounts::from_data(time_step, node_id, in_data_stats));
     }

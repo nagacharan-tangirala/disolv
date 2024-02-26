@@ -2,12 +2,12 @@ use crate::net::NetStatWriter;
 use crate::position::PosWriter;
 use crate::rx_counts::RxCountWriter;
 use crate::tx::TxDataWriter;
-use advaitars_core::message::{DPayload, TxMetrics};
-use advaitars_core::mobility::MapState;
-use advaitars_core::radio::{DLink, OutgoingStats};
-use advaitars_engine::bucket::TimeMS;
-use advaitars_engine::node::NodeId;
-use advaitars_models::slice::Slice;
+use advaitars_core::agent::AgentId;
+use advaitars_core::bucket::TimeMS;
+use advaitars_models::device::mobility::MapState;
+use advaitars_models::net::message::{DPayload, TxMetrics};
+use advaitars_models::net::radio::{DLink, OutgoingStats};
+use advaitars_models::net::slice::Slice;
 use log::debug;
 use serde::Deserialize;
 
@@ -33,7 +33,7 @@ pub struct FileOutConfig {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct OutputSettings {
-    pub output_step: TimeMS,
+    pub output_interval: TimeMS,
     pub output_path: String,
     pub file_type: FileType,
     pub file_out_config: Vec<FileOutConfig>,
@@ -80,7 +80,7 @@ impl ResultWriter {
     pub fn add_rx_counts(
         &mut self,
         time_step: TimeMS,
-        node_id: NodeId,
+        node_id: AgentId,
         in_data_stats: &OutgoingStats,
     ) {
         match &mut self.rx_count_writer {
@@ -106,7 +106,7 @@ impl ResultWriter {
         }
     }
 
-    pub fn add_node_pos(&mut self, time_step: TimeMS, node_id: NodeId, map_state: &MapState) {
+    pub fn add_node_pos(&mut self, time_step: TimeMS, node_id: AgentId, map_state: &MapState) {
         match &mut self.node_pos_writer {
             Some(pos) => pos.add_data(time_step, node_id, map_state),
             None => (),

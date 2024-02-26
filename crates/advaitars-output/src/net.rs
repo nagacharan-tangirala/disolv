@@ -1,9 +1,9 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
-use advaitars_core::metrics::Bandwidth;
-use advaitars_engine::bucket::{Resultant, TimeMS};
-use advaitars_engine::metrics::Consumable;
-use advaitars_models::slice::Slice;
+use advaitars_core::bucket::{Resultant, TimeMS};
+use advaitars_core::metrics::Consumable;
+use advaitars_models::net::metrics::Bandwidth;
+use advaitars_models::net::slice::Slice;
 use serde::Serialize;
 use std::path::PathBuf;
 

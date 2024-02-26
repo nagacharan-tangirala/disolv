@@ -1,8 +1,8 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
-use advaitars_core::mobility::MapState;
-use advaitars_engine::bucket::{Resultant, TimeMS};
-use advaitars_engine::node::NodeId;
+use advaitars_core::agent::AgentId;
+use advaitars_core::bucket::{Resultant, TimeMS};
+use advaitars_models::device::mobility::MapState;
 use log::debug;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -18,7 +18,7 @@ pub struct NodePosition {
 impl Resultant for NodePosition {}
 
 impl NodePosition {
-    pub fn from_data(time_step: TimeMS, node_id: NodeId, map_state: &MapState) -> Self {
+    pub fn from_data(time_step: TimeMS, node_id: AgentId, map_state: &MapState) -> Self {
         Self {
             time_step: time_step.as_u32(),
             node_id: node_id.as_u32(),
@@ -49,7 +49,7 @@ impl PosWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, node_id: NodeId, map_state: &MapState) {
+    pub fn add_data(&mut self, time_step: TimeMS, node_id: AgentId, map_state: &MapState) {
         self.data_pos
             .push(NodePosition::from_data(time_step, node_id, map_state));
     }
