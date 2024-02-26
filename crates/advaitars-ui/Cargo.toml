@@ -1,0 +1,9 @@
+[package]
+name = "advaitars-ui"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+crossterm = "0.27.0"
+ratatui = "0.26.1"
+typed-builder = "0.18.1"
