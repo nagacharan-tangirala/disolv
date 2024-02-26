@@ -1,9 +1,9 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
-use advaitars_core::message::{DPayload, TxFailReason, TxMetrics, TxStatus};
-use advaitars_core::metrics::Bytes;
-use advaitars_core::radio::DLink;
-use advaitars_engine::bucket::{Resultant, TimeMS};
+use advaitars_core::bucket::{Resultant, TimeMS};
+use advaitars_models::net::message::{DPayload, TxFailReason, TxMetrics, TxStatus};
+use advaitars_models::net::metrics::Bytes;
+use advaitars_models::net::radio::DLink;
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -33,7 +33,7 @@ impl DataTx {
     ) -> Self {
         Self {
             time_step: time_step.as_u32(),
-            node_id: payload.node_state.node_info.id.as_u32(),
+            node_id: payload.node_state.device_info.id.as_u32(),
             selected_node: link.target.as_u32(),
             distance: link.properties.distance.unwrap_or(-1.0),
             data_count: payload.metadata.total_count,

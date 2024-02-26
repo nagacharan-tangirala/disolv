@@ -1,5 +1,5 @@
 use crate::columns::TIME_STEP;
-use advaitars_engine::bucket::TimeMS;
+use advaitars_core::bucket::TimeMS;
 use arrow_array::RecordBatch;
 use log::{debug, error};
 use parquet::file::reader::{FileReader, SerializedFileReader};

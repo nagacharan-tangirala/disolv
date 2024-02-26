@@ -1,152 +1,66 @@
-use advaitars_engine::metrics::Metric;
-use serde::Deserialize;
-use serde::Serialize;
-use std::fmt::Display;
-use std::iter::Sum;
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use crate::message::{Metadata, TxReport};
 
-#[derive(Debug, Clone, Copy)]
-pub enum RadioMetrics {
-    Latency,
-    Bandwidth,
-    Throughput,
-    PacketLoss,
+/// A trait that measures some quantity of the radio. It could be a struct or a simple named type.
+/// Any number of metrics can be used to measure the radio usage. The name should be unique and
+/// must be added to the enum that implements the <code>MetricName</code> trait.
+pub trait Metric: Default + PartialEq + PartialOrd + Copy + Clone + Send + Sync {}
+
+/// An enum that represents the feasibility of a metric. This is used as return type of the
+/// feasibility evaluation so that the caller can get the feasibility and the actual value of the
+/// metric that was measured.
+#[derive(Clone, Copy, Debug)]
+pub enum Feasibility<M>
+where
+    M: Metric,
+{
+    Feasible(M),
+    Infeasible(M),
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
-pub struct Latency(u64);
+/// A trait that can be used on structs that contain the settings of a metric. The settings should
+/// be capable of building an instance of the struct that implements either the
+/// <code>Measurable</code> or <code>Consumable</code> trait.
+pub trait MetricSettings {}
 
-impl Display for Latency {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}ms", self.0)
-    }
+/// A trait that can be used to contain the measurement process of a metric. It must be applied on
+/// each struct that measure some kind of a metric.
+pub trait Measurable<M>: Clone + Send + Sync
+where
+    M: Metric,
+{
+    type P: Metadata;
+    type S: MetricSettings;
+    type T: TxReport;
+
+    fn with_settings(settings: Self::S) -> Self;
+    fn measure(&mut self, tx_report: &Self::T, metadata: &Self::P) -> Feasibility<M>;
 }
 
-impl Latency {
-    pub fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    pub fn as_u64(&self) -> u64 {
-        self.0
-    }
+/// A trait that can be used to define a consumable that can be reset at each time step.
+/// This can be used to define radio resources that are measured as they are consumed.
+pub trait Consumable<M>: Clone + Send + Sync
+where
+    M: Metric,
+{
+    type P: Metadata;
+    type S: MetricSettings;
+    fn with_settings(settings: Self::S) -> Self;
+    fn reset(&mut self);
+    fn consume(&mut self, metadata: &Self::P) -> Feasibility<M>;
+    fn available(&self) -> M;
+    fn constraint(&self) -> M;
 }
 
-impl Sub for Latency {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self::Output {
-        Self(self.0 - other.0)
-    }
+/// A trait that can be used to define a resource that cannot be replenished. This can be used to
+/// define metrics that cannot be reset. Trying to consume more than the available resource should
+/// be infeasible.
+pub trait NonReplenishable<M>: Clone + Send + Sync
+where
+    M: Metric,
+{
+    type P: Metadata;
+    type S: MetricSettings;
+    fn with_settings(settings: Self::S) -> Self;
+    fn consume(&mut self, metadata: &Self::P) -> Feasibility<M>;
+    fn get_available(&self) -> M;
 }
-
-impl Metric for Latency {}
-
-#[derive(Deserialize, Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
-pub struct Throughput(u32);
-
-impl AddAssign for Throughput {
-    fn add_assign(&mut self, other: Self) {
-        self.0 += other.0;
-    }
-}
-
-impl Add for Throughput {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self::Output {
-        Self(self.0 + other.0)
-    }
-}
-
-impl Metric for Throughput {}
-
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
-pub struct Bandwidth(u64);
-
-impl Bandwidth {
-    pub fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    pub fn as_u64(&self) -> u64 {
-        self.0
-    }
-}
-
-impl AddAssign for Bandwidth {
-    fn add_assign(&mut self, other: Self) {
-        self.0 += other.0;
-    }
-}
-
-impl Add for Bandwidth {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self::Output {
-        Self(self.0 + other.0)
-    }
-}
-
-impl SubAssign for Bandwidth {
-    fn sub_assign(&mut self, other: Self) {
-        self.0 -= other.0;
-    }
-}
-
-impl Metric for Bandwidth {}
-
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, PartialOrd, Default, Copy)]
-pub struct Bytes(u64);
-
-impl Display for Bytes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}B", self.0)
-    }
-}
-
-impl Bytes {
-    pub fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    pub fn as_u64(&self) -> u64 {
-        self.0
-    }
-}
-
-impl SubAssign for Bytes {
-    fn sub_assign(&mut self, other: Self) {
-        self.0 -= other.0;
-    }
-}
-
-impl AddAssign for Bytes {
-    fn add_assign(&mut self, other: Self) {
-        self.0 += other.0;
-    }
-}
-
-impl Add for Bytes {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self::Output {
-        Self(self.0 + other.0)
-    }
-}
-
-impl Sub for Bytes {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self::Output {
-        Self(self.0 - other.0)
-    }
-}
-
-impl Sum for Bytes {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(Self::default(), |acc, x| acc + x)
-    }
-}
-
-impl Metric for Bytes {}

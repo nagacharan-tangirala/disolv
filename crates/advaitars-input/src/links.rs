@@ -1,16 +1,16 @@
 use crate::batch::{get_row_groups_for_time, read_f64_column, read_u64_column};
 use crate::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
-use advaitars_core::radio::DLink;
-use advaitars_engine::bucket::TimeMS;
-use advaitars_engine::hashbrown::HashMap;
-use advaitars_engine::node::NodeId;
-use log::{debug, info};
+use advaitars_core::agent::AgentId;
+use advaitars_core::bucket::TimeMS;
+use advaitars_core::hashbrown::HashMap;
+use advaitars_models::net::radio::DLink;
+use log::debug;
 use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use std::fs::File;
 use std::path::PathBuf;
 use typed_builder::TypedBuilder;
 
-pub type LinkMap = HashMap<TimeMS, HashMap<NodeId, Vec<DLink>>>;
+pub type LinkMap = HashMap<TimeMS, HashMap<AgentId, Vec<DLink>>>;
 
 #[derive(Clone, TypedBuilder)]
 pub struct LinkReader {
@@ -33,13 +33,13 @@ impl LinkReader {
                 .into_iter()
                 .map(TimeMS::from)
                 .collect();
-            let node_ids: Vec<NodeId> = read_u64_column(NODE_ID, &record_batch)
+            let node_ids: Vec<AgentId> = read_u64_column(NODE_ID, &record_batch)
                 .into_iter()
-                .map(NodeId::from)
+                .map(AgentId::from)
                 .collect();
-            let target_ids: Vec<NodeId> = read_u64_column(TARGET_ID, &record_batch)
+            let target_ids: Vec<AgentId> = read_u64_column(TARGET_ID, &record_batch)
                 .into_iter()
-                .map(NodeId::from)
+                .map(AgentId::from)
                 .collect();
             let mut link_vec: Vec<DLink> = target_ids.into_iter().map(DLink::new).collect();
 
