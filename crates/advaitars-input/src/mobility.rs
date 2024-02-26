@@ -1,20 +1,19 @@
 use crate::batch::{get_row_groups_for_time, read_f64_column, read_u32_column, read_u64_column};
 use crate::columns::{COORD_X, COORD_Y, COORD_Z, NODE_ID, ROAD_ID, TIME_STEP, VELOCITY};
-use advaitars_core::mobility::road::RoadId;
-use advaitars_core::mobility::velocity::Velocity;
-use advaitars_core::mobility::{MapState, Point2D};
-use advaitars_engine::bucket::TimeMS;
-use advaitars_engine::hashbrown::HashMap;
-use advaitars_engine::node::NodeId;
+use advaitars_core::agent::AgentId;
+use advaitars_core::bucket::TimeMS;
+use advaitars_core::hashbrown::HashMap;
+use advaitars_models::device::mobility::road::RoadId;
+use advaitars_models::device::mobility::velocity::Velocity;
+use advaitars_models::device::mobility::{MapState, Point2D};
 use arrow_array::RecordBatch;
-use log::{debug, info};
+use log::debug;
 use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use std::fs::File;
 use std::path::PathBuf;
-use std::time::Instant;
 use typed_builder::TypedBuilder;
 
-pub type TraceMap = HashMap<TimeMS, HashMap<NodeId, MapState>>;
+pub type TraceMap = HashMap<TimeMS, HashMap<AgentId, MapState>>;
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct MapReader {
@@ -39,9 +38,9 @@ impl MapReader {
                 .into_iter()
                 .map(TimeMS::from)
                 .collect();
-            let node_ids: Vec<NodeId> = read_u64_column(NODE_ID, &record_batch)
+            let node_ids: Vec<AgentId> = read_u64_column(NODE_ID, &record_batch)
                 .into_iter()
-                .map(NodeId::from)
+                .map(AgentId::from)
                 .collect();
 
             let x_positions = read_f64_column(COORD_X, &record_batch);

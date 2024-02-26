@@ -1,18 +1,17 @@
-use crate::batch::{read_u32_column, read_u64_column};
+use crate::batch::read_u64_column;
 use crate::columns::{NODE_ID, OFF_TIMES, ON_TIMES};
-use advaitars_engine::bucket::TimeMS;
-use advaitars_engine::hashbrown::HashMap;
-use advaitars_engine::node::NodeId;
+use advaitars_core::agent::AgentId;
+use advaitars_core::bucket::TimeMS;
+use advaitars_core::hashbrown::HashMap;
 use arrow_array::RecordBatch;
-use log::debug;
 use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use std::fs::File;
 use std::path::PathBuf;
 
 pub type PowerTimes = (Vec<TimeMS>, Vec<TimeMS>);
 
-pub fn read_power_schedule(power_schedule_file: &PathBuf) -> HashMap<NodeId, PowerTimes> {
-    let mut power_data_map: HashMap<NodeId, PowerTimes> = HashMap::new();
+pub fn read_power_schedule(power_schedule_file: &PathBuf) -> HashMap<AgentId, PowerTimes> {
+    let mut power_data_map: HashMap<AgentId, PowerTimes> = HashMap::new();
     let reader = get_batch_reader(power_schedule_file);
     for record_batch in reader {
         let record_batch: RecordBatch = match record_batch {
@@ -20,9 +19,9 @@ pub fn read_power_schedule(power_schedule_file: &PathBuf) -> HashMap<NodeId, Pow
             Err(e) => panic!("Error reading record batch: {}", e),
         };
 
-        let node_ids: Vec<NodeId> = read_u64_column(NODE_ID, &record_batch)
+        let node_ids: Vec<AgentId> = read_u64_column(NODE_ID, &record_batch)
             .into_iter()
-            .map(NodeId::from)
+            .map(AgentId::from)
             .collect();
         let on_times: Vec<TimeMS> = read_u64_column(ON_TIMES, &record_batch)
             .into_iter()
