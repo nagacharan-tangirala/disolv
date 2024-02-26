@@ -3,21 +3,31 @@ use std::error;
 /// Application result type.
 pub type ContentResult<T> = Result<T, Box<dyn error::Error>>;
 
+#[derive(Debug, Clone, Default)]
+pub struct SimulationMetadata {
+    pub scenario: String,
+    pub input_file: String,
+    pub output_path: String,
+    pub log_path: String,
+}
+
 /// Application.
 #[derive(Debug, Default)]
 pub struct Content {
     pub running: bool,
     pub total_steps: u64,
     pub now: u64,
+    pub metadata: SimulationMetadata,
     pub total_agents: usize,
     pub active_agents: usize,
 }
 
 impl Content {
-    pub fn new(total_steps: u64) -> Self {
+    pub fn new(total_steps: u64, metadata: SimulationMetadata) -> Self {
         Self {
             total_steps,
             running: true,
+            metadata,
             ..Self::default()
         }
     }

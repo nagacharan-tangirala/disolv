@@ -27,6 +27,7 @@ use advaitars_models::net::metrics::RadioMetricTypes;
 use advaitars_models::net::network::Network;
 use advaitars_models::net::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use advaitars_output::result::ResultWriter;
+use advaitars_ui::content::SimulationMetadata;
 use log::{debug, info};
 use std::path::{Path, PathBuf};
 
@@ -37,6 +38,7 @@ pub type DAgentImpl = AgentImpl<Device, DeviceBucket>;
 pub struct SimulationBuilder {
     base_config: BaseConfig,
     config_path: PathBuf,
+    metadata: SimulationMetadata,
 }
 
 impl SimulationBuilder {
@@ -53,13 +55,26 @@ impl SimulationBuilder {
 
         let config_reader = BaseConfigReader::new(&base_config_file);
         match config_reader.parse() {
-            Ok(base_config) => Self {
-                base_config,
-                config_path,
-            },
+            Ok(base_config) => {
+                let metadata = Self::build_metadata(&base_config, &config_path);
+                Self {
+                    base_config,
+                    config_path,
+                    metadata,
+                }
+            }
             Err(e) => {
                 panic!("Error while parsing the base configuration file: {}", e);
             }
+        }
+    }
+
+    fn build_metadata(base_config: &BaseConfig, config_path: &PathBuf) -> SimulationMetadata {
+        SimulationMetadata {
+            scenario: base_config.simulation_settings.scenario.clone(),
+            input_file: config_path.to_str().unwrap().to_string(),
+            output_path: base_config.output_settings.output_path.clone(),
+            log_path: base_config.log_settings.log_path.clone(),
         }
     }
 
@@ -326,11 +341,11 @@ impl SimulationBuilder {
         return self.base_config.simulation_settings.streaming_interval;
     }
 
-    pub(crate) fn duration(&self) -> TimeMS {
+    fn duration(&self) -> TimeMS {
         return self.base_config.simulation_settings.duration;
     }
 
-    pub(crate) fn step_size(&self) -> TimeMS {
+    fn step_size(&self) -> TimeMS {
         return self.base_config.simulation_settings.step_size;
     }
 
@@ -340,5 +355,9 @@ impl SimulationBuilder {
 
     fn output_interval(&self) -> TimeMS {
         return self.base_config.output_settings.output_interval;
+    }
+
+    pub(crate) fn metadata(&self) -> SimulationMetadata {
+        self.metadata.clone()
     }
 }
