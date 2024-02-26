@@ -5,10 +5,8 @@ edition = "2021"
 
 [dependencies]
 advaitars-core = { path = "../advaitars-core" }
-advaitars-engine = { path = "../advaitars-engine" }
 advaitars-models = { path = "../advaitars-models" }
-krabmaga = { version = "0.4.1", path= "../../../krABMaga" }
-serde = { version = "1.0.196", features = ["derive"] }
+serde = { version = "1.0.197", features = ["derive"] }
 csv = "1.3.0"
 typed-builder = "0.18.1"
 log = "0.4.20"

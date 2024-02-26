@@ -1,6 +1,6 @@
 [package]
-name = "advaitars"
-version = "0.0.2"
+name = "advaitars-device"
+version = "0.0.0"
 authors = [
     "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
 ]
@@ -10,16 +10,12 @@ readme = "README.md"
 
 [dependencies]
 advaitars-core = { version = "0.0.0", path = "../advaitars-core" }
+advaitars-models = { version = "0.0.0", path = "../advaitars-models" }
 advaitars-input = { version = "0.0.0", path = "../advaitars-input" }
 advaitars-output = { version = "0.0.0", path = "../advaitars-output" }
-advaitars-device = { version = "0.0.0", path = "../advaitars-device" }
-advaitars-models = { version = "0.0.0", path = "../advaitars-models" }
-toml = "0.8.10"
-rand = "0.8.5"
 log4rs = "1.3.0"
 log = "0.4.20"
-itertools = "0.12.1"
-clap = { version = "4.5.1", features = ["derive"] }
+rand = "0.8.5"
 typed-builder = "0.18.1"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_with = "3.6.1"
