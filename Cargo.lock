@@ -17,6 +17,7 @@ dependencies = [
  "advaitars-input",
  "advaitars-models",
  "advaitars-output",
+ "advaitars-ui",
  "clap",
  "itertools",
  "log",
