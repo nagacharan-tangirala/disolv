@@ -1,12 +1,13 @@
-use advaitars_core::entity::{NodeClass, NodeOrder, NodeType};
-use advaitars_core::radio::ActionSettings;
-use advaitars_engine::bucket::TimeMS;
-use advaitars_models::compose::ComposerSettings;
-use advaitars_models::reply::ReplierSettings;
-use advaitars_models::select::SelectorSettings;
-use advaitars_models::slice::SliceSettings;
-use advaitars_node::linker::LinkerSettings;
-use advaitars_node::space::{FieldSettings, MobilitySettings};
+use advaitars_core::agent::AgentOrder;
+use advaitars_core::bucket::TimeMS;
+use advaitars_device::linker::LinkerSettings;
+use advaitars_device::space::{FieldSettings, MobilitySettings};
+use advaitars_models::device::compose::ComposerSettings;
+use advaitars_models::device::reply::ReplierSettings;
+use advaitars_models::device::select::SelectorSettings;
+use advaitars_models::device::types::{DeviceClass, DeviceType};
+use advaitars_models::net::radio::ActionSettings;
+use advaitars_models::net::slice::SliceSettings;
 use advaitars_output::result::OutputSettings;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -19,16 +20,16 @@ pub struct BaseConfig {
     pub network_settings: NetworkSettings,
     pub log_settings: LogSettings,
     pub output_settings: OutputSettings,
-    pub nodes: Vec<NodeSettings>,
+    pub agents: Vec<AgentSettings>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SimSettings {
-    pub sim_name: String,
-    pub sim_duration: TimeMS,
-    pub sim_step_size: TimeMS,
-    pub sim_streaming_step: TimeMS,
-    pub sim_seed: u64,
+    pub scenario: String,
+    pub duration: TimeMS,
+    pub step_size: TimeMS,
+    pub streaming_interval: TimeMS,
+    pub seed: u64,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -40,12 +41,12 @@ pub struct LogSettings {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct NodeSettings {
-    pub node_type: NodeType,
+pub struct AgentSettings {
+    pub agent_type: DeviceType,
     pub power_file: String,
     pub mobility: MobilitySettings,
     pub linker: Option<Vec<LinkerSettings>>,
-    pub class: Vec<NodeClassSettings>,
+    pub class: Vec<AgentClassSettings>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -55,10 +56,10 @@ pub struct NetworkSettings {
 
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
-pub struct NodeClassSettings {
-    pub node_share: f32,
-    pub node_class: NodeClass,
-    pub node_order: NodeOrder,
+pub struct AgentClassSettings {
+    pub agent_share: f32,
+    pub agent_class: DeviceClass,
+    pub agent_order: AgentOrder,
     pub composer: ComposerSettings,
     pub selector: Vec<SelectorSettings>,
     pub replier: ReplierSettings,
@@ -79,16 +80,5 @@ impl BaseConfigReader {
         let parsing_result = std::fs::read_to_string(&self.file_path)?;
         let config: BaseConfig = toml::from_str(&parsing_result)?;
         Ok(config)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[cfg(test)]
-    fn test_base_config_reader() {
-        let base_config_file = "../test/data/test_config.toml";
-        let config_reader = super::BaseConfigReader::new(&base_config_file);
-        let base_config = config_reader.parse().unwrap();
-        println!("{:?}", base_config);
     }
 }
