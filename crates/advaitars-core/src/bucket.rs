@@ -1,4 +1,3 @@
-use crate::scheduler::Scheduler;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, Mul};
@@ -78,110 +77,98 @@ impl Add for TimeMS {
         Self(self.0 + rhs.0)
     }
 }
+
 impl AddAssign for TimeMS {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
     }
 }
 
-/// A trait passed to the entity so that an entity can access other entities. Any common models
-/// applicable to all the entities irrespective of type should be assigned to a struct that
+/// A trait passed to the agent so that an agent can access other agents. Any common models
+/// applicable to all the agents irrespective of type should be assigned to a struct that
 /// implements this trait.
-pub trait Bucket: Clone + Send + Sync + 'static {
-    type SchedulerImpl: Scheduler;
-
-    fn scheduler(&mut self) -> &mut Self::SchedulerImpl;
-    fn init(&mut self, step: TimeMS);
-    fn update(&mut self, step: TimeMS);
-    fn before_uplink(&mut self);
-    fn before_downlink(&mut self);
-    fn streaming_step(&mut self, step: TimeMS);
-    fn end(&mut self, step: TimeMS);
-}
-
-/// The <code>ResultSaver</code> trait defines the methods that take the simulator data and
-/// prepare the data for output.
-pub trait ResultSaver: Bucket {
-    fn save_device_stats(&mut self, step: TimeMS);
-    fn save_data_stats(&mut self, step: TimeMS);
-    fn save_network_stats(&mut self, step: TimeMS);
+pub trait Bucket: Clone + Send + Sync {
+    fn initialize(&mut self, step: TimeMS);
+    fn before_agents(&mut self, step: TimeMS);
+    fn after_stage_one(&mut self) {}
+    fn after_stage_two(&mut self) {}
+    fn after_stage_three(&mut self) {}
+    fn after_stage_four(&mut self) {}
+    fn after_agents(&mut self);
+    fn stream_input(&mut self, step: TimeMS);
+    fn stream_output(&mut self, step: TimeMS);
+    fn terminate(&mut self, step: TimeMS);
 }
 
 /// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark
 /// a struct which contains the data that needs to be written to a file.
 pub trait Resultant: Serialize + Copy + Clone + Debug {}
 
-pub trait Outlet<R>
-where
-    R: Resultant,
-{
-    fn write_to_file(&mut self, data: &R);
-}
-
 #[cfg(test)]
 pub(crate) mod tests {
     use super::Bucket;
-    use super::ResultSaver;
     use super::TimeMS;
-    use crate::scheduler::tests::{make_scheduler_with_2_devices, MyScheduler};
+    use crate::agent::tests::DeviceStats;
+    use crate::agent::{Agent, AgentId};
+    use hashbrown::HashMap;
+
+    pub(crate) struct BucketModels {
+        pub(crate) models: i32,
+    }
 
     #[derive(Default, Clone)]
     pub(crate) struct MyBucket {
-        pub(crate) scheduler: MyScheduler,
         pub(crate) step: TimeMS,
     }
 
     impl MyBucket {
         pub(crate) fn new() -> Self {
-            let scheduler = make_scheduler_with_2_devices();
             Self {
-                scheduler,
                 step: TimeMS::default(),
             }
         }
     }
 
-    impl ResultSaver for MyBucket {
-        fn save_device_stats(&mut self, time: TimeMS) {
-            todo!()
-        }
-        fn save_data_stats(&mut self, time: TimeMS) {
-            todo!()
-        }
-
-        fn save_network_stats(&mut self, step: TimeMS) {
-            todo!()
-        }
-    }
-
     impl Bucket for MyBucket {
-        type SchedulerImpl = MyScheduler;
-        fn scheduler(&mut self) -> &mut MyScheduler {
-            &mut self.scheduler
-        }
-
-        fn init(&mut self, step: TimeMS) {
+        fn initialize(&mut self, step: TimeMS) {
             self.step = step;
+            println!("initialize in MyBucket");
         }
 
-        fn update(&mut self, step: TimeMS) {
+        fn before_agents(&mut self, step: TimeMS) {
             self.step = step;
-            println!("Update in MyBucket at {}", step);
+            println!("before_agents in MyBucket");
         }
 
-        fn before_uplink(&mut self) {
-            println!("before_uplink in MyBucket");
+        fn after_stage_one(&mut self) {
+            println!("after_stage_one in MyBucket");
         }
 
-        fn before_downlink(&mut self) {
-            println!("before_downlink in MyBucket");
+        fn after_stage_two(&mut self) {
+            println!("after_stage_two in MyBucket");
         }
 
-        fn streaming_step(&mut self, step: TimeMS) {
+        fn after_stage_three(&mut self) {
+            println!("after_stage_three in MyBucket");
+        }
+
+        fn after_stage_four(&mut self) {
+            println!("after_stage_four in MyBucket");
+        }
+
+        fn after_agents(&mut self) {
+            println!("after_agents in MyBucket");
+        }
+
+        fn stream_input(&mut self, step: TimeMS) {
             println!("Streaming step in bucket at {}", step);
         }
 
-        fn end(&mut self, step: TimeMS) {
+        fn stream_output(&mut self, step: TimeMS) {
+            println!("Streaming step in bucket at {}", step);
+        }
+
+        fn terminate(&mut self, step: TimeMS) {
             println!("End in MyBucket at {}", step);
         }
     }
@@ -189,15 +176,14 @@ pub(crate) mod tests {
     #[test]
     fn test_bucket_update() {
         let mut bucket = MyBucket::default();
-        let scheduler = MyScheduler::default();
         let step0 = TimeMS::from(0i64);
-        bucket.init(step0);
+        bucket.initialize(step0);
         assert_eq!(bucket.step, TimeMS::from(0i64));
         let step1 = TimeMS::from(1i64);
-        bucket.update(step1);
+        bucket.before_agents(step1);
         assert_eq!(bucket.step, TimeMS::from(1i64));
         let step2 = TimeMS::from(2i64);
-        bucket.update(step2);
+        bucket.before_agents(step2);
         assert_eq!(bucket.step, TimeMS::from(2i64));
     }
 }
