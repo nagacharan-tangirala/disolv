@@ -69,6 +69,7 @@ where
             self.core
                 .add_agent(agent.agent_id, agent.agent.time_to_activation());
         }
+        self.core.bucket.initialize(self.now);
     }
 
     fn activate(&mut self) {
