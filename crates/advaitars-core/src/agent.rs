@@ -234,6 +234,8 @@ pub(crate) mod tests {
     impl Activatable for TDevice {
         fn activate(&mut self) {}
 
+        fn deactivate(&mut self) {}
+
         fn is_deactivated(&self) -> bool {
             false
         }
