@@ -1,6 +1,6 @@
-use advaitars_core::entity::NodeInfo;
-use advaitars_core::message::{DPayload, DataBlob, NodeContent};
-use advaitars_core::radio::{Action, ActionType, DActions};
+use crate::device::types::DeviceInfo;
+use crate::net::message::{DPayload, DataBlob, DeviceContent};
+use crate::net::radio::{Action, ActionType, DActions};
 use log::{debug, error};
 
 /// Prepares a list of data blobs that the payload should consider forwarding.
@@ -11,22 +11,25 @@ use log::{debug, error};
 ///
 /// # Returns
 /// * `Vec<DataBlob>` - List of data blobs that need to be forwarded
-pub fn filter_blobs_to_fwd(target_info: &NodeContent, to_forward: &Vec<DPayload>) -> Vec<DataBlob> {
+pub fn filter_blobs_to_fwd(
+    target_info: &DeviceContent,
+    to_forward: &Vec<DPayload>,
+) -> Vec<DataBlob> {
     let mut blobs_to_forward: Vec<DataBlob> = Vec::new();
     for payload in to_forward.iter() {
         debug!(
             "Checking to forward blob count {} from node {} to node {}",
             payload.metadata.data_blobs.len(),
-            payload.node_state.node_info.id,
-            target_info.node_info.id
+            payload.node_state.device_info.id,
+            target_info.device_info.id
         );
         for blob in payload.metadata.data_blobs.iter() {
-            if should_i_forward(blob, &target_info.node_info) {
+            if should_i_forward(blob, &target_info.device_info) {
                 blobs_to_forward.push(blob.to_owned());
             } else {
                 debug!(
                     "Decided not to forward blob {} from node {} to node {}",
-                    blob.data_type, payload.node_state.node_info.id, target_info.node_info.id
+                    blob.data_type, payload.node_state.device_info.id, target_info.device_info.id
                 );
             }
         }
@@ -67,7 +70,7 @@ pub fn set_actions_before_tx(mut payload: DPayload, actions: &DActions) -> DPayl
 ///
 /// # Returns
 /// * `DPayload` - The payload with the new actions set
-pub fn do_actions(payload: &mut DPayload, node_content: &NodeContent) {
+pub fn do_actions(payload: &mut DPayload, node_content: &DeviceContent) {
     payload
         .metadata
         .data_blobs
@@ -75,7 +78,7 @@ pub fn do_actions(payload: &mut DPayload, node_content: &NodeContent) {
         .for_each(|blob| match blob.action.action_type {
             ActionType::Consume => {}
             ActionType::Forward => {
-                if am_i_target(&blob.action, &node_content.node_info) {
+                if am_i_target(&blob.action, &node_content.device_info) {
                     blob.action.action_type = ActionType::Consume;
                 }
             }
@@ -91,7 +94,7 @@ pub fn do_actions(payload: &mut DPayload, node_content: &NodeContent) {
 ///
 /// # Returns
 /// * `bool` - True if the current node is the intended target, false otherwise
-pub(crate) fn am_i_target(action: &Action, node_info: &NodeInfo) -> bool {
+pub(crate) fn am_i_target(action: &Action, node_info: &DeviceInfo) -> bool {
     // Order of precedence: Node -> Class -> Kind
     if let Some(target_node) = action.to_node {
         if target_node == node_info.id {
@@ -99,12 +102,12 @@ pub(crate) fn am_i_target(action: &Action, node_info: &NodeInfo) -> bool {
         }
     }
     if let Some(target_class) = action.to_class {
-        if target_class == node_info.node_class {
+        if target_class == node_info.device_class {
             return true;
         }
     }
     if let Some(target_kind) = action.to_kind {
-        if target_kind == node_info.node_type {
+        if target_kind == node_info.device_type {
             return true;
         }
     }
@@ -145,7 +148,7 @@ fn assign_actions(data_blob: &mut DataBlob, new_action: &Action) {
 ///
 /// # Returns
 /// * `bool` - True if the current node should forward the data blob, false otherwise
-fn should_i_forward(blob: &DataBlob, target_info: &NodeInfo) -> bool {
+fn should_i_forward(blob: &DataBlob, target_info: &DeviceInfo) -> bool {
     if blob.action.action_type == ActionType::Consume {
         error!("This should have been consumed by now");
         panic!("This should have been consumed by now");
@@ -156,12 +159,12 @@ fn should_i_forward(blob: &DataBlob, target_info: &NodeInfo) -> bool {
         }
     }
     if let Some(class) = blob.action.to_class {
-        if class == target_info.node_class {
+        if class == target_info.device_class {
             return true;
         }
     }
     if let Some(target_kind) = blob.action.to_kind {
-        if target_info.node_type == target_kind {
+        if target_info.device_type == target_kind {
             return true;
         }
     }

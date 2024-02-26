@@ -1,10 +1,10 @@
-use advaitars_core::message::{DPayload, TxMetrics};
-use advaitars_models::slice::Slice;
+use crate::net::message::{DPayload, TxMetrics};
+use crate::net::slice::Slice;
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct Network {
-    pub(crate) slices: Vec<Slice>,
+    pub slices: Vec<Slice>,
 }
 
 impl Network {

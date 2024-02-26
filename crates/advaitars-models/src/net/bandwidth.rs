@@ -1,6 +1,6 @@
-use advaitars_core::message::PayloadInfo;
-use advaitars_core::metrics::Bandwidth;
-use advaitars_engine::metrics::{Consumable, Feasibility, Measurable, MetricSettings};
+use crate::net::message::PayloadInfo;
+use crate::net::metrics::Bandwidth;
+use advaitars_core::metrics::{Consumable, Feasibility, MetricSettings};
 use log::error;
 use serde::Deserialize;
 
@@ -44,15 +44,15 @@ impl Consumable<Bandwidth> for BandwidthType {
         }
     }
 
-    fn constraint(&self) -> Bandwidth {
-        match self {
-            BandwidthType::Constant(bandwidth) => bandwidth.constraint(),
-        }
-    }
-
     fn available(&self) -> Bandwidth {
         match self {
             BandwidthType::Constant(bandwidth) => bandwidth.available(),
+        }
+    }
+
+    fn constraint(&self) -> Bandwidth {
+        match self {
+            BandwidthType::Constant(bandwidth) => bandwidth.constraint(),
         }
     }
 }

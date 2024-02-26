@@ -1,12 +1,11 @@
-use crate::model::{Model, ModelSettings};
-use advaitars_core::entity::NodeClass;
-use advaitars_core::message::{DPayload, DataBlob, DataSource, NodeContent, PayloadInfo};
-use advaitars_core::radio::{Action, DLink};
-use advaitars_engine::bucket::TimeMS;
-use advaitars_engine::uuid;
+use crate::device::types::DeviceClass;
+use crate::net::message::{DPayload, DataBlob, DataSource, DeviceContent, PayloadInfo};
+use crate::net::radio::{Action, DLink};
+use advaitars_core::bucket::TimeMS;
+use advaitars_core::model::{Model, ModelSettings};
+use advaitars_core::uuid;
 use log::{debug, error};
 use serde::Deserialize;
-use std::collections::VecDeque;
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct ComposerSettings {
@@ -38,7 +37,7 @@ impl Model for Composer {
 }
 
 impl Composer {
-    pub fn compose_payload(&self, target_class: &NodeClass, content: NodeContent) -> DPayload {
+    pub fn compose_payload(&self, target_class: &DeviceClass, content: DeviceContent) -> DPayload {
         match self {
             Composer::Basic(composer) => composer.compose_payload(target_class, content),
             Composer::Status(composer) => composer.compose_payload(target_class, content),
@@ -83,7 +82,7 @@ impl BasicComposer {
         self.step = step;
     }
 
-    fn compose_payload(&self, target_class: &NodeClass, content: NodeContent) -> DPayload {
+    fn compose_payload(&self, target_class: &DeviceClass, content: DeviceContent) -> DPayload {
         let payload_info = self.compose_metadata(target_class);
         DPayload::builder()
             .metadata(payload_info)
@@ -92,11 +91,11 @@ impl BasicComposer {
             .build()
     }
 
-    fn compose_metadata(&self, target_class: &NodeClass) -> PayloadInfo {
+    fn compose_metadata(&self, target_class: &DeviceClass) -> PayloadInfo {
         let mut data_blobs = Vec::with_capacity(self.data_sources.len());
         let mut data_count: u32 = 0;
         for ds_settings in self.data_sources.iter() {
-            if ds_settings.node_class != *target_class {
+            if ds_settings.agent_class != *target_class {
                 continue;
             }
             if self.step.as_u32() % ds_settings.source_step.as_u32() != TimeMS::default().as_u32() {
@@ -135,7 +134,7 @@ impl StatusComposer {
         }
     }
 
-    fn compose_payload(&self, _target_class: &NodeClass, content: NodeContent) -> DPayload {
+    fn compose_payload(&self, _target_class: &DeviceClass, content: DeviceContent) -> DPayload {
         DPayload::builder()
             .metadata(PayloadInfo::default())
             .node_state(content)

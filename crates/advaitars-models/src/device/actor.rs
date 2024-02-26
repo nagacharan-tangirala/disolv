@@ -1,10 +1,10 @@
-use advaitars_core::entity::NodeClass;
-use advaitars_core::radio::{Action, ActionSettings, DActions};
+use crate::device::types::DeviceClass;
+use crate::net::radio::{Action, ActionSettings, DActions};
 
 #[derive(Clone, Debug, Default)]
 pub struct Actor {
-    pub target_classes: Vec<NodeClass>,
-    pub actions: Vec<(NodeClass, DActions)>,
+    pub target_classes: Vec<DeviceClass>,
+    pub actions: Vec<(DeviceClass, DActions)>,
 }
 
 impl Actor {
@@ -13,8 +13,8 @@ impl Actor {
             Some(settings) => settings,
             None => return Self::default(),
         };
-        let mut actions: Vec<(NodeClass, DActions)> = Vec::new();
-        let mut target_classes: Vec<NodeClass> = Vec::new();
+        let mut actions: Vec<(DeviceClass, DActions)> = Vec::new();
+        let mut target_classes: Vec<DeviceClass> = Vec::new();
 
         for action_setting in action_settings.iter() {
             let action = Action::builder()
@@ -41,7 +41,7 @@ impl Actor {
         }
     }
 
-    pub fn actions_for(&self, target_class: &NodeClass) -> &DActions {
+    pub fn actions_for(&self, target_class: &DeviceClass) -> &DActions {
         &self
             .actions
             .iter()
@@ -50,5 +50,5 @@ impl Actor {
             .1
     }
 
-    pub fn apply_actions(&self, target_class: &NodeClass) {}
+    pub fn apply_actions(&self, target_class: &DeviceClass) {}
 }

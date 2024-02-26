@@ -1,12 +1,12 @@
-use crate::model::{Model, ModelSettings};
-use advaitars_core::entity::NodeClass;
-use advaitars_core::radio::{DLink, OutgoingStats};
+use crate::device::types::{DeviceClass, DeviceStats};
+use crate::net::radio::DLink;
+use advaitars_core::model::{Model, ModelSettings};
 use log::error;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SelectorSettings {
-    pub target_class: NodeClass,
+    pub target_class: DeviceClass,
     pub strategy: Strategy,
 }
 
@@ -51,11 +51,7 @@ impl Model for Selector {
 }
 
 impl Selector {
-    pub fn do_selection(
-        &self,
-        links: Vec<DLink>,
-        stats: &Vec<Option<&OutgoingStats>>,
-    ) -> Vec<DLink> {
+    pub fn do_selection(&self, links: Vec<DLink>, stats: &Vec<&DeviceStats>) -> Vec<DLink> {
         if links.len() == 1 {
             return links;
         }
@@ -108,6 +104,7 @@ impl RandomSelector {
         return links;
     }
 }
+
 #[derive(Clone, Debug, Default)]
 pub struct MinimumNeighborSelector {
     pub link_count: Option<u32>,
@@ -122,7 +119,7 @@ impl MinimumNeighborSelector {
         }
     }
 
-    fn select_link(&self, links: Vec<DLink>, stats: &Vec<Option<&OutgoingStats>>) -> Vec<DLink> {
+    fn select_link(&self, links: Vec<DLink>, stats: &Vec<&DeviceStats>) -> Vec<DLink> {
         return links;
     }
 }
@@ -141,7 +138,7 @@ impl MinimumDataSelector {
         }
     }
 
-    fn select_link(&self, links: Vec<DLink>, stats: &Vec<Option<&OutgoingStats>>) -> Vec<DLink> {
+    fn select_link(&self, links: Vec<DLink>, stats: &Vec<&DeviceStats>) -> Vec<DLink> {
         return links;
     }
 }

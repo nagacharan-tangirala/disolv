@@ -1,6 +1,6 @@
-use crate::mobility::road::RoadId;
-use crate::mobility::velocity::Velocity;
-use advaitars_engine::entity::MobilityInfo;
+use crate::device::mobility::road::RoadId;
+use crate::device::mobility::velocity::Velocity;
+use advaitars_core::agent::MobilityInfo;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
