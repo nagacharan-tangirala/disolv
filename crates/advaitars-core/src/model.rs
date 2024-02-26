@@ -1,4 +1,4 @@
-use advaitars_engine::bucket::TimeMS;
+use crate::bucket::TimeMS;
 
 /// A marker trait for model settings. Use this to define the settings for a model. These
 /// settings should be readable from a config file.

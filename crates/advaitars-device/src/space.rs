@@ -1,10 +1,10 @@
-use advaitars_core::mobility::cell::CellId;
-use advaitars_core::mobility::{MapState, MobilityType, Point2D};
-use advaitars_engine::bucket::TimeMS;
-use advaitars_engine::hashbrown::{HashMap, HashSet};
-use advaitars_engine::node::NodeId;
+use advaitars_core::agent::AgentId;
+use advaitars_core::bucket::TimeMS;
+use advaitars_core::hashbrown::{HashMap, HashSet};
+use advaitars_core::model::BucketModel;
 use advaitars_input::mobility::{MapReader, TraceMap};
-use advaitars_models::model::BucketModel;
+use advaitars_models::device::mobility::cell::CellId;
+use advaitars_models::device::mobility::{MapState, MobilityType, Point2D};
 use log::debug;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -16,13 +16,13 @@ pub struct Space {
     height: f64,
     cell_size: f64,
     #[builder(default)]
-    cell2node: HashMap<CellId, HashSet<NodeId>>,
+    cell2node: HashMap<CellId, HashSet<AgentId>>,
     #[builder(default)]
-    node2cell: HashMap<NodeId, CellId>,
+    node2cell: HashMap<AgentId, CellId>,
 }
 
 impl Space {
-    pub fn add_node(&mut self, node_id: NodeId, location: &Point2D) {
+    pub fn add_node(&mut self, node_id: AgentId, location: &Point2D) {
         let cell_id = self.get_cell_id(location);
         let old_cell_id = self.node2cell.entry(node_id).or_default();
         if *old_cell_id != cell_id {
@@ -34,16 +34,16 @@ impl Space {
         }
     }
 
-    pub fn nodes(&self, cell_id: CellId) -> Option<&HashSet<NodeId>> {
+    pub fn nodes(&self, cell_id: CellId) -> Option<&HashSet<AgentId>> {
         self.cell2node.get(&cell_id)
     }
 
-    pub fn cell_id(&self, node_id: NodeId) -> Option<&CellId> {
+    pub fn cell_id(&self, node_id: AgentId) -> Option<&CellId> {
         self.node2cell.get(&node_id)
     }
 
     #[inline]
-    fn add_node_to_cell(&mut self, node_id: NodeId, cell_id: CellId) {
+    fn add_node_to_cell(&mut self, node_id: AgentId, cell_id: CellId) {
         self.cell2node.entry(cell_id).or_default().insert(node_id);
     }
 
@@ -74,7 +74,7 @@ pub struct MobilitySettings {
 pub struct Mapper {
     reader: MapReader,
     map_states: TraceMap,
-    map_cache: HashMap<NodeId, MapState>,
+    map_cache: HashMap<AgentId, MapState>,
 }
 
 impl BucketModel for Mapper {
@@ -101,7 +101,7 @@ impl Mapper {
         MapperBuilder::new(config_path.clone())
     }
 
-    pub fn map_state_of(&mut self, node_id: NodeId) -> Option<MapState> {
+    pub fn map_state_of(&mut self, node_id: AgentId) -> Option<MapState> {
         self.map_cache.remove(&node_id)
     }
 }
@@ -156,8 +156,8 @@ impl MapperBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use advaitars_core::mobility::road::RoadId;
-    use advaitars_core::mobility::velocity::Velocity;
+    use advaitars_models::device::mobility::road::RoadId;
+    use advaitars_models::device::mobility::velocity::Velocity;
 
     #[test]
     fn default_map_state() {

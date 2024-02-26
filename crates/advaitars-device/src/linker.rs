@@ -1,16 +1,16 @@
-use advaitars_core::entity::NodeType;
-use advaitars_core::radio::DLink;
-use advaitars_engine::bucket::TimeMS;
-use advaitars_engine::hashbrown::HashMap;
-use advaitars_engine::node::NodeId;
+use advaitars_core::agent::AgentId;
+use advaitars_core::bucket::TimeMS;
+use advaitars_core::hashbrown::HashMap;
+use advaitars_core::model::BucketModel;
 use advaitars_input::links::{LinkMap, LinkReader};
-use advaitars_models::model::BucketModel;
+use advaitars_models::device::types::DeviceType;
+use advaitars_models::net::radio::DLink;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct LinkerSettings {
-    pub target_type: NodeType,
+    pub target_type: DeviceType,
     pub links_file: String,
     pub range: f32,
     pub is_streaming: bool,
@@ -18,18 +18,18 @@ pub struct LinkerSettings {
 
 #[derive(Clone, TypedBuilder)]
 pub struct Linker {
-    pub source_type: NodeType,
-    pub target_type: NodeType,
+    pub source_type: DeviceType,
+    pub target_type: DeviceType,
     pub reader: LinkReader,
     pub is_static: bool,
     #[builder(default)]
     pub links: LinkMap,
     #[builder(default)]
-    pub link_cache: HashMap<NodeId, Vec<DLink>>,
+    pub link_cache: HashMap<AgentId, Vec<DLink>>,
 }
 
 impl Linker {
-    pub fn links_of(&mut self, node_id: NodeId) -> Option<Vec<DLink>> {
+    pub fn links_of(&mut self, node_id: AgentId) -> Option<Vec<DLink>> {
         if self.is_static {
             return self.link_cache.get(&node_id).cloned();
         }
