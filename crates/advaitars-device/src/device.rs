@@ -123,7 +123,11 @@ impl Device {
             }
             let actions = self.models.actor.actions_for(target_class);
             let prepared_payload = set_actions_before_tx(this_payload, actions);
-            self.transmit(prepared_payload, target_link, &mut core.bucket);
+            if target_class == &self.device_info.device_class {
+                self.transmit_sl(prepared_payload, target_link, &mut core.bucket);
+            } else {
+                self.transmit(prepared_payload, target_link, &mut core.bucket);
+            }
         });
     }
 }
