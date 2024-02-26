@@ -40,4 +40,8 @@ impl Content {
     pub fn update_now(&mut self, now: u64) {
         self.now = now;
     }
+
+    pub fn completion(&self) -> f64 {
+        self.now as f64 / self.total_steps as f64
+    }
 }
