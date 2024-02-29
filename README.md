@@ -1,3 +1,5 @@
-# advaitars  
+# disolv
 
-advaitars stands for Analysis of Dataflow in VANETs for Intelligent Transportation Systems. It is a project that aims to analyze the dataflow in VANETs for Intelligent Transportation Systems.
+Dataflow Intended Simulation of Large scale VANETs.
+
+It is a simulator that aims to analyze the dataflow in VANETs for Intelligent Transportation Systems.

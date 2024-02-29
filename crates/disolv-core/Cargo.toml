@@ -1,0 +1,21 @@
+[package]
+name = "disolv-core"
+version = "0.0.0"
+authors = [
+    "Nagacharan Teja Tangirala <nagacharan.tangirala@tum.de>"
+]
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+disolv-ui = { version = "0.0.0", path = "../disolv-ui" }
+typed-builder = "0.18.1"
+hashbrown = "0.14.3"
+ratatui = "0.26.1"
+crossterm = "0.27.0"
+keyed_priority_queue = "0.4.2"
+serde = { version = "1.0.197", features = ["derive"] }
+uuid = { version = "1.7.0", features = ["fast-rng", "v4"] }
+log = "0.4.20"
+rand = "0.8.5"
