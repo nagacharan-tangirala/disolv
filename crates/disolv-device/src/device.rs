@@ -176,7 +176,7 @@ impl Orderable for Device {
     }
 }
 
-impl Transmitter<DeviceBucket, LinkProperties, PayloadInfo, DeviceContent> for Device {
+impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for Device {
     type AgentClass = DeviceClass;
 
     fn transmit(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
@@ -227,7 +227,7 @@ impl Transmitter<DeviceBucket, LinkProperties, PayloadInfo, DeviceContent> for D
     }
 }
 
-impl Receiver<DeviceBucket, PayloadInfo, DeviceContent> for Device {
+impl Receiver<DeviceContent, DeviceBucket, PayloadInfo> for Device {
     type C = DeviceClass;
 
     fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<DPayload>> {
