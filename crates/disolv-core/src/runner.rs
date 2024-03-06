@@ -17,7 +17,7 @@ where
     A: Agent<B>,
     B: Bucket,
 {
-    let (sender_ui, receiver_ui) = mpsc::sync_channel(1);
+    let (sender_ui, receiver_ui) = mpsc::sync_channel(0);
     let sender = sender_ui.clone();
     let terminal_event_sender = sender_ui.clone();
     let duration = scheduler.duration.as_u64();
