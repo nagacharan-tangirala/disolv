@@ -1,15 +1,15 @@
 use crate::agent::Agent;
 use crate::bucket::Bucket;
 use crate::scheduler::{DefaultScheduler, Scheduler};
-use crossterm::event::{self, Event as CrosstermEvent, Event, KeyCode, KeyEvent, MouseEvent};
+use crossterm::event::{self, Event as CrosstermEvent};
 use disolv_ui::content::{Content, SimulationMetadata};
 use disolv_ui::handler::{handle_key_events, Message};
 use disolv_ui::tui::Tui;
-use log::{debug, info};
+use log::info;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::sync::mpsc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use std::{io, thread};
 
 pub fn run_simulation<A, B>(scheduler: &mut DefaultScheduler<A, B>, metadata: SimulationMetadata)
@@ -66,7 +66,7 @@ where
 
                 match terminal_event_sender.send(Message::CurrentTime(now)) {
                     Ok(_) => {}
-                    Err(err) => {
+                    Err(_) => {
                         info!("User must have requested to quit, terminating at {}", now);
                         scheduler.terminate();
                         return;
@@ -93,7 +93,7 @@ where
                 if let Some(m) = message {
                     match sender.send(m) {
                         Ok(_) => {}
-                        Err(err) => return,
+                        Err(_) => return,
                     }
                 }
             }
