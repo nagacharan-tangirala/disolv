@@ -29,7 +29,7 @@ pub fn render(content: &mut Content, frame: &mut Frame) {
 
     frame.render_widget(
         Paragraph::new(format!(
-            " ===================== a d v a i t a r s =====================\n\
+            " ===================== d i s o l v =====================\n\
               \n\
               Scenario: {}\n\
               \n\
