@@ -56,7 +56,7 @@ impl SimulationBuilder {
         let config_reader = BaseConfigReader::new(&base_config_file);
         match config_reader.parse() {
             Ok(base_config) => {
-                let metadata = Self::build_metadata(&base_config, &config_path);
+                let metadata = Self::build_metadata(&base_config, base_config_file);
                 Self {
                     base_config,
                     config_path,
@@ -69,10 +69,10 @@ impl SimulationBuilder {
         }
     }
 
-    fn build_metadata(base_config: &BaseConfig, config_path: &PathBuf) -> SimulationMetadata {
+    fn build_metadata(base_config: &BaseConfig, base_config_file: &str) -> SimulationMetadata {
         SimulationMetadata {
             scenario: base_config.simulation_settings.scenario.clone(),
-            input_file: config_path.to_str().unwrap().to_string(),
+            input_file: base_config_file.to_owned(),
             output_path: base_config.output_settings.output_path.clone(),
             log_path: base_config.log_settings.log_path.clone(),
         }

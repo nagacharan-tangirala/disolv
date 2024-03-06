@@ -1,5 +1,5 @@
 use crate::config::PositionFiles;
-use arrow_array::RecordBatch;
+use arrow::array::RecordBatch;
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_input::batch::{read_f64_column, read_u64_column};

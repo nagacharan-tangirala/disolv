@@ -6,7 +6,6 @@ use crate::reader::{Reader, TraceType};
 use disolv_core::bucket::TimeMS;
 use disolv_models::device::types::DeviceType;
 use hashbrown::HashMap;
-use log::debug;
 use std::path::PathBuf;
 
 pub(crate) struct LinkBuilder {

@@ -1,8 +1,8 @@
 use crate::config::LinkSettings;
 use crate::linker::LinkModel;
 use crate::reader::AgentIdPos;
+use arrow::array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
-use arrow_array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
 use disolv_core::bucket::TimeMS;
 use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
 use kiddo::{KdTree, NearestNeighbour, SquaredEuclidean};

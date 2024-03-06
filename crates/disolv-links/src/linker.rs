@@ -1,5 +1,3 @@
-use crate::reader::AgentIdPos;
-use kiddo::{KdTree, NearestNeighbour, SquaredEuclidean};
 use serde::Deserialize;
 
 #[derive(Copy, Clone, Default, Debug, Deserialize)]
