@@ -1,5 +1,5 @@
 use crate::batch::{get_row_groups_for_time, read_f64_column, read_u64_column};
-use crate::columns::{DISTANCE, LOAD_FACTOR, NODE_ID, TARGET_ID, TIME_STEP};
+use crate::columns::{AGENT_ID, DISTANCE, LOAD_FACTOR, TARGET_ID, TIME_STEP};
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
@@ -33,7 +33,7 @@ impl LinkReader {
                 .into_iter()
                 .map(TimeMS::from)
                 .collect();
-            let node_ids: Vec<AgentId> = read_u64_column(NODE_ID, &record_batch)
+            let agent_ids: Vec<AgentId> = read_u64_column(AGENT_ID, &record_batch)
                 .into_iter()
                 .map(AgentId::from)
                 .collect();
@@ -59,15 +59,15 @@ impl LinkReader {
                 }
             }
 
-            for ((time, node_id), link) in time_steps
+            for ((time, agent_id), link) in time_steps
                 .into_iter()
-                .zip(node_ids.into_iter())
+                .zip(agent_ids.into_iter())
                 .zip(link_vec.into_iter())
             {
                 link_map
                     .entry(time)
                     .or_default()
-                    .entry(node_id)
+                    .entry(agent_id)
                     .or_default()
                     .push(link);
             }

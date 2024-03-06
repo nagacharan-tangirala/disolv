@@ -1,14 +1,14 @@
 use crate::agent::AgentClass;
 use crate::agent::AgentId;
 use crate::bucket::Bucket;
-use crate::message::{GPayload, GResponse, Metadata, NodeState, Queryable, Reply, TxReport};
+use crate::message::{AgentState, GPayload, GResponse, Metadata, Queryable, Reply, TxReport};
 use std::fmt::Debug;
 use typed_builder::TypedBuilder;
 
 /// A trait that contains information about a link. It could be distance, load, etc.
 pub trait LinkFeatures: Copy + Clone + Debug + Default {}
 
-/// A struct that represents a link between two nodes defined by the features F.
+/// A struct that represents a link between two agents defined by the features F.
 #[derive(Debug, Copy, Clone, Default, TypedBuilder)]
 pub struct GLink<F>
 where
@@ -37,7 +37,7 @@ pub trait Actionable: Default + Copy + Clone + Send + Sync {}
 
 /// A trait that contains information that can assist in performing an action on a payload.
 /// Use this on a struct that contains information about the action to be performed.
-/// For example, the action can be to forward the payload to a specific node or class.
+/// For example, the action can be to forward the payload to a specific agent or class.
 pub trait ActionInfo: Copy + Clone + Send + Sync {}
 
 /// A struct that represents an action that can be performed on a payload.
@@ -74,31 +74,31 @@ where
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
 /// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
 /// This should be called in the <code>uplink_stage</code> method of the entity.
-pub trait Transmitter<B, F, M, N>
+pub trait Transmitter<A, B, F, M>
 where
+    A: AgentState,
     B: Bucket,
     F: LinkFeatures,
     M: Metadata,
-    N: NodeState,
 {
-    type NodeClass: AgentClass;
+    type AgentClass: AgentClass;
 
-    fn transmit(&mut self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
-    fn transmit_sl(&mut self, payload: GPayload<M, N>, target: GLink<F>, bucket: &mut B);
+    fn transmit(&mut self, payload: GPayload<A, M>, target: GLink<F>, bucket: &mut B);
+    fn transmit_sl(&mut self, payload: GPayload<A, M>, target: GLink<F>, bucket: &mut B);
 }
 
 /// A trait that an entity must implement to receive messages from other entities in the
 /// simulation. The messages can be from the same class or from up/downstream.
-pub trait Receiver<B, M, N>
+pub trait Receiver<A, B, M>
 where
+    A: AgentState,
     B: Bucket,
     M: Metadata,
-    N: NodeState,
 {
     type C: AgentClass;
 
-    fn receive(&mut self, bucket: &mut B) -> Option<Vec<GPayload<M, N>>>;
-    fn receive_sl(&mut self, bucket: &mut B) -> Option<Vec<GPayload<M, N>>>;
+    fn receive(&mut self, bucket: &mut B) -> Option<Vec<GPayload<A, M>>>;
+    fn receive_sl(&mut self, bucket: &mut B) -> Option<Vec<GPayload<A, M>>>;
 }
 
 /// A trait that an entity must implement to respond to payloads. Transmission of payloads

@@ -4,7 +4,7 @@ use crate::net::metrics::{Bandwidth, Bytes, Latency};
 use crate::net::radio::{Action, ActionType, DLink};
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
-use disolv_core::message::{DataUnit, GPayload, Metadata, NodeState, PayloadStatus};
+use disolv_core::message::{AgentState, DataUnit, GPayload, Metadata, PayloadStatus};
 use disolv_core::message::{GResponse, Queryable, Reply, TxReport};
 use disolv_core::uuid::Uuid;
 use serde::{Deserialize, Serialize};
@@ -43,7 +43,7 @@ pub struct DeviceContent {
     pub map_state: MapState,
 }
 
-impl NodeState for DeviceContent {}
+impl AgentState for DeviceContent {}
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct DataBlob {
@@ -78,7 +78,7 @@ impl PayloadInfo {
 
 impl Metadata for PayloadInfo {}
 
-pub type DPayload = GPayload<PayloadInfo, DeviceContent>;
+pub type DPayload = GPayload<DeviceContent, PayloadInfo>;
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub struct DataSource {
@@ -110,7 +110,7 @@ pub enum TxFailReason {
 
 #[derive(Debug, Clone, Default, Copy)]
 pub struct TxMetrics {
-    pub from_node: AgentId,
+    pub from_agent: AgentId,
     pub tx_order: u32,
     pub tx_status: TxStatus,
     pub payload_size: Bytes,
@@ -123,7 +123,7 @@ pub struct TxMetrics {
 impl TxMetrics {
     pub fn new(payload: &DPayload, tx_order: u32) -> Self {
         Self {
-            from_node: payload.node_state.device_info.id,
+            from_agent: payload.agent_state.device_info.id,
             payload_size: payload.metadata.total_size,
             tx_order,
             ..Default::default()

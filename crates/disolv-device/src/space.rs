@@ -16,35 +16,35 @@ pub struct Space {
     height: f64,
     cell_size: f64,
     #[builder(default)]
-    cell2node: HashMap<CellId, HashSet<AgentId>>,
+    cell2agent: HashMap<CellId, HashSet<AgentId>>,
     #[builder(default)]
-    node2cell: HashMap<AgentId, CellId>,
+    agent2cell: HashMap<AgentId, CellId>,
 }
 
 impl Space {
-    pub fn add_node(&mut self, node_id: AgentId, location: &Point2D) {
+    pub fn add_agent(&mut self, agent_id: AgentId, location: &Point2D) {
         let cell_id = self.get_cell_id(location);
-        let old_cell_id = self.node2cell.entry(node_id).or_default();
+        let old_cell_id = self.agent2cell.entry(agent_id).or_default();
         if *old_cell_id != cell_id {
-            if let Some(nodes) = self.cell2node.get_mut(&cell_id) {
-                nodes.remove(&node_id);
+            if let Some(agents) = self.cell2agent.get_mut(&cell_id) {
+                agents.remove(&agent_id);
             }
-            self.add_node_to_cell(node_id, cell_id);
-            self.node2cell.entry(node_id).and_modify(|e| *e = cell_id);
+            self.add_agent_to_cell(agent_id, cell_id);
+            self.agent2cell.entry(agent_id).and_modify(|e| *e = cell_id);
         }
     }
 
-    pub fn nodes(&self, cell_id: CellId) -> Option<&HashSet<AgentId>> {
-        self.cell2node.get(&cell_id)
+    pub fn agents(&self, cell_id: CellId) -> Option<&HashSet<AgentId>> {
+        self.cell2agent.get(&cell_id)
     }
 
-    pub fn cell_id(&self, node_id: AgentId) -> Option<&CellId> {
-        self.node2cell.get(&node_id)
+    pub fn cell_id(&self, agent_id: AgentId) -> Option<&CellId> {
+        self.agent2cell.get(&agent_id)
     }
 
     #[inline]
-    fn add_node_to_cell(&mut self, node_id: AgentId, cell_id: CellId) {
-        self.cell2node.entry(cell_id).or_default().insert(node_id);
+    fn add_agent_to_cell(&mut self, agent_id: AgentId, cell_id: CellId) {
+        self.cell2agent.entry(cell_id).or_default().insert(agent_id);
     }
 
     #[inline]
@@ -88,7 +88,7 @@ impl BucketModel for Mapper {
         }
     }
 
-    fn before_node_step(&mut self, step: TimeMS) {
+    fn before_agent_step(&mut self, step: TimeMS) {
         self.map_cache = self
             .map_states
             .remove(&step)
@@ -101,8 +101,8 @@ impl Mapper {
         MapperBuilder::new(config_path.clone())
     }
 
-    pub fn map_state_of(&mut self, node_id: AgentId) -> Option<MapState> {
-        self.map_cache.remove(&node_id)
+    pub fn map_state_of(&mut self, agent_id: AgentId) -> Option<MapState> {
+        self.map_cache.remove(&agent_id)
     }
 }
 

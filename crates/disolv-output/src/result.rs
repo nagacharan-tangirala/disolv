@@ -15,7 +15,7 @@ use serde::Deserialize;
 pub enum OutputType {
     RxCounts,
     TxData,
-    NodePos,
+    AgentPos,
     NetStat,
 }
 
@@ -43,7 +43,7 @@ pub struct OutputSettings {
 pub struct ResultWriter {
     tx_writer: Option<TxDataWriter>,
     rx_count_writer: Option<RxCountWriter>,
-    node_pos_writer: Option<PosWriter>,
+    agent_pos_writer: Option<PosWriter>,
     net_stat_writer: Option<NetStatWriter>,
 }
 
@@ -54,10 +54,10 @@ impl ResultWriter {
             .iter()
             .find(|&file_out_config| file_out_config.output_type == OutputType::TxData)
             .map(|_| TxDataWriter::new(output_settings));
-        let node_pos_writer = output_settings
+        let agent_pos_writer = output_settings
             .file_out_config
             .iter()
-            .find(|&file_out_config| file_out_config.output_type == OutputType::NodePos)
+            .find(|&file_out_config| file_out_config.output_type == OutputType::AgentPos)
             .map(|_| PosWriter::new(output_settings));
         let rx_count_writer = output_settings
             .file_out_config
@@ -72,7 +72,7 @@ impl ResultWriter {
         Self {
             tx_writer,
             rx_count_writer,
-            node_pos_writer,
+            agent_pos_writer: agent_pos_writer,
             net_stat_writer,
         }
     }
@@ -80,12 +80,12 @@ impl ResultWriter {
     pub fn add_rx_counts(
         &mut self,
         time_step: TimeMS,
-        node_id: AgentId,
+        agent_id: AgentId,
         in_data_stats: &OutgoingStats,
     ) {
         match &mut self.rx_count_writer {
             Some(rx) => {
-                rx.add_data(time_step, node_id, in_data_stats);
+                rx.add_data(time_step, agent_id, in_data_stats);
             }
             None => (),
         }
@@ -106,9 +106,9 @@ impl ResultWriter {
         }
     }
 
-    pub fn add_node_pos(&mut self, time_step: TimeMS, node_id: AgentId, map_state: &MapState) {
-        match &mut self.node_pos_writer {
-            Some(pos) => pos.add_data(time_step, node_id, map_state),
+    pub fn add_agent_pos(&mut self, time_step: TimeMS, agent_id: AgentId, map_state: &MapState) {
+        match &mut self.agent_pos_writer {
+            Some(pos) => pos.add_data(time_step, agent_id, map_state),
             None => (),
         }
     }
@@ -130,7 +130,7 @@ impl ResultWriter {
             Some(writer) => writer.write_to_file(),
             None => (),
         };
-        match &mut self.node_pos_writer {
+        match &mut self.agent_pos_writer {
             Some(writer) => writer.write_to_file(),
             None => (),
         };

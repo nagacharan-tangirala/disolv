@@ -86,7 +86,7 @@ impl BasicComposer {
         let payload_info = self.compose_metadata(target_class);
         DPayload::builder()
             .metadata(payload_info)
-            .node_state(content)
+            .agent_state(content)
             .gathered_states(Some(Vec::new()))
             .build()
     }
@@ -137,7 +137,7 @@ impl StatusComposer {
     fn compose_payload(&self, _target_class: &DeviceClass, content: DeviceContent) -> DPayload {
         DPayload::builder()
             .metadata(PayloadInfo::default())
-            .node_state(content)
+            .agent_state(content)
             .gathered_states(Some(Vec::new()))
             .build()
     }
@@ -159,11 +159,11 @@ impl StatusComposer {
 //         }
 //     }
 //
-//     fn compose_payload(&self, target_class: &NodeClass, content: NodeContent) -> DPayload {
+//     fn compose_payload(&self, target_class: &AgentClass, content: DeviceContent) -> DPayload {
 //         let payload_info = self.compose_metadata(target_class);
 //         DPayload::builder()
 //             .metadata(payload_info)
-//             .node_state(content)
+//             .agent_state(content)
 //             .gathered_states(Some(Vec::new()))
 //             .build()
 //     }

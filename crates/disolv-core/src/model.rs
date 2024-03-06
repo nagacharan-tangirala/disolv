@@ -5,7 +5,7 @@ use crate::bucket::TimeMS;
 pub trait ModelSettings: Clone {}
 
 /// A marker trait for models. Use this to define a model. A model is a struct that contains
-/// a behaviour that can be used by the node.
+/// a behaviour that can be used by the agent.
 pub trait Model {
     type Settings: ModelSettings;
 
@@ -23,6 +23,6 @@ pub trait BucketModel {
     /// Stream data required by the model, called when streaming interval is reached.
     fn stream_data(&mut self, step: TimeMS);
 
-    /// Prepare the model before the nodes are stepped.
-    fn before_node_step(&mut self, step: TimeMS);
+    /// Prepare the model before the agents are stepped.
+    fn before_agent_step(&mut self, step: TimeMS);
 }

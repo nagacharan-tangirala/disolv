@@ -36,22 +36,22 @@ pub struct DeviceBucket {
 impl DeviceBucket {
     pub(crate) fn link_options_for(
         &mut self,
-        node_id: AgentId,
+        agent_id: AgentId,
         source_type: &DeviceType,
         target_class: &DeviceClass,
     ) -> Option<Vec<DLink>> {
         match self.linker_for(source_type, target_class) {
-            Some(linker) => linker.links_of(node_id),
+            Some(linker) => linker.links_of(agent_id),
             None => None,
         }
     }
 
     pub(crate) fn positions_for(
         &mut self,
-        node_id: AgentId,
-        node_type: &DeviceType,
+        agent_id: AgentId,
+        device_type: &DeviceType,
     ) -> Option<MapState> {
-        self.mapper_for(node_type).map_state_of(node_id)
+        self.mapper_for(device_type).map_state_of(agent_id)
     }
 
     fn linker_for(
@@ -69,13 +69,13 @@ impl DeviceBucket {
             .find(|linker| linker.source_type == *source_type && linker.target_type == *target_type)
     }
 
-    fn mapper_for(&mut self, node_type: &DeviceType) -> &mut Mapper {
+    fn mapper_for(&mut self, device_type: &DeviceType) -> &mut Mapper {
         self.models
             .mapper_holder
             .iter_mut()
-            .find(|(n_type, _)| *n_type == *node_type)
+            .find(|(n_type, _)| *n_type == *device_type)
             .map(|(_, mapper)| mapper)
-            .expect("No mapper found for node type")
+            .expect("No mapper found for agent type")
     }
 }
 
@@ -104,10 +104,10 @@ impl Bucket for DeviceBucket {
             .mapper_holder
             .iter_mut()
             .for_each(|(_, mapper)| {
-                mapper.before_node_step(self.step);
+                mapper.before_agent_step(self.step);
             });
         self.models.linker_holder.iter_mut().for_each(|linker| {
-            linker.before_node_step(self.step);
+            linker.before_agent_step(self.step);
         });
     }
 

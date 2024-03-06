@@ -11,25 +11,25 @@ use std::path::PathBuf;
 #[derive(Default, Clone, Copy, Debug, Serialize)]
 pub struct DataRxCounts {
     time_step: u32,
-    node_id: u32,
-    attempted_in_node_count: u32,
+    agent_id: u32,
+    attempted_in_agent_count: u32,
     attempted_in_data_size: Bytes,
     attempted_in_data_count: u32,
-    feasible_in_node_count: u32,
+    feasible_in_agent_count: u32,
     feasible_in_data_size: Bytes,
     feasible_in_data_count: u32,
     success_rate: f32,
 }
 
 impl DataRxCounts {
-    pub fn from_data(time_step: TimeMS, node_id: AgentId, in_data_stats: &OutgoingStats) -> Self {
+    pub fn from_data(time_step: TimeMS, agent_id: AgentId, in_data_stats: &OutgoingStats) -> Self {
         Self {
             time_step: time_step.as_u32(),
-            node_id: node_id.as_u32(),
-            attempted_in_node_count: in_data_stats.attempted.node_count,
+            agent_id: agent_id.as_u32(),
+            attempted_in_agent_count: in_data_stats.attempted.agent_count,
             attempted_in_data_size: in_data_stats.attempted.data_size,
             attempted_in_data_count: in_data_stats.attempted.data_count,
-            feasible_in_node_count: in_data_stats.feasible.node_count,
+            feasible_in_agent_count: in_data_stats.feasible.agent_count,
             feasible_in_data_size: in_data_stats.feasible.data_size,
             feasible_in_data_count: in_data_stats.feasible.data_count,
             success_rate: in_data_stats.get_success_rate(),
@@ -60,9 +60,14 @@ impl RxCountWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, node_id: AgentId, in_data_stats: &OutgoingStats) {
+    pub fn add_data(
+        &mut self,
+        time_step: TimeMS,
+        agent_id: AgentId,
+        in_data_stats: &OutgoingStats,
+    ) {
         self.data_rx
-            .push(DataRxCounts::from_data(time_step, node_id, in_data_stats));
+            .push(DataRxCounts::from_data(time_step, agent_id, in_data_stats));
     }
 
     pub fn write_to_file(&mut self) {
