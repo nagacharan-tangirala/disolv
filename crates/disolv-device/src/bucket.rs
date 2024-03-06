@@ -14,7 +14,7 @@ use disolv_output::result::ResultWriter;
 use log::info;
 use typed_builder::TypedBuilder;
 
-#[derive(Clone, TypedBuilder)]
+#[derive(TypedBuilder)]
 pub struct BucketModels {
     pub result_writer: ResultWriter,
     pub network: Network,
@@ -25,7 +25,7 @@ pub struct BucketModels {
     pub data_lake: DataLake,
 }
 
-#[derive(Clone, TypedBuilder)]
+#[derive(TypedBuilder)]
 pub struct DeviceBucket {
     pub models: BucketModels,
     pub class_to_type: HashMap<DeviceClass, DeviceType>,
