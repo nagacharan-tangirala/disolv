@@ -7,10 +7,10 @@ use ratatui::{
     Frame,
 };
 
-use crate::content::Content;
+use crate::content::{LinkContent, SimContent};
 
 /// Renders the user interface widgets.
-pub fn render(content: &mut Content, frame: &mut Frame) {
+pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
     // This is where you add new widgets.
     // See the following resources:
     // - https://docs.rs/ratatui/latest/ratatui/widgets/index.html
@@ -23,9 +23,6 @@ pub fn render(content: &mut Content, frame: &mut Frame) {
             Constraint::Percentage(50),
         ])
         .split(frame.size());
-
-    let top_layout = layout[0];
-    let bottom_layout = layout[1];
 
     frame.render_widget(
         Paragraph::new(format!(
@@ -45,7 +42,7 @@ pub fn render(content: &mut Content, frame: &mut Frame) {
         )
         .style(Style::default().fg(Color::Red).bg(Color::Black))
         .centered(),
-        top_layout,
+        layout[0],
     );
 
     let completion = content.completion();
@@ -69,10 +66,10 @@ pub fn render(content: &mut Content, frame: &mut Frame) {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .title("Progress")
+                    .title("Simulation Progress")
                     .title_alignment(Alignment::Center),
             ),
-        bottom_layout,
+        layout[1],
     );
 
     let simulation_details = format!(
