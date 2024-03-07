@@ -1,4 +1,4 @@
-use crate::content::Content;
+use crate::content::{LinkContent, SimContent};
 use crossterm::event::{KeyCode, KeyEvent, MouseEvent};
 
 /// Terminal events.
@@ -11,8 +11,17 @@ pub enum Message {
     Quit,
 }
 
-/// Handles the key events and updates the state of [`Content`].
-pub fn handle_key_events(key_event: KeyEvent, content: &mut Content) {
+/// Handles the key events and updates the state of [`SimContent`].
+pub fn handle_sim_key_events(key_event: KeyEvent, content: &mut SimContent) {
+    match key_event.code {
+        // Other handlers you could add here.
+        KeyCode::Esc | KeyCode::Char('q') => content.quit(),
+        _ => {}
+    }
+}
+
+/// Handles the key events and updates the state of [`LinkContent`].
+pub fn handle_link_key_events(key_event: KeyEvent, content: &mut LinkContent) {
     match key_event.code {
         // Other handlers you could add here.
         KeyCode::Esc | KeyCode::Char('q') => content.quit(),

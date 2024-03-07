@@ -1,4 +1,4 @@
-use crate::content::{Content, ContentResult};
+use crate::content::{ContentResult, LinkContent, SimContent};
 use crate::ui;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
@@ -47,8 +47,13 @@ impl<B: Backend> Tui<B> {
     ///
     /// [`Draw`]: ratatui::Terminal::draw
     /// [`rendering`]: crate::ui:render
-    pub fn draw(&mut self, app: &mut Content) -> ContentResult<()> {
-        self.terminal.draw(|frame| ui::render(app, frame))?;
+    pub fn draw_sim_ui(&mut self, app: &mut SimContent) -> ContentResult<()> {
+        self.terminal.draw(|frame| ui::render_sim_ui(app, frame))?;
+        Ok(())
+    }
+
+    pub fn draw_link_ui(&mut self, app: &mut LinkContent) -> ContentResult<()> {
+        self.terminal.draw(|frame| ui::render_link_ui(app, frame))?;
         Ok(())
     }
 

@@ -4,7 +4,7 @@ use std::error;
 pub type ContentResult<T> = Result<T, Box<dyn error::Error>>;
 
 #[derive(Debug, Clone, Default)]
-pub struct SimulationMetadata {
+pub struct SimUIMetadata {
     pub scenario: String,
     pub input_file: String,
     pub output_path: String,
