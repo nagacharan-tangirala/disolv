@@ -8,20 +8,20 @@ use serde::Serialize;
 use std::path::PathBuf;
 
 #[derive(Default, Clone, Copy, Debug, Serialize)]
-pub struct NodePosition {
+pub struct AgentPosition {
     pub(crate) time_step: u32,
-    pub(crate) node_id: u32,
+    pub(crate) agent_id: u32,
     pub(crate) x: f64,
     pub(crate) y: f64,
 }
 
-impl Resultant for NodePosition {}
+impl Resultant for AgentPosition {}
 
-impl NodePosition {
-    pub fn from_data(time_step: TimeMS, node_id: AgentId, map_state: &MapState) -> Self {
+impl AgentPosition {
+    pub fn from_data(time_step: TimeMS, agent_id: AgentId, map_state: &MapState) -> Self {
         Self {
             time_step: time_step.as_u32(),
-            node_id: node_id.as_u32(),
+            agent_id: agent_id.as_u32(),
             x: map_state.pos.x,
             y: map_state.pos.y,
         }
@@ -30,7 +30,7 @@ impl NodePosition {
 
 #[derive(Debug, Clone)]
 pub struct PosWriter {
-    data_pos: Vec<NodePosition>,
+    data_pos: Vec<AgentPosition>,
     to_output: DataOutput,
 }
 
@@ -40,7 +40,7 @@ impl PosWriter {
         let config = output_settings
             .file_out_config
             .iter()
-            .find(|&file_out_config| file_out_config.output_type == OutputType::NodePos)
+            .find(|&file_out_config| file_out_config.output_type == OutputType::AgentPos)
             .expect("PosWriter::new: No PosWriter config found");
         let output_file = output_path.join(&config.output_filename);
         Self {
@@ -49,9 +49,9 @@ impl PosWriter {
         }
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, node_id: AgentId, map_state: &MapState) {
+    pub fn add_data(&mut self, time_step: TimeMS, agent_id: AgentId, map_state: &MapState) {
         self.data_pos
-            .push(NodePosition::from_data(time_step, node_id, map_state));
+            .push(AgentPosition::from_data(time_step, agent_id, map_state));
     }
 
     pub fn write_to_file(&mut self) {

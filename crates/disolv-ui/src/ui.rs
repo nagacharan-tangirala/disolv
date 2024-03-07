@@ -7,10 +7,10 @@ use ratatui::{
     Frame,
 };
 
-use crate::content::Content;
+use crate::content::{LinkContent, SimContent};
 
 /// Renders the user interface widgets.
-pub fn render(content: &mut Content, frame: &mut Frame) {
+pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
     // This is where you add new widgets.
     // See the following resources:
     // - https://docs.rs/ratatui/latest/ratatui/widgets/index.html
@@ -24,12 +24,9 @@ pub fn render(content: &mut Content, frame: &mut Frame) {
         ])
         .split(frame.size());
 
-    let top_layout = layout[0];
-    let bottom_layout = layout[1];
-
     frame.render_widget(
         Paragraph::new(format!(
-            " ===================== a d v a i t a r s =====================\n\
+            " ===================== d i s o l v =====================\n\
               \n\
               Scenario: {}\n\
               \n\
@@ -45,7 +42,7 @@ pub fn render(content: &mut Content, frame: &mut Frame) {
         )
         .style(Style::default().fg(Color::Red).bg(Color::Black))
         .centered(),
-        top_layout,
+        layout[0],
     );
 
     let completion = content.completion();
@@ -69,10 +66,10 @@ pub fn render(content: &mut Content, frame: &mut Frame) {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .title("Progress")
+                    .title("Simulation Progress")
                     .title_alignment(Alignment::Center),
             ),
-        bottom_layout,
+        layout[1],
     );
 
     let simulation_details = format!(
@@ -88,5 +85,53 @@ pub fn render(content: &mut Content, frame: &mut Frame) {
             .style(Style::default().fg(Color::White).bg(Color::Black))
             .alignment(Alignment::Left),
         layout[2],
+    );
+}
+
+pub(crate) fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
+        .split(frame.size());
+
+    let completion = content.completion();
+    let progress_text = format!(
+        "Time Step: {} / {} steps. {:.2}%. ",
+        content.now,
+        content.total_steps,
+        content.completion() * 100.0
+    );
+    frame.render_widget(
+        Gauge::default()
+            .gauge_style(
+                Style::default()
+                    .fg(Color::Magenta)
+                    .bg(Color::Black)
+                    .add_modifier(Modifier::ITALIC),
+            )
+            .label(progress_text)
+            .ratio(completion)
+            .use_unicode(true)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Link Calculation Progress")
+                    .title_alignment(Alignment::Center),
+            ),
+        layout[0],
+    );
+
+    let simulation_details = format!(
+        "Input File: {}\n\
+        Output Path: {}\n\
+        ",
+        content.metadata.input_file, content.metadata.output_path,
+    );
+    frame.render_widget(
+        Paragraph::new(simulation_details)
+            .block(Block::default().borders(Borders::ALL).title("More details"))
+            .style(Style::default().fg(Color::White).bg(Color::Black))
+            .alignment(Alignment::Left),
+        layout[1],
     );
 }

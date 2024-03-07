@@ -21,7 +21,7 @@ impl Actor {
                 .action_type(action_setting.action_type)
                 .to_kind(action_setting.to_kind)
                 .to_class(action_setting.to_class)
-                .to_node(action_setting.to_node)
+                .to_agent(action_setting.to_agent)
                 .build();
 
             if let Some(class_actions) = actions.iter_mut().find(|x| x.0 == action_setting.target) {

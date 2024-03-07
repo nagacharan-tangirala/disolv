@@ -27,7 +27,7 @@ use disolv_models::net::metrics::RadioMetricTypes;
 use disolv_models::net::network::Network;
 use disolv_models::net::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use disolv_output::result::ResultWriter;
-use disolv_ui::content::SimulationMetadata;
+use disolv_ui::content::SimUIMetadata;
 use log::{debug, info};
 use std::path::{Path, PathBuf};
 
@@ -38,7 +38,7 @@ pub type DAgentImpl = AgentImpl<Device, DeviceBucket>;
 pub struct SimulationBuilder {
     base_config: BaseConfig,
     config_path: PathBuf,
-    metadata: SimulationMetadata,
+    metadata: SimUIMetadata,
 }
 
 impl SimulationBuilder {
@@ -56,7 +56,7 @@ impl SimulationBuilder {
         let config_reader = BaseConfigReader::new(&base_config_file);
         match config_reader.parse() {
             Ok(base_config) => {
-                let metadata = Self::build_metadata(&base_config, &config_path);
+                let metadata = Self::build_metadata(&base_config, base_config_file);
                 Self {
                     base_config,
                     config_path,
@@ -69,10 +69,10 @@ impl SimulationBuilder {
         }
     }
 
-    fn build_metadata(base_config: &BaseConfig, config_path: &PathBuf) -> SimulationMetadata {
-        SimulationMetadata {
+    fn build_metadata(base_config: &BaseConfig, base_config_file: &str) -> SimUIMetadata {
+        SimUIMetadata {
             scenario: base_config.simulation_settings.scenario.clone(),
-            input_file: config_path.to_str().unwrap().to_string(),
+            input_file: base_config_file.to_owned(),
             output_path: base_config.output_settings.output_path.clone(),
             log_path: base_config.log_settings.log_path.clone(),
         }
@@ -357,7 +357,7 @@ impl SimulationBuilder {
         return self.base_config.output_settings.output_interval;
     }
 
-    pub(crate) fn metadata(&self) -> SimulationMetadata {
+    pub(crate) fn metadata(&self) -> SimUIMetadata {
         self.metadata.clone()
     }
 }

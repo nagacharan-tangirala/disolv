@@ -7,7 +7,7 @@ use parquet::file::statistics::Statistics;
 use std::fs::File;
 use std::path::PathBuf;
 
-pub(crate) fn read_f64_column(col_name: &str, record_batch: &RecordBatch) -> Vec<f64> {
+pub fn read_f64_column(col_name: &str, record_batch: &RecordBatch) -> Vec<f64> {
     let array_data = match record_batch.column_by_name(col_name) {
         Some(column) => column.to_data(),
         None => panic!("Failed to read column {}", col_name),
@@ -19,7 +19,7 @@ pub(crate) fn read_f64_column(col_name: &str, record_batch: &RecordBatch) -> Vec
     column_data
 }
 
-pub(crate) fn read_u32_column(col_name: &str, record_batch: &RecordBatch) -> Vec<u32> {
+pub fn read_u32_column(col_name: &str, record_batch: &RecordBatch) -> Vec<u32> {
     let array_data = match record_batch.column_by_name(col_name) {
         Some(column) => column.to_data(),
         None => panic!("Failed to read column {}", col_name),
@@ -31,7 +31,7 @@ pub(crate) fn read_u32_column(col_name: &str, record_batch: &RecordBatch) -> Vec
     column_data
 }
 
-pub(crate) fn read_u64_column(col_name: &str, record_batch: &RecordBatch) -> Vec<u64> {
+pub fn read_u64_column(col_name: &str, record_batch: &RecordBatch) -> Vec<u64> {
     let array_data = match record_batch.column_by_name(col_name) {
         Some(column) => column.to_data(),
         None => panic!("Failed to read column {}", col_name),
@@ -43,7 +43,7 @@ pub(crate) fn read_u64_column(col_name: &str, record_batch: &RecordBatch) -> Vec
     column_data
 }
 
-pub(crate) fn get_row_groups_for_time(
+pub fn get_row_groups_for_time(
     file_path: &PathBuf,
     is_streaming: bool,
     start_time: TimeMS,

@@ -29,11 +29,11 @@ pub struct Linker {
 }
 
 impl Linker {
-    pub fn links_of(&mut self, node_id: AgentId) -> Option<Vec<DLink>> {
+    pub fn links_of(&mut self, agent_id: AgentId) -> Option<Vec<DLink>> {
         if self.is_static {
-            return self.link_cache.get(&node_id).cloned();
+            return self.link_cache.get(&agent_id).cloned();
         }
-        self.link_cache.remove(&node_id)
+        self.link_cache.remove(&agent_id)
     }
 }
 
@@ -49,7 +49,7 @@ impl BucketModel for Linker {
         }
     }
 
-    fn before_node_step(&mut self, step: TimeMS) {
+    fn before_agent_step(&mut self, step: TimeMS) {
         if self.is_static {
             return;
         }

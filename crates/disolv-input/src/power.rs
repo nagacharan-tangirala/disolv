@@ -1,5 +1,5 @@
 use crate::batch::read_u64_column;
-use crate::columns::{NODE_ID, OFF_TIMES, ON_TIMES};
+use crate::columns::{AGENT_ID, OFF_TIMES, ON_TIMES};
 use arrow_array::RecordBatch;
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
@@ -19,7 +19,7 @@ pub fn read_power_schedule(power_schedule_file: &PathBuf) -> HashMap<AgentId, Po
             Err(e) => panic!("Error reading record batch: {}", e),
         };
 
-        let node_ids: Vec<AgentId> = read_u64_column(NODE_ID, &record_batch)
+        let agent_ids: Vec<AgentId> = read_u64_column(AGENT_ID, &record_batch)
             .into_iter()
             .map(AgentId::from)
             .collect();
@@ -32,14 +32,14 @@ pub fn read_power_schedule(power_schedule_file: &PathBuf) -> HashMap<AgentId, Po
             .map(TimeMS::from)
             .collect();
 
-        for (idx, node_id) in node_ids.into_iter().enumerate() {
+        for (idx, agent_id) in agent_ids.into_iter().enumerate() {
             power_data_map
-                .entry(node_id)
+                .entry(agent_id)
                 .or_insert((Vec::new(), Vec::new()))
                 .0
                 .push(on_times[idx]);
             power_data_map
-                .entry(node_id)
+                .entry(agent_id)
                 .or_insert((Vec::new(), Vec::new()))
                 .1
                 .push(off_times[idx]);

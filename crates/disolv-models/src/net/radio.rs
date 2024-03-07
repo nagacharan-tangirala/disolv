@@ -30,7 +30,7 @@ impl Actionable for ActionType {}
 pub struct Action {
     pub action_type: ActionType,
     pub to_class: Option<DeviceClass>,
-    pub to_node: Option<AgentId>,
+    pub to_agent: Option<AgentId>,
     pub to_kind: Option<DeviceType>,
 }
 
@@ -45,20 +45,20 @@ pub struct ActionSettings {
     pub data_type: DataType,
     pub action_type: ActionType,
     pub to_class: Option<DeviceClass>,
-    pub to_node: Option<AgentId>,
+    pub to_agent: Option<AgentId>,
     pub to_kind: Option<DeviceType>,
 }
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Counts {
-    pub node_count: u32,
+    pub agent_count: u32,
     pub data_size: Bytes,
     pub data_count: u32,
 }
 
 impl Counts {
     pub fn reset(&mut self) {
-        self.node_count = 0;
+        self.agent_count = 0;
         self.data_size = Bytes::default();
         self.data_count = 0;
     }
@@ -68,8 +68,8 @@ impl Display for Counts {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "(node_count: {}, data_size: {}, data_count: {})",
-            self.node_count, self.data_size, self.data_count
+            "(agent_count: {}, data_size: {}, data_count: {})",
+            self.agent_count, self.data_size, self.data_count
         )
     }
 }
@@ -99,20 +99,20 @@ impl OutgoingStats {
     }
 
     pub fn get_success_rate(&self) -> f32 {
-        if self.attempted.node_count == 0 {
+        if self.attempted.agent_count == 0 {
             return 0.0;
         }
-        self.feasible.node_count as f32 / self.attempted.node_count as f32
+        self.feasible.agent_count as f32 / self.attempted.agent_count as f32
     }
 
     pub fn add_attempted(&mut self, metadata: &PayloadInfo) {
-        self.attempted.node_count += 1;
+        self.attempted.agent_count += 1;
         self.attempted.data_size += metadata.total_size;
         self.attempted.data_count += metadata.total_count;
     }
 
     pub fn add_feasible(&mut self, metadata: &PayloadInfo) {
-        self.feasible.node_count += 1;
+        self.feasible.agent_count += 1;
         self.feasible.data_size += metadata.total_size;
         self.feasible.data_count += metadata.total_count;
     }
@@ -129,7 +129,7 @@ impl IncomingStats {
     }
 
     pub fn update(&mut self, metadata: &PayloadInfo) {
-        self.in_counts.node_count += 1;
+        self.in_counts.agent_count += 1;
         self.in_counts.data_size += metadata.total_size;
         self.in_counts.data_count += metadata.total_count;
     }

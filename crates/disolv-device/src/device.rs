@@ -146,7 +146,7 @@ impl Movable<DeviceBucket> for Device {
         bucket
             .models
             .result_writer
-            .add_node_pos(self.step, self.device_info.id, &self.map_state);
+            .add_agent_pos(self.step, self.device_info.id, &self.map_state);
     }
 }
 
@@ -176,13 +176,13 @@ impl Orderable for Device {
     }
 }
 
-impl Transmitter<DeviceBucket, LinkProperties, PayloadInfo, DeviceContent> for Device {
-    type NodeClass = DeviceClass;
+impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for Device {
+    type AgentClass = DeviceClass;
 
     fn transmit(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
         debug!(
-            "Transmitting payload from node {} to node {} with blobs {}",
-            payload.node_state.device_info.id.as_u32(),
+            "Transmitting payload from agent {} to agent {} with blobs {}",
+            payload.agent_state.device_info.id.as_u32(),
             target_link.target.as_u32(),
             payload.metadata.data_blobs.len()
         );
@@ -205,8 +205,8 @@ impl Transmitter<DeviceBucket, LinkProperties, PayloadInfo, DeviceContent> for D
 
     fn transmit_sl(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
         debug!(
-            "Transmitting SL payload from node {} to node {}",
-            payload.node_state.device_info.id.as_u32(),
+            "Transmitting SL payload from agent {} to agent {}",
+            payload.agent_state.device_info.id.as_u32(),
             target_link.target.as_u32()
         );
 
@@ -227,7 +227,7 @@ impl Transmitter<DeviceBucket, LinkProperties, PayloadInfo, DeviceContent> for D
     }
 }
 
-impl Receiver<DeviceBucket, PayloadInfo, DeviceContent> for Device {
+impl Receiver<DeviceContent, DeviceBucket, PayloadInfo> for Device {
     type C = DeviceClass;
 
     fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<DPayload>> {
@@ -267,12 +267,12 @@ impl Agent<DeviceBucket> for Device {
         self.content = self.compose_content();
 
         debug!(
-            "Uplink stage for node: {} id at step: {}",
+            "Uplink stage for agent: {} id at step: {}",
             self.device_info.id, self.step
         );
         self.models.flow.reset();
 
-        // Receive data from the downstream nodes.
+        // Receive data from the downstream agents.
         let mut rx_payloads = self.receive(bucket);
         if let Some(ref mut payloads) = rx_payloads {
             self.models.flow.register_incoming(payloads);
@@ -296,7 +296,7 @@ impl Agent<DeviceBucket> for Device {
 
     fn stage_four_reverse(&mut self, core: &mut Core<Self, DeviceBucket>) {
         debug!(
-            "Downlink stage for node: {} id at step: {}",
+            "Downlink stage for agent: {} id at step: {}",
             self.device_info.id, self.step
         );
         let bucket = &mut core.bucket;

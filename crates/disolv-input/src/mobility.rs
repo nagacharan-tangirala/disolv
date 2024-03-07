@@ -1,5 +1,5 @@
 use crate::batch::{get_row_groups_for_time, read_f64_column, read_u32_column, read_u64_column};
-use crate::columns::{COORD_X, COORD_Y, COORD_Z, NODE_ID, ROAD_ID, TIME_STEP, VELOCITY};
+use crate::columns::{AGENT_ID, COORD_X, COORD_Y, COORD_Z, ROAD_ID, TIME_STEP, VELOCITY};
 use arrow_array::RecordBatch;
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
@@ -38,7 +38,7 @@ impl MapReader {
                 .into_iter()
                 .map(TimeMS::from)
                 .collect();
-            let node_ids: Vec<AgentId> = read_u64_column(NODE_ID, &record_batch)
+            let agent_ids: Vec<AgentId> = read_u64_column(AGENT_ID, &record_batch)
                 .into_iter()
                 .map(AgentId::from)
                 .collect();
@@ -93,7 +93,7 @@ impl MapReader {
                 trace_map
                     .entry(time_steps[i])
                     .or_default()
-                    .insert(node_ids[i], map_state);
+                    .insert(agent_ids[i], map_state);
             }
         }
         trace_map

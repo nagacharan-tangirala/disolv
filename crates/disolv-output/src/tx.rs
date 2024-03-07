@@ -10,8 +10,8 @@ use std::path::PathBuf;
 #[derive(Clone, Copy, Debug, Serialize)]
 struct DataTx {
     pub(crate) time_step: u32,
-    pub(crate) node_id: u32,
-    pub(crate) selected_node: u32,
+    pub(crate) agent_id: u32,
+    pub(crate) selected_agent: u32,
     pub(crate) distance: f32,
     pub(crate) data_count: u32,
     pub(crate) link_found: u32,
@@ -33,8 +33,8 @@ impl DataTx {
     ) -> Self {
         Self {
             time_step: time_step.as_u32(),
-            node_id: payload.node_state.device_info.id.as_u32(),
-            selected_node: link.target.as_u32(),
+            agent_id: payload.agent_state.device_info.id.as_u32(),
+            selected_agent: link.target.as_u32(),
             distance: link.properties.distance.unwrap_or(-1.0),
             data_count: payload.metadata.total_count,
             link_found: time_step.as_u32(),

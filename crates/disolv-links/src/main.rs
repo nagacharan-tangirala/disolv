@@ -1,29 +1,52 @@
-use crate::agent::Agent;
-use crate::bucket::Bucket;
-use crate::scheduler::{DefaultScheduler, Scheduler};
+mod builder;
+mod config;
+mod finder;
+mod linker;
+mod logger;
+mod reader;
+
+use crate::builder::LinkBuilder;
+use crate::config::{read_config, Config};
+use clap::Parser;
 use crossterm::event::{self, Event as CrosstermEvent};
-use disolv_ui::content::{SimContent, SimUIMetadata};
-use disolv_ui::handler::{handle_sim_key_events, Message};
+use disolv_ui::content::LinkContent;
+use disolv_ui::handler::{handle_link_key_events, Message};
 use disolv_ui::tui::Tui;
 use log::info;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::Duration;
 use std::{io, thread};
 
-pub fn run_simulation<A, B>(scheduler: &mut DefaultScheduler<A, B>, metadata: SimUIMetadata)
-where
-    A: Agent<B>,
-    B: Bucket,
-{
+#[derive(Parser, Debug)]
+#[command(author, version, long_about = None)]
+struct CliArgs {
+    #[arg(short = 'c', long, value_name = "Link Configuration File")]
+    config: String,
+}
+
+fn main() {
+    let config_file: String = CliArgs::parse().config;
+    let start = std::time::Instant::now();
+    let file_path = PathBuf::from(config_file);
+    let config: Config = read_config(&file_path);
+    let builder = LinkBuilder::new(config, file_path);
+    generate_links(builder);
+    let elapsed = start.elapsed();
+    println!("Link calculation finished in {} ms.", elapsed.as_millis());
+}
+
+fn generate_links(mut builder: LinkBuilder) {
     let (sender_ui, receiver_ui) = mpsc::sync_channel(0);
     let sender = sender_ui.clone();
     let terminal_event_sender = sender_ui.clone();
-    let duration = scheduler.duration.as_u64();
+    let duration = builder.end.as_u64();
+    let ui_metadata = builder.build_link_metadata();
     thread::scope(|s| {
         s.spawn(move || {
-            let mut ui_content = SimContent::new(duration, metadata);
+            let mut ui_content = LinkContent::new(duration, ui_metadata);
 
             // Initialize the terminal user interface.
             let backend = CrosstermBackend::new(io::stderr());
@@ -34,7 +57,7 @@ where
             // Start the main loop.
             while ui_content.running {
                 // Render the user interface.
-                tui.draw_sim_ui(&mut ui_content).expect("failed to draw");
+                tui.draw_link_ui(&mut ui_content).expect("failed to draw");
 
                 // Handle the messages.
                 match receiver_ui.recv() {
@@ -42,7 +65,7 @@ where
                         Message::CurrentTime(now) => ui_content.update_now(now),
                         Message::Quit => ui_content.quit(),
                         Message::Key(key_event) => {
-                            handle_sim_key_events(key_event, &mut ui_content)
+                            handle_link_key_events(key_event, &mut ui_content)
                         }
                         Message::Mouse(_) => {}
                         Message::Resize(_, _) => {}
@@ -53,30 +76,28 @@ where
             tui.exit().expect("failed to exit");
         });
 
-        let end_time = scheduler.duration.as_u64();
-        let step_size = scheduler.step_size.as_u64();
         s.spawn(move || {
-            if step_size == 0 {
+            if builder.step_size.as_u64() == 0 {
                 panic!("Step size cannot be zero");
             }
-            let mut now = 0;
-            scheduler.initialize();
-            while now < end_time {
-                scheduler.activate();
-                scheduler.collect_stats();
-                now = scheduler.trigger().as_u64();
-
-                match terminal_event_sender.send(Message::CurrentTime(now)) {
+            builder.initialize();
+            let mut now = builder.start;
+            while now < builder.end {
+                builder.build_links_at(now);
+                match terminal_event_sender.send(Message::CurrentTime(now.as_u64())) {
                     Ok(_) => {}
                     Err(_) => {
                         info!("User must have requested to quit, terminating at {}", now);
-                        scheduler.terminate();
+                        builder.complete();
                         return;
                     }
                 };
+                now += builder.step_size;
             }
-            scheduler.terminate();
-            sender_ui.send(Message::Quit).unwrap();
+            builder.complete();
+            sender_ui
+                .send(Message::Quit)
+                .expect("Failed to send quit message");
         });
 
         s.spawn(move || loop {
@@ -101,22 +122,4 @@ where
             }
         });
     });
-}
-
-#[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
-    use crate::agent::tests::TDevice;
-    use crate::bucket::tests::MyBucket;
-    use crate::bucket::TimeMS;
-    use crate::core::tests::create_core;
-    use crate::scheduler::tests::create_scheduler;
-
-    #[test]
-    fn test_run_simulation() {
-        let mut scheduler = create_scheduler();
-        assert_eq!(scheduler.now, TimeMS::from(0));
-        run_simulation(&mut scheduler, SimUIMetadata::default());
-        assert_eq!(scheduler.now, scheduler.duration);
-    }
 }
