@@ -2,8 +2,8 @@ use crate::agent::Agent;
 use crate::bucket::Bucket;
 use crate::scheduler::{DefaultScheduler, Scheduler};
 use crossterm::event::{self, Event as CrosstermEvent};
-use disolv_ui::content::{Content, SimulationMetadata};
-use disolv_ui::handler::{handle_key_events, Message};
+use disolv_ui::content::{SimContent, SimUIMetadata};
+use disolv_ui::handler::{handle_sim_key_events, Message};
 use disolv_ui::tui::Tui;
 use log::info;
 use ratatui::backend::CrosstermBackend;
@@ -12,7 +12,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 use std::{io, thread};
 
-pub fn run_simulation<A, B>(scheduler: &mut DefaultScheduler<A, B>, metadata: SimulationMetadata)
+pub fn run_simulation<A, B>(scheduler: &mut DefaultScheduler<A, B>, metadata: SimUIMetadata)
 where
     A: Agent<B>,
     B: Bucket,
@@ -23,7 +23,7 @@ where
     let duration = scheduler.duration.as_u64();
     thread::scope(|s| {
         s.spawn(move || {
-            let mut ui_content = Content::new(duration, metadata);
+            let mut ui_content = SimContent::new(duration, metadata);
 
             // Initialize the terminal user interface.
             let backend = CrosstermBackend::new(io::stderr());
@@ -34,14 +34,16 @@ where
             // Start the main loop.
             while ui_content.running {
                 // Render the user interface.
-                tui.draw(&mut ui_content).expect("failed to draw");
+                tui.draw_sim_ui(&mut ui_content).expect("failed to draw");
 
                 // Handle the messages.
                 match receiver_ui.recv() {
                     Ok(message) => match message {
                         Message::CurrentTime(now) => ui_content.update_now(now),
                         Message::Quit => ui_content.quit(),
-                        Message::Key(key_event) => handle_key_events(key_event, &mut ui_content),
+                        Message::Key(key_event) => {
+                            handle_sim_key_events(key_event, &mut ui_content)
+                        }
                         Message::Mouse(_) => {}
                         Message::Resize(_, _) => {}
                     },
@@ -114,7 +116,7 @@ pub(crate) mod tests {
     fn test_run_simulation() {
         let mut scheduler = create_scheduler();
         assert_eq!(scheduler.now, TimeMS::from(0));
-        run_simulation(&mut scheduler, SimulationMetadata::default());
+        run_simulation(&mut scheduler, SimUIMetadata::default());
         assert_eq!(scheduler.now, scheduler.duration);
     }
 }
