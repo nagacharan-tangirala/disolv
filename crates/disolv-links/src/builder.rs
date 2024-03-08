@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::finder::LinkFinder;
 use crate::linker::LinkType;
 use crate::logger;
-use crate::reader::{Reader, TraceType};
+use crate::reader::{ConstantReader, MobileReader, Reader, TraceType};
 use disolv_core::bucket::TimeMS;
 use disolv_models::device::types::DeviceType;
 use disolv_ui::content::LinkUIMetadata;
@@ -55,10 +55,10 @@ impl LinkBuilder {
                 LinkType::Static => {
                     // Static links should have both the source and target traces as Constant
                     if let Some(reader) = self.readers.get(&link_setting.source) {
-                        assert_eq!(reader.trace_type, TraceType::Constant);
+                        assert_eq!(reader.trace_type(), TraceType::Constant);
                     }
                     if let Some(reader) = self.readers.get(&link_setting.target) {
-                        assert_eq!(reader.trace_type, TraceType::Constant);
+                        assert_eq!(reader.trace_type(), TraceType::Constant);
                     }
                 }
                 LinkType::Dynamic => {
@@ -71,8 +71,8 @@ impl LinkBuilder {
                         .readers
                         .get(&link_setting.target)
                         .expect("Invalid target device type");
-                    if source_reader.trace_type != TraceType::Mobile
-                        && target_reader.trace_type != TraceType::Mobile
+                    if source_reader.trace_type() != TraceType::Mobile
+                        && target_reader.trace_type() != TraceType::Mobile
                     {
                         panic!("One of the device traces should be Mobile for dynamic links");
                     }
@@ -90,17 +90,13 @@ impl LinkBuilder {
 
         // Read positions of devices with constant traces.
         self.readers.values_mut().for_each(|reader| {
-            if reader.trace_type == TraceType::Constant {
-                reader.read_constant_positions();
-            }
+            reader.initialize();
         });
     }
 
     pub(crate) fn build_links_at(&mut self, step: TimeMS) {
         self.readers.values_mut().for_each(|reader| {
-            if reader.trace_type == TraceType::Mobile {
-                reader.read_dynamic_positions_at(step);
-            }
+            reader.update_positions_at(step);
         });
 
         for (link_setting, writer) in self
@@ -118,7 +114,7 @@ impl LinkBuilder {
                 .readers
                 .get(&link_setting.source)
                 .expect("missing reader for device type")
-                .get_positions_at(step)
+                .read_positions_at(step)
             {
                 Some(pos) => pos,
                 None => continue,
@@ -128,7 +124,7 @@ impl LinkBuilder {
                 .readers
                 .get(&link_setting.target)
                 .expect("missing reader for device type")
-                .get_position_tree();
+                .get_tree_at(step);
             writer.write_links(positions, position_tree, step);
         }
     }
