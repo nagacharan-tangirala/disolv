@@ -5,7 +5,7 @@ members = [
 ]
 
 [profile.dev]
-opt-level = 0
+opt-level = 1
 debug = true
 debug-assertions = true
 overflow-checks = true
@@ -15,5 +15,14 @@ incremental = true
 codegen-units = 256
 rpath = false
 
-[profile.release]
-debug = true
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release_opt]
+inherits = "release"
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+
+[profile.release.package."*"]
+opt-level = 3
