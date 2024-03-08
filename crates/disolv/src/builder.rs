@@ -53,7 +53,7 @@ impl SimulationBuilder {
             })
             .to_path_buf();
 
-        let config_reader = BaseConfigReader::new(&base_config_file);
+        let config_reader = BaseConfigReader::new(base_config_file);
         match config_reader.parse() {
             Ok(base_config) => {
                 let metadata = Self::build_metadata(&base_config, base_config_file);
@@ -149,7 +149,7 @@ impl SimulationBuilder {
                 }
             }
         }
-        return device_map;
+        device_map
     }
 
     fn build_device(
@@ -183,12 +183,10 @@ impl SimulationBuilder {
             .replier(Replier::with_settings(&class_settings.replier))
             .build();
 
-        let device = Device::builder()
+        Device::builder()
             .device_info(device_info)
             .models(device_model)
-            .build();
-
-        return device;
+            .build()
     }
 
     fn build_device_info(
@@ -257,14 +255,11 @@ impl SimulationBuilder {
         let mut linker_vec: Vec<Linker> = Vec::new();
         for device_setting in self.base_config.agents.iter() {
             let device_type = device_setting.agent_type;
-            match device_setting.linker {
-                Some(ref linker_settings) => {
-                    for link_setting in linker_settings.iter() {
-                        let linker = self.build_linker(&device_type, link_setting);
-                        linker_vec.push(linker);
-                    }
+            if let Some(ref linker_settings) = device_setting.linker {
+                for link_setting in linker_settings.iter() {
+                    let linker = self.build_linker(&device_type, link_setting);
+                    linker_vec.push(linker);
                 }
-                None => {}
             };
         }
         linker_vec
@@ -338,23 +333,23 @@ impl SimulationBuilder {
     }
 
     fn streaming_interval(&self) -> TimeMS {
-        return self.base_config.simulation_settings.streaming_interval;
+        self.base_config.simulation_settings.streaming_interval
     }
 
     fn duration(&self) -> TimeMS {
-        return self.base_config.simulation_settings.duration;
+        self.base_config.simulation_settings.duration
     }
 
     fn step_size(&self) -> TimeMS {
-        return self.base_config.simulation_settings.step_size;
+        self.base_config.simulation_settings.step_size
     }
 
     fn sim_seed(&self) -> u128 {
-        return u128::from(self.base_config.simulation_settings.seed);
+        u128::from(self.base_config.simulation_settings.seed)
     }
 
     fn output_interval(&self) -> TimeMS {
-        return self.base_config.output_settings.output_interval;
+        self.base_config.output_settings.output_interval
     }
 
     pub(crate) fn metadata(&self) -> SimUIMetadata {
