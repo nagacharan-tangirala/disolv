@@ -66,7 +66,7 @@ impl Reader {
         }
     }
 
-    pub(crate) fn get_tree_at(&self, time_ms: TimeMS) -> &KdTree<f64, 2> {
+    pub(crate) fn get_kd_tree(&self) -> &KdTree<f64, 2> {
         match self {
             Reader::Constant(reader) => &reader.kd_tree,
             Reader::Mobile(reader) => &reader.kd_tree,
@@ -78,6 +78,7 @@ impl Reader {
 pub(crate) struct MobileReader {
     pub(crate) file_path: PathBuf,
     pub(crate) current_row_group: usize,
+    pub(crate) max_ts_in_row_group: TimeMS,
     pub(crate) positions: PositionMap,
     pub(crate) file_read: bool,
     pub(crate) max_row_groups: usize,
@@ -93,6 +94,7 @@ impl MobileReader {
             kd_tree: KdTree::default(),
             file_read: false,
             max_row_groups: 0,
+            max_ts_in_row_group: TimeMS::default(),
         }
     }
 
@@ -105,7 +107,9 @@ impl MobileReader {
     }
 
     fn read_positions_at(&mut self, time_ms: TimeMS) {
-        if self.positions.contains_key(&time_ms) || self.file_read {
+        if (self.positions.contains_key(&time_ms) && self.max_ts_in_row_group != time_ms)
+            || self.file_read
+        {
             return;
         }
         debug!("Reading positions at {}", time_ms);
@@ -151,6 +155,7 @@ impl MobileReader {
                     .or_default()
                     .push((agent_ids[batch], [x_positions[batch], y_positions[batch]]));
             }
+            self.max_ts_in_row_group = *time_steps.iter().max().expect("cannot find max time");
         }
     }
 
