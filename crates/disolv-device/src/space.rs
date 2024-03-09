@@ -5,9 +5,8 @@ use disolv_core::model::BucketModel;
 use disolv_input::mobility::{MapReader, TraceMap};
 use disolv_models::device::mobility::cell::CellId;
 use disolv_models::device::mobility::{MapState, MobilityType, Point2D};
-use log::debug;
 use serde::Deserialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use typed_builder::TypedBuilder;
 
 #[derive(Clone, Debug, TypedBuilder)]
@@ -89,16 +88,13 @@ impl BucketModel for Mapper {
     }
 
     fn before_agent_step(&mut self, step: TimeMS) {
-        self.map_cache = self
-            .map_states
-            .remove(&step)
-            .unwrap_or_else(|| HashMap::new());
+        self.map_cache = self.map_states.remove(&step).unwrap_or_default()
     }
 }
 
 impl Mapper {
-    pub fn builder(config_path: &PathBuf) -> MapperBuilder {
-        MapperBuilder::new(config_path.clone())
+    pub fn builder(config_path: &Path) -> MapperBuilder {
+        MapperBuilder::new(config_path)
     }
 
     pub fn map_state_of(&mut self, agent_id: AgentId) -> Option<MapState> {
@@ -115,9 +111,9 @@ pub struct MapperBuilder {
 }
 
 impl MapperBuilder {
-    pub fn new(config_path: PathBuf) -> Self {
+    pub fn new(config_path: &Path) -> Self {
         Self {
-            config_path,
+            config_path: PathBuf::from(config_path),
             ..Default::default()
         }
     }

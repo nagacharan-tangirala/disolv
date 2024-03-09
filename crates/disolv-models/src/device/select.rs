@@ -38,10 +38,10 @@ impl Model for Selector {
         match settings.strategy.name.to_lowercase().as_str() {
             "none" => Selector::None,
             "all" => Selector::All,
-            "nearest" => return Selector::Nearest(NearestSelector::new(settings)),
-            "random" => return Selector::Random(RandomSelector::new(settings)),
-            "min_neighbors" => return Selector::Random(RandomSelector::new(settings)),
-            "min_data" => return Selector::Random(RandomSelector::new(settings)),
+            "nearest" => Selector::Nearest(NearestSelector::new(settings)),
+            "random" => Selector::Random(RandomSelector::new(settings)),
+            "min_neighbors" => Selector::Random(RandomSelector::new(settings)),
+            "min_data" => Selector::Random(RandomSelector::new(settings)),
             _ => {
                 error!("Only basic, nearest, random, min_neighbors and min_data neighbors are supported");
                 panic!("Unsupported selector type {}.", settings.strategy.name);
@@ -82,7 +82,7 @@ impl NearestSelector {
     }
 
     fn select_link(&self, links: Vec<DLink>) -> Vec<DLink> {
-        return links[0..1].to_vec();
+        links[0..1].to_vec()
     }
 }
 
@@ -101,7 +101,7 @@ impl RandomSelector {
     }
 
     fn select_link(&self, links: Vec<DLink>) -> Vec<DLink> {
-        return links;
+        links
     }
 }
 
@@ -120,7 +120,7 @@ impl MinimumNeighborSelector {
     }
 
     fn select_link(&self, links: Vec<DLink>, stats: &Vec<&DeviceStats>) -> Vec<DLink> {
-        return links;
+        links
     }
 }
 
@@ -139,6 +139,6 @@ impl MinimumDataSelector {
     }
 
     fn select_link(&self, links: Vec<DLink>, stats: &Vec<&DeviceStats>) -> Vec<DLink> {
-        return links;
+        links
     }
 }

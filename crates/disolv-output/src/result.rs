@@ -72,7 +72,7 @@ impl ResultWriter {
         Self {
             tx_writer,
             rx_count_writer,
-            agent_pos_writer: agent_pos_writer,
+            agent_pos_writer,
             net_stat_writer,
         }
     }

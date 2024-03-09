@@ -29,9 +29,7 @@ impl PowerManager {
     }
 
     pub fn pop_time_to_on(&mut self) -> TimeMS {
-        self.on_times
-            .pop_front()
-            .unwrap_or_else(|| TimeMS::default())
+        self.on_times.pop_front().unwrap_or_default()
     }
 
     pub fn pop_time_to_off(&mut self) {

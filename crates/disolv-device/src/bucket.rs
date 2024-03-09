@@ -9,7 +9,7 @@ use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::mobility::MapState;
 use disolv_models::device::types::{DeviceClass, DeviceType};
 use disolv_models::net::network::Network;
-use disolv_models::net::radio::{DLink, OutgoingStats};
+use disolv_models::net::radio::DLink;
 use disolv_output::result::ResultWriter;
 use log::info;
 use typed_builder::TypedBuilder;

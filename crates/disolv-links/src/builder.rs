@@ -1,12 +1,12 @@
 use crate::config::Config;
-use crate::finder::LinkFinder;
-use crate::linker::LinkType;
+use crate::linker::{LinkType, LinkerImpl};
 use crate::logger;
-use crate::reader::{Reader, TraceType};
+use crate::reader::{ConstantReader, MobileReader, Reader, TraceType};
 use disolv_core::bucket::TimeMS;
 use disolv_models::device::types::DeviceType;
 use disolv_ui::content::LinkUIMetadata;
 use hashbrown::HashMap;
+use log::debug;
 use std::path::PathBuf;
 
 pub(crate) struct LinkBuilder {
@@ -16,7 +16,7 @@ pub(crate) struct LinkBuilder {
     config_path: PathBuf,
     config: Config,
     readers: HashMap<DeviceType, Reader>,
-    link_finders: Vec<LinkFinder>,
+    linkers: Vec<LinkerImpl>,
 }
 
 impl LinkBuilder {
@@ -26,7 +26,7 @@ impl LinkBuilder {
             end: config.settings.end,
             step_size: config.settings.step_size,
             readers: HashMap::with_capacity(config.position_files.len()),
-            link_finders: Vec::with_capacity(config.link_settings.len()),
+            linkers: Vec::with_capacity(config.link_settings.len()),
             config,
             config_path,
         }
@@ -55,10 +55,10 @@ impl LinkBuilder {
                 LinkType::Static => {
                     // Static links should have both the source and target traces as Constant
                     if let Some(reader) = self.readers.get(&link_setting.source) {
-                        assert_eq!(reader.trace_type, TraceType::Constant);
+                        assert_eq!(reader.trace_type(), TraceType::Constant);
                     }
                     if let Some(reader) = self.readers.get(&link_setting.target) {
-                        assert_eq!(reader.trace_type, TraceType::Constant);
+                        assert_eq!(reader.trace_type(), TraceType::Constant);
                     }
                 }
                 LinkType::Dynamic => {
@@ -71,8 +71,8 @@ impl LinkBuilder {
                         .readers
                         .get(&link_setting.target)
                         .expect("Invalid target device type");
-                    if source_reader.trace_type != TraceType::Mobile
-                        && target_reader.trace_type != TraceType::Mobile
+                    if source_reader.trace_type() != TraceType::Mobile
+                        && target_reader.trace_type() != TraceType::Mobile
                     {
                         panic!("One of the device traces should be Mobile for dynamic links");
                     }
@@ -82,7 +82,7 @@ impl LinkBuilder {
 
         // Initialize link finders.
         for linker_setting in self.config.link_settings.iter() {
-            self.link_finders.push(LinkFinder::new(
+            self.linkers.push(LinkerImpl::new(
                 self.config.settings.output_path.as_str(),
                 linker_setting,
             ));
@@ -90,24 +90,20 @@ impl LinkBuilder {
 
         // Read positions of devices with constant traces.
         self.readers.values_mut().for_each(|reader| {
-            if reader.trace_type == TraceType::Constant {
-                reader.read_constant_positions();
-            }
+            reader.initialize();
         });
     }
 
     pub(crate) fn build_links_at(&mut self, step: TimeMS) {
         self.readers.values_mut().for_each(|reader| {
-            if reader.trace_type == TraceType::Mobile {
-                reader.read_dynamic_positions_at(step);
-            }
+            reader.update_positions_at(step);
         });
 
         for (link_setting, writer) in self
             .config
             .link_settings
             .iter()
-            .zip(self.link_finders.iter_mut())
+            .zip(self.linkers.iter_mut())
         {
             // Skip calculating static links after 0th time step.
             if link_setting.link_type == LinkType::Static && step > self.start {
@@ -118,7 +114,7 @@ impl LinkBuilder {
                 .readers
                 .get(&link_setting.source)
                 .expect("missing reader for device type")
-                .get_positions_at(step)
+                .read_positions_at(step)
             {
                 Some(pos) => pos,
                 None => continue,
@@ -128,12 +124,13 @@ impl LinkBuilder {
                 .readers
                 .get(&link_setting.target)
                 .expect("missing reader for device type")
-                .get_position_tree();
+                .get_kd_tree();
+
             writer.write_links(positions, position_tree, step);
         }
     }
 
     pub(crate) fn complete(self) {
-        self.link_finders.into_iter().for_each(|w| w.flush())
+        self.linkers.into_iter().for_each(|w| w.flush())
     }
 }

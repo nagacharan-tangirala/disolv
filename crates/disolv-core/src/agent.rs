@@ -276,11 +276,9 @@ pub(crate) mod tests {
 
         fn stage_one(&mut self, _core: &mut crate::core::Core<Self, MyBucket>) {
             self.stats.size = random();
-            // println!("Agent {} stage one", self.id);
         }
 
         fn stage_two_reverse(&mut self, _core: &mut crate::core::Core<Self, MyBucket>) {
-            // println!("Agent {} stage two reverse", self.id);
             self.stats.size = 0.0;
         }
     }

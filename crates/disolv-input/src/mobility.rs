@@ -46,32 +46,29 @@ impl MapReader {
             let x_positions = read_f64_column(COORD_X, &record_batch);
             let y_positions = read_f64_column(COORD_Y, &record_batch);
 
-            let z_positions;
-            if record_batch.column_by_name(COORD_Z).is_some() {
-                z_positions = read_f64_column(COORD_Z, &record_batch);
+            let z_positions = if record_batch.column_by_name(COORD_Z).is_some() {
+                read_f64_column(COORD_Z, &record_batch)
             } else {
-                z_positions = Vec::new();
-            }
+                Vec::new()
+            };
 
-            let velocity: Vec<Velocity>;
-            if record_batch.column_by_name(VELOCITY).is_some() {
-                velocity = read_f64_column(VELOCITY, &record_batch)
+            let velocity = if record_batch.column_by_name(VELOCITY).is_some() {
+                read_f64_column(VELOCITY, &record_batch)
                     .into_iter()
                     .map(Velocity::from)
-                    .collect();
+                    .collect()
             } else {
-                velocity = Vec::new();
-            }
+                Vec::new()
+            };
 
-            let road_ids: Vec<RoadId>;
-            if record_batch.column_by_name(ROAD_ID).is_some() {
-                road_ids = read_u32_column(ROAD_ID, &record_batch)
+            let road_ids = if record_batch.column_by_name(ROAD_ID).is_some() {
+                read_u32_column(ROAD_ID, &record_batch)
                     .into_iter()
                     .map(RoadId::from)
-                    .collect();
+                    .collect()
             } else {
-                road_ids = Vec::new();
-            }
+                Vec::new()
+            };
 
             for i in 0..batch_size {
                 let mut map_state = MapState::builder()
