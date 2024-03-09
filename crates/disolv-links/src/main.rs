@@ -1,6 +1,5 @@
 mod builder;
 mod config;
-mod finder;
 mod linker;
 mod logger;
 mod reader;

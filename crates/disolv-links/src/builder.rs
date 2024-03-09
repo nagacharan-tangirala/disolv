@@ -1,12 +1,12 @@
 use crate::config::Config;
-use crate::finder::LinkFinder;
-use crate::linker::LinkType;
+use crate::linker::{LinkType, LinkerImpl};
 use crate::logger;
 use crate::reader::{ConstantReader, MobileReader, Reader, TraceType};
 use disolv_core::bucket::TimeMS;
 use disolv_models::device::types::DeviceType;
 use disolv_ui::content::LinkUIMetadata;
 use hashbrown::HashMap;
+use log::debug;
 use std::path::PathBuf;
 
 pub(crate) struct LinkBuilder {
@@ -16,7 +16,7 @@ pub(crate) struct LinkBuilder {
     config_path: PathBuf,
     config: Config,
     readers: HashMap<DeviceType, Reader>,
-    link_finders: Vec<LinkFinder>,
+    linkers: Vec<LinkerImpl>,
 }
 
 impl LinkBuilder {
@@ -26,7 +26,7 @@ impl LinkBuilder {
             end: config.settings.end,
             step_size: config.settings.step_size,
             readers: HashMap::with_capacity(config.position_files.len()),
-            link_finders: Vec::with_capacity(config.link_settings.len()),
+            linkers: Vec::with_capacity(config.link_settings.len()),
             config,
             config_path,
         }
@@ -82,7 +82,7 @@ impl LinkBuilder {
 
         // Initialize link finders.
         for linker_setting in self.config.link_settings.iter() {
-            self.link_finders.push(LinkFinder::new(
+            self.linkers.push(LinkerImpl::new(
                 self.config.settings.output_path.as_str(),
                 linker_setting,
             ));
@@ -103,7 +103,7 @@ impl LinkBuilder {
             .config
             .link_settings
             .iter()
-            .zip(self.link_finders.iter_mut())
+            .zip(self.linkers.iter_mut())
         {
             // Skip calculating static links after 0th time step.
             if link_setting.link_type == LinkType::Static && step > self.start {
@@ -124,12 +124,13 @@ impl LinkBuilder {
                 .readers
                 .get(&link_setting.target)
                 .expect("missing reader for device type")
-                .get_tree_at(step);
+                .get_kd_tree();
+
             writer.write_links(positions, position_tree, step);
         }
     }
 
     pub(crate) fn complete(self) {
-        self.link_finders.into_iter().for_each(|w| w.flush())
+        self.linkers.into_iter().for_each(|w| w.flush())
     }
 }

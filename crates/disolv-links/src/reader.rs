@@ -211,10 +211,6 @@ impl ConstantReader {
             };
 
             let batch_size = record_batch.num_rows();
-            let time_steps: Vec<TimeMS> = read_u64_column(TIME_STEP, &record_batch)
-                .into_iter()
-                .map(TimeMS::from)
-                .collect();
             let agent_ids: Vec<AgentId> = read_u64_column(AGENT_ID, &record_batch)
                 .into_iter()
                 .map(AgentId::from)
