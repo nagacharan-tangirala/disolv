@@ -88,7 +88,7 @@ pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
     );
 }
 
-pub(crate) fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
+pub fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
