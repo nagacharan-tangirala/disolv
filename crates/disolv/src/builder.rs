@@ -7,6 +7,7 @@ use disolv_core::hashbrown::HashMap;
 use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::model::Model;
 use disolv_core::scheduler::DefaultScheduler;
+use disolv_core::ui::SimUIMetadata;
 use disolv_device::bucket::{BucketModels, DeviceBucket};
 use disolv_device::device::{Device, DeviceModel};
 use disolv_device::linker::{Linker, LinkerSettings};
@@ -27,7 +28,6 @@ use disolv_models::net::metrics::RadioMetricTypes;
 use disolv_models::net::network::Network;
 use disolv_models::net::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use disolv_output::result::ResultWriter;
-use disolv_ui::content::SimUIMetadata;
 use log::{debug, info};
 use std::path::{Path, PathBuf};
 

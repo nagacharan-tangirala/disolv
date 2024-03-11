@@ -10,7 +10,6 @@ readme = "README.md"
 
 [dependencies]
 disolv-core = { version = "0.0.0", path = "../disolv-core" }
-disolv-ui = { version = "0.0.0", path = "../disolv-ui" }
 disolv-input = { version = "0.0.0", path = "../disolv-input" }
 disolv-output = { version = "0.0.0", path = "../disolv-output" }
 disolv-device = { version = "0.0.0", path = "../disolv-device" }
