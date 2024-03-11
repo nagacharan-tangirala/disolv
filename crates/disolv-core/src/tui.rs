@@ -1,6 +1,6 @@
-use crate::content::{ContentResult, LinkContent, SimContent};
 use crate::ui;
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crate::ui::{ContentResult, LinkContent, SimContent};
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::Backend;
 use ratatui::Terminal;
@@ -74,5 +74,22 @@ impl<B: Backend> Tui<B> {
         Self::reset()?;
         self.terminal.show_cursor()?;
         Ok(())
+    }
+}
+
+pub fn handle_sim_key_events(key_event: KeyEvent, content: &mut SimContent) {
+    match key_event.code {
+        // Other handlers you could add here.
+        KeyCode::Esc | KeyCode::Char('q') => content.quit(),
+        _ => {}
+    }
+}
+
+/// Handles the key events and updates the state of [`LinkContent`].
+pub fn handle_link_key_events(key_event: KeyEvent, content: &mut LinkContent) {
+    match key_event.code {
+        // Other handlers you could add here.
+        KeyCode::Esc | KeyCode::Char('q') => content.quit(),
+        _ => {}
     }
 }

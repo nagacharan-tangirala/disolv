@@ -1,10 +1,9 @@
 use crate::agent::Agent;
 use crate::bucket::Bucket;
 use crate::scheduler::{DefaultScheduler, Scheduler};
+use crate::tui::{handle_sim_key_events, Tui};
+use crate::ui::{Message, SimContent, SimUIMetadata};
 use crossterm::event::{self, Event as CrosstermEvent};
-use disolv_ui::content::{SimContent, SimUIMetadata};
-use disolv_ui::handler::{handle_sim_key_events, Message};
-use disolv_ui::tui::Tui;
 use log::info;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;

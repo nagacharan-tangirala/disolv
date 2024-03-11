@@ -1,3 +1,4 @@
+use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::widgets::{Borders, Gauge};
 use ratatui::{
@@ -6,11 +7,102 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
     Frame,
 };
+use std::error;
 
-use crate::content::{LinkContent, SimContent};
+pub type ContentResult<T> = Result<T, Box<dyn error::Error>>;
+
+#[derive(Clone, Copy, Debug)]
+pub enum Message {
+    Key(KeyEvent),
+    Mouse(MouseEvent),
+    Resize(u16, u16),
+    CurrentTime(u64),
+    Quit,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SimUIMetadata {
+    pub scenario: String,
+    pub input_file: String,
+    pub output_path: String,
+    pub log_path: String,
+}
+
+/// Application.
+#[derive(Debug, Default)]
+pub struct SimContent {
+    pub running: bool,
+    pub total_steps: u64,
+    pub now: u64,
+    pub metadata: SimUIMetadata,
+    pub total_agents: usize,
+    pub active_agents: usize,
+}
+
+impl SimContent {
+    pub fn new(total_steps: u64, metadata: SimUIMetadata) -> Self {
+        Self {
+            total_steps,
+            running: true,
+            metadata,
+            ..Self::default()
+        }
+    }
+    pub fn tick(&self) {}
+
+    pub fn quit(&mut self) {
+        self.running = false;
+    }
+
+    pub fn update_now(&mut self, now: u64) {
+        self.now = now;
+    }
+
+    pub fn completion(&self) -> f64 {
+        self.now as f64 / self.total_steps as f64
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct LinkUIMetadata {
+    pub input_file: String,
+    pub output_path: String,
+}
+
+#[derive(Debug, Default)]
+pub struct LinkContent {
+    pub running: bool,
+    pub total_steps: u64,
+    pub now: u64,
+    pub metadata: LinkUIMetadata,
+}
+
+impl LinkContent {
+    pub fn new(total_steps: u64, metadata: LinkUIMetadata) -> Self {
+        Self {
+            total_steps,
+            running: true,
+            metadata,
+            ..Self::default()
+        }
+    }
+    pub fn tick(&self) {}
+
+    pub fn quit(&mut self) {
+        self.running = false;
+    }
+
+    pub fn update_now(&mut self, now: u64) {
+        self.now = now;
+    }
+
+    pub fn completion(&self) -> f64 {
+        self.now as f64 / self.total_steps as f64
+    }
+}
 
 /// Renders the user interface widgets.
-pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
+pub(crate) fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
     // This is where you add new widgets.
     // See the following resources:
     // - https://docs.rs/ratatui/latest/ratatui/widgets/index.html
@@ -88,7 +180,7 @@ pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
     );
 }
 
-pub fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
+pub(crate) fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
