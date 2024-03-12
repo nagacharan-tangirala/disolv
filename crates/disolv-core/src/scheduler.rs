@@ -76,7 +76,7 @@ where
         if self.core.agent_cache.contains_key(&self.now) {
             let agent_ids = self.core.agent_cache.remove(&self.now).unwrap();
             for agent_id in agent_ids.iter() {
-                self.add_to_queue(*agent_id, self.agent_of(&agent_id).order());
+                self.add_to_queue(*agent_id, self.agent_of(agent_id).order());
                 self.agents
                     .get_mut(agent_id)
                     .expect("Agent not found in core")
@@ -188,7 +188,7 @@ where
         self.now
     }
 
-    fn terminate(&mut self) {
+    fn terminate(self) {
         self.core.bucket.terminate(self.now);
     }
 }
@@ -200,26 +200,12 @@ pub(crate) mod tests {
     use crate::bucket::tests::MyBucket;
     use crate::core::tests::create_core;
 
-    fn create_agent_map() -> HashMap<AgentId, AgentImpl<TDevice, MyBucket>> {
+    pub(crate) fn create_scheduler() -> DefaultScheduler<TDevice, MyBucket> {
         let mut agents = HashMap::new();
-        let device_a = make_device(AgentId::from(1), DeviceType::TypeA, 1);
-        let device_b = make_device(AgentId::from(2), DeviceType::TypeB, 2);
-        agents.insert(
-            device_a.id(),
-            AgentImpl::builder()
-                .agent_id(device_a.id())
-                .agent(device_a)
-                .build(),
-        );
-        agents.insert(
-            device_b.id(),
-            AgentImpl::builder()
-                .agent_id(device_b.id())
-                .agent(device_b)
-                .build(),
-        );
-        for i in 3..=100000 {
+        let mut agent_queue = KeyedPriorityQueue::new();
+        for i in 0..100000 {
             let device = make_device(AgentId::from(i), DeviceType::TypeA, i as i32);
+            agent_queue.push(device.id, device.order);
             agents.insert(
                 device.id(),
                 AgentImpl::builder()
@@ -228,14 +214,10 @@ pub(crate) mod tests {
                     .build(),
             );
         }
-        agents
-    }
-
-    pub(crate) fn create_scheduler() -> DefaultScheduler<TDevice, MyBucket> {
         DefaultScheduler {
             core: create_core(),
-            agents: create_agent_map(),
-            agent_queue: KeyedPriorityQueue::new(),
+            agents,
+            agent_queue,
             duration: TimeMS::from(1000),
             streaming_interval: TimeMS::from(10),
             streaming_step: TimeMS::from(0),
@@ -250,14 +232,14 @@ pub(crate) mod tests {
     fn test_activate() {
         let mut scheduler = create_scheduler();
         scheduler.activate();
-        assert_eq!(scheduler.agent_queue.len(), 2);
+        assert_eq!(scheduler.agent_queue.len(), 100000);
     }
 
     #[test]
     fn test_collect_stats() {
         let mut scheduler = create_scheduler();
         scheduler.collect_stats();
-        assert_eq!(scheduler.core.agent_stats.len(), 2);
+        assert_eq!(scheduler.core.agent_stats.len(), 100000);
     }
 
     #[test]
