@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, Mul};
 use std::str::FromStr;
@@ -94,7 +94,7 @@ pub trait Bucket: Send {
     fn after_agents(&mut self);
     fn stream_input(&mut self, step: TimeMS);
     fn stream_output(&mut self, step: TimeMS);
-    fn terminate(&mut self, step: TimeMS);
+    fn terminate(self, step: TimeMS);
 }
 
 #[cfg(test)]
@@ -158,7 +158,7 @@ pub(crate) mod tests {
             println!("Streaming step in bucket at {}", step);
         }
 
-        fn terminate(&mut self, step: TimeMS) {
+        fn terminate(self, step: TimeMS) {
             println!("End in MyBucket at {}", step);
         }
     }

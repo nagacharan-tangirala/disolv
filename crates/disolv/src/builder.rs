@@ -1,6 +1,6 @@
 use crate::base::{AgentClassSettings, AgentSettings, BaseConfig, BaseConfigReader};
 use crate::logger;
-use disolv_core::agent::{Agent, AgentId, AgentImpl, AgentOrder};
+use disolv_core::agent::{AgentId, AgentImpl};
 use disolv_core::bucket::TimeMS;
 use disolv_core::core::Core;
 use disolv_core::hashbrown::HashMap;
@@ -24,11 +24,10 @@ use disolv_models::device::select::Selector;
 use disolv_models::device::types::{DeviceClass, DeviceInfo, DeviceType};
 use disolv_models::net::bandwidth::BandwidthType;
 use disolv_models::net::latency::LatencyType;
-use disolv_models::net::metrics::RadioMetricTypes;
 use disolv_models::net::network::Network;
 use disolv_models::net::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use disolv_output::result::ResultWriter;
-use log::{debug, info};
+use log::info;
 use std::path::{Path, PathBuf};
 
 pub type DCore = Core<Device, DeviceBucket>;
