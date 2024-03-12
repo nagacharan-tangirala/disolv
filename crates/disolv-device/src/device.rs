@@ -182,8 +182,8 @@ impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for D
     fn transmit(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
         debug!(
             "Transmitting payload from agent {} to agent {} with blobs {}",
-            payload.agent_state.device_info.id.as_u32(),
-            target_link.target.as_u32(),
+            payload.agent_state.device_info.id,
+            target_link.target,
             payload.metadata.data_blobs.len()
         );
 
@@ -206,8 +206,7 @@ impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for D
     fn transmit_sl(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
         debug!(
             "Transmitting SL payload from agent {} to agent {}",
-            payload.agent_state.device_info.id.as_u32(),
-            target_link.target.as_u32()
+            payload.agent_state.device_info.id, target_link.target
         );
 
         self.models.sl_flow.register_outgoing_attempt(&payload);

@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, Mul};
 use std::str::FromStr;
@@ -45,9 +45,6 @@ impl TimeMS {
     }
     pub fn as_i64(&self) -> i64 {
         self.0 as i64
-    }
-    pub fn as_u32(&self) -> u32 {
-        self.0 as u32
     }
     pub fn as_f32(&self) -> f32 {
         self.0 as f32
@@ -100,17 +97,10 @@ pub trait Bucket: Send + Sync {
     fn terminate(&mut self, step: TimeMS);
 }
 
-/// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark
-/// a struct which contains the data that needs to be written to a file.
-pub trait Resultant: Serialize + Copy + Clone + Debug {}
-
 #[cfg(test)]
 pub(crate) mod tests {
     use super::Bucket;
     use super::TimeMS;
-    use crate::agent::tests::DeviceStats;
-    use crate::agent::{Agent, AgentId};
-    use hashbrown::HashMap;
 
     pub(crate) struct BucketModels {
         pub(crate) models: i32,

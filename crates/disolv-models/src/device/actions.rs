@@ -93,7 +93,7 @@ pub fn do_actions(payload: &mut DPayload, agent_content: &DeviceContent) {
 /// * `agent_info` - The agent info of the current agent
 ///
 /// # Returns
-/// * `bool` - True if the current agent is the intended target, false otherwis
+/// * `bool` - True if the current agent is the intended target, false otherwise
 pub(crate) fn am_i_target(action: &Action, agent_info: &DeviceInfo) -> bool {
     // Order of precedence: Agent -> Class -> Kind
     if let Some(target_agent) = action.to_agent {
