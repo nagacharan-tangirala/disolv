@@ -11,31 +11,26 @@ use std::sync::mpsc;
 use std::time::Duration;
 use std::{io, thread};
 
-pub fn run_simulation<A, B>(scheduler: &mut DefaultScheduler<A, B>, metadata: SimUIMetadata)
+pub fn run_simulation<A, B>(mut scheduler: DefaultScheduler<A, B>, metadata: SimUIMetadata)
 where
     A: Agent<B>,
     B: Bucket,
 {
     let (sender_ui, receiver_ui) = mpsc::sync_channel(0);
     let sender = sender_ui.clone();
-    let terminal_event_sender = sender_ui.clone();
+    let terminal_sender = sender_ui.clone();
     let duration = scheduler.duration.as_u64();
+
     thread::scope(|s| {
         s.spawn(move || {
             let mut ui_content = SimContent::new(duration, metadata);
-
-            // Initialize the terminal user interface.
             let backend = CrosstermBackend::new(io::stderr());
             let terminal = Terminal::new(backend).expect("failed to create terminal");
             let mut tui = Tui::new(terminal);
             tui.init().expect("failed to initialize the terminal");
 
-            // Start the main loop.
             while ui_content.running {
-                // Render the user interface.
                 tui.draw_sim_ui(&mut ui_content).expect("failed to draw");
-
-                // Handle the messages.
                 match receiver_ui.recv() {
                     Ok(message) => match message {
                         Message::CurrentTime(now) => ui_content.update_now(now),
