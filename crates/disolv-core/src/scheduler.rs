@@ -9,12 +9,12 @@ use typed_builder::TypedBuilder;
 /// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
 /// of calling the scheduler's functions is important to ensure the correct behavior of the engine.
 /// Adding and removing entities should be handled in this trait.
-pub trait Scheduler: Send + Sync {
+pub trait Scheduler: Send {
     fn initialize(&mut self);
     fn activate(&mut self);
     fn collect_stats(&mut self);
     fn trigger(&mut self) -> TimeMS;
-    fn terminate(&mut self);
+    fn terminate(self);
 }
 
 #[derive(TypedBuilder)]

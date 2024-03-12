@@ -84,7 +84,7 @@ impl AddAssign for TimeMS {
 /// A trait passed to the agent so that an agent can access other agents. Any common models
 /// applicable to all the agents irrespective of type should be assigned to a struct that
 /// implements this trait.
-pub trait Bucket: Send + Sync {
+pub trait Bucket: Send {
     fn initialize(&mut self, step: TimeMS);
     fn before_agents(&mut self, step: TimeMS);
     fn after_stage_one(&mut self) {}
