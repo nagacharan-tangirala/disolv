@@ -14,10 +14,10 @@ disolv-input = { path = "../disolv-input" }
 parquet = "50.0.0"
 arrow = "50.0.0"
 hashbrown = "0.14.3"
-sqlite = "0.33.0"
+sqlite = "0.34.0"
 crossterm = "0.27.0"
 ratatui = "0.26.1"
-toml = "0.8.10"
+toml = "0.8.11"
 kiddo = { path = "../../../kiddo" }
 clap = { version = "4.5.2", features = ['derive'] }
 log = "0.4.21"
