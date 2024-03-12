@@ -92,10 +92,18 @@ impl Reply for DataSource {}
 
 #[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
 pub enum TxStatus {
-    Composed,
     Ok,
     #[default]
     Fail,
+}
+
+impl TxStatus {
+    pub fn as_int(&self) -> u32 {
+        match self {
+            TxStatus::Ok => 0,
+            TxStatus::Fail => 1,
+        }
+    }
 }
 
 impl PayloadStatus for TxStatus {}
@@ -103,9 +111,19 @@ impl PayloadStatus for TxStatus {}
 #[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
 pub enum TxFailReason {
     #[default]
-    None,
+    None = 0,
     LatencyLimit,
     NoBandwidth,
+}
+
+impl TxFailReason {
+    pub fn as_int(&self) -> u32 {
+        match self {
+            TxFailReason::None => 0,
+            TxFailReason::LatencyLimit => 1,
+            TxFailReason::NoBandwidth => 2,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Copy)]
