@@ -1,47 +1,24 @@
 use crate::result::{OutputSettings, OutputType};
 use crate::writer::DataOutput;
+use arrow::array::{ArrayRef, Float32Array, RecordBatch, UInt32Array, UInt64Array};
+use arrow::datatypes::{DataType, Field, Schema};
 use disolv_core::agent::AgentId;
-use disolv_core::bucket::{Resultant, TimeMS};
-use disolv_models::net::metrics::Bytes;
+use disolv_core::bucket::TimeMS;
 use disolv_models::net::radio::OutgoingStats;
-use log::debug;
-use serde::Serialize;
 use std::path::PathBuf;
+use std::sync::Arc;
 
-#[derive(Default, Clone, Copy, Debug, Serialize)]
-pub struct DataRxCounts {
-    time_step: u32,
-    agent_id: u32,
-    attempted_in_agent_count: u32,
-    attempted_in_data_size: Bytes,
-    attempted_in_data_count: u32,
-    feasible_in_agent_count: u32,
-    feasible_in_data_size: Bytes,
-    feasible_in_data_count: u32,
-    success_rate: f32,
-}
-
-impl DataRxCounts {
-    pub fn from_data(time_step: TimeMS, agent_id: AgentId, in_data_stats: &OutgoingStats) -> Self {
-        Self {
-            time_step: time_step.as_u32(),
-            agent_id: agent_id.as_u32(),
-            attempted_in_agent_count: in_data_stats.attempted.agent_count,
-            attempted_in_data_size: in_data_stats.attempted.data_size,
-            attempted_in_data_count: in_data_stats.attempted.data_count,
-            feasible_in_agent_count: in_data_stats.feasible.agent_count,
-            feasible_in_data_size: in_data_stats.feasible.data_size,
-            feasible_in_data_count: in_data_stats.feasible.data_count,
-            success_rate: in_data_stats.get_success_rate(),
-        }
-    }
-}
-
-impl Resultant for DataRxCounts {}
-
-#[derive(Debug, Clone)]
-pub struct RxCountWriter {
-    data_rx: Vec<DataRxCounts>,
+#[derive(Debug)]
+pub(crate) struct RxCountWriter {
+    time_step: Vec<u64>,
+    agent_id: Vec<u64>,
+    attempted_in_agent_count: Vec<u32>,
+    attempted_in_data_size: Vec<u64>,
+    attempted_in_data_count: Vec<u32>,
+    feasible_in_agent_count: Vec<u32>,
+    feasible_in_data_size: Vec<u64>,
+    feasible_in_data_count: Vec<u32>,
+    success_rate: Vec<f32>,
     to_output: DataOutput,
 }
 
@@ -55,9 +32,43 @@ impl RxCountWriter {
             .expect("RxDataWriter::new: No RxDataWriter config found");
         let output_file = output_path.join(&config.output_filename);
         Self {
-            data_rx: Vec::new(),
-            to_output: DataOutput::new(&output_file),
+            to_output: DataOutput::new(&output_file, Self::schema()),
+            time_step: Vec::new(),
+            agent_id: Vec::new(),
+            attempted_in_agent_count: Vec::new(),
+            attempted_in_data_size: Vec::new(),
+            attempted_in_data_count: Vec::new(),
+            feasible_in_agent_count: Vec::new(),
+            feasible_in_data_size: Vec::new(),
+            feasible_in_data_count: Vec::new(),
+            success_rate: Vec::new(),
         }
+    }
+
+    fn schema() -> Schema {
+        let time_ms = Field::new("time_step", DataType::UInt64, false);
+        let agent_id = Field::new("agent_id", DataType::UInt64, false);
+        let attempted_in_agent_count =
+            Field::new("attempted_in_agent_count", DataType::UInt32, false);
+        let attempted_in_data_size = Field::new("attempted_in_data_size", DataType::UInt64, false);
+        let attempted_in_data_count =
+            Field::new("attempted_in_data_count", DataType::UInt32, false);
+        let feasible_in_agent_count =
+            Field::new("feasible_in_agent_count", DataType::UInt32, false);
+        let feasible_in_data_size = Field::new("feasible_in_data_size", DataType::UInt64, false);
+        let feasible_in_data_count = Field::new("feasible_in_data_count", DataType::UInt32, false);
+        let success_rate = Field::new("success_rate", DataType::Float32, false);
+        Schema::new(vec![
+            time_ms,
+            agent_id,
+            attempted_in_agent_count,
+            attempted_in_data_size,
+            attempted_in_data_count,
+            feasible_in_agent_count,
+            feasible_in_data_size,
+            feasible_in_data_count,
+            success_rate,
+        ])
     }
 
     pub fn add_data(
@@ -66,13 +77,90 @@ impl RxCountWriter {
         agent_id: AgentId,
         in_data_stats: &OutgoingStats,
     ) {
-        self.data_rx
-            .push(DataRxCounts::from_data(time_step, agent_id, in_data_stats));
+        self.time_step.push(time_step.as_u64());
+        self.agent_id.push(agent_id.as_u64());
+        self.attempted_in_agent_count
+            .push(in_data_stats.attempted.agent_count);
+        self.attempted_in_data_size
+            .push(in_data_stats.attempted.data_size.as_u64());
+        self.attempted_in_data_count
+            .push(in_data_stats.attempted.data_count);
+        self.feasible_in_agent_count
+            .push(in_data_stats.feasible.agent_count);
+        self.feasible_in_data_size
+            .push(in_data_stats.feasible.data_size.as_u64());
+        self.feasible_in_data_count
+            .push(in_data_stats.feasible.data_count);
+        self.success_rate.push(in_data_stats.get_success_rate());
     }
 
     pub fn write_to_file(&mut self) {
-        debug!("Writing tx data");
-        self.to_output
-            .write_to_file(std::mem::take(&mut self.data_rx));
+        match &mut self.to_output {
+            DataOutput::Parquet(to_output) => {
+                let record_batch = RecordBatch::try_from_iter(vec![
+                    (
+                        "time_step",
+                        Arc::new(UInt64Array::from(std::mem::take(&mut self.time_step)))
+                            as ArrayRef,
+                    ),
+                    (
+                        "agent_id",
+                        Arc::new(UInt64Array::from(std::mem::take(&mut self.agent_id))) as ArrayRef,
+                    ),
+                    (
+                        "attempted_in_agent_count",
+                        Arc::new(UInt32Array::from(std::mem::take(
+                            &mut self.attempted_in_agent_count,
+                        ))) as ArrayRef,
+                    ),
+                    (
+                        "attempted_in_data_size",
+                        Arc::new(UInt64Array::from(std::mem::take(
+                            &mut self.attempted_in_data_size,
+                        ))) as ArrayRef,
+                    ),
+                    (
+                        "attempted_in_data_count",
+                        Arc::new(UInt32Array::from(std::mem::take(
+                            &mut self.attempted_in_data_count,
+                        ))) as ArrayRef,
+                    ),
+                    (
+                        "feasible_in_agent_count",
+                        Arc::new(UInt32Array::from(std::mem::take(
+                            &mut self.feasible_in_agent_count,
+                        ))) as ArrayRef,
+                    ),
+                    (
+                        "feasible_in_data_size",
+                        Arc::new(UInt64Array::from(std::mem::take(
+                            &mut self.feasible_in_data_size,
+                        ))) as ArrayRef,
+                    ),
+                    (
+                        "feasible_in_data_count",
+                        Arc::new(UInt32Array::from(std::mem::take(
+                            &mut self.feasible_in_data_count,
+                        ))) as ArrayRef,
+                    ),
+                    (
+                        "success_rate",
+                        Arc::new(Float32Array::from(std::mem::take(&mut self.success_rate)))
+                            as ArrayRef,
+                    ),
+                ])
+                .expect("Failed to convert results to record batch");
+                to_output
+                    .writer
+                    .write(&record_batch)
+                    .expect("Failed to write record batches to file");
+            }
+        }
+    }
+
+    pub(crate) fn close_files(self) {
+        match self.to_output {
+            DataOutput::Parquet(to_output) => to_output.close(),
+        }
     }
 }
