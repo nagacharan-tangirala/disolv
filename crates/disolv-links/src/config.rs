@@ -1,3 +1,4 @@
+use log::debug;
 use std::path::PathBuf;
 use toml;
 
@@ -54,7 +55,7 @@ pub struct LinkSettings {
 pub(crate) fn read_config(file_path: &PathBuf) -> Config {
     let input_toml = match std::fs::read_to_string(file_path) {
         Ok(parsed_string) => parsed_string,
-        Err(_) => panic!("Failed to read input TOML"),
+        Err(_) => panic!("Failed to read input TOML file"),
     };
     let config: Config = match toml::from_str(&input_toml) {
         Ok(config) => config,
