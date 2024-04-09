@@ -1,6 +1,4 @@
-use crate::agent::Agent;
-use crate::bucket::Bucket;
-use crate::scheduler::{DefaultScheduler, Scheduler};
+use crate::scheduler::Scheduler;
 use crate::tui::{handle_sim_key_events, Tui};
 use crate::ui::{Message, SimContent, SimUIMetadata};
 use crossterm::event::{self, Event as CrosstermEvent};
@@ -11,15 +9,14 @@ use std::sync::mpsc;
 use std::time::Duration;
 use std::{io, thread};
 
-pub fn run_simulation<A, B>(mut scheduler: DefaultScheduler<A, B>, metadata: SimUIMetadata)
+pub fn run_simulation<S>(mut scheduler: S, metadata: SimUIMetadata)
 where
-    A: Agent<B>,
-    B: Bucket,
+    S: Scheduler,
 {
     let (sender_ui, receiver_ui) = mpsc::sync_channel(0);
     let sender = sender_ui.clone();
     let terminal_sender = sender_ui.clone();
-    let duration = scheduler.duration.as_u64();
+    let duration = scheduler.duration().as_u64();
 
     thread::scope(|s| {
         s.spawn(move || {
@@ -47,7 +44,7 @@ where
             tui.exit().expect("failed to exit");
         });
 
-        let end_time = scheduler.duration.as_u64();
+        let end_time = scheduler.duration().as_u64();
         s.spawn(move || {
             thread::scope(|s2| {
                 s2.spawn(move || {
@@ -93,13 +90,18 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::bucket::TimeMS;
+    use crate::map_scheduler::tests::create_map_scheduler;
     use crate::scheduler::tests::create_scheduler;
 
     #[test]
     fn test_run_simulation() {
         let scheduler = create_scheduler();
-        assert_eq!(scheduler.now, TimeMS::from(0));
+        run_simulation(scheduler, SimUIMetadata::default());
+    }
+
+    #[test]
+    fn test_run_simulation_with_map() {
+        let scheduler = create_map_scheduler();
         run_simulation(scheduler, SimUIMetadata::default());
     }
 }
