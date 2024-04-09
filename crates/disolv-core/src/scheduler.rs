@@ -10,6 +10,7 @@ use typed_builder::TypedBuilder;
 /// of calling the scheduler's functions is important to ensure the correct behavior of the engine.
 /// Adding and removing entities should be handled in this trait.
 pub trait Scheduler: Send {
+    fn duration(&self) -> TimeMS;
     fn initialize(&mut self);
     fn activate(&mut self);
     fn collect_stats(&mut self);
@@ -63,6 +64,10 @@ where
     A: Agent<B>,
     B: Bucket,
 {
+    fn duration(&self) -> TimeMS {
+        self.duration
+    }
+
     fn initialize(&mut self) {
         for agent in self.agents.values_mut() {
             debug!("Adding agent {} to the core", agent.agent_id);
