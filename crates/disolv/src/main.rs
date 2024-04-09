@@ -1,14 +1,13 @@
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-pub mod base;
-pub mod builder;
-pub mod logger;
+mod base;
+mod builder;
+mod logger;
 
 use clap::Parser;
 use disolv_core::runner::run_simulation;
 
-use crate::builder::DScheduler;
 use builder::SimulationBuilder;
 
 #[derive(Parser, Debug)]
@@ -22,7 +21,7 @@ fn main() {
     let args = CliArgs::parse();
     let start = std::time::Instant::now();
     let mut builder = SimulationBuilder::new(&args.config);
-    let scheduler: DScheduler = builder.build();
+    let scheduler = builder.build_with_map();
     run_simulation(scheduler, builder.metadata());
     let elapsed = start.elapsed();
     println!("Simulation finished in {} ms.", elapsed.as_millis());
