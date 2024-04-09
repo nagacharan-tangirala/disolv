@@ -5,14 +5,9 @@ use log::error;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
+#[serde_with::skip_serializing_none]
 pub struct SelectorSettings {
     pub target_class: DeviceClass,
-    pub strategy: Strategy,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde_with::skip_serializing_none]
-pub struct Strategy {
     pub name: String,
     pub link_count: Option<u32>,
     pub dist_threshold: Option<f32>,
@@ -35,7 +30,7 @@ impl Model for Selector {
     type Settings = SelectorSettings;
 
     fn with_settings(settings: &SelectorSettings) -> Self {
-        match settings.strategy.name.to_lowercase().as_str() {
+        match settings.name.to_lowercase().as_str() {
             "none" => Selector::None,
             "all" => Selector::All,
             "nearest" => Selector::Nearest(NearestSelector::new(settings)),
@@ -44,7 +39,7 @@ impl Model for Selector {
             "min_data" => Selector::Random(RandomSelector::new(settings)),
             _ => {
                 error!("Only basic, nearest, random, min_neighbors and min_data neighbors are supported");
-                panic!("Unsupported selector type {}.", settings.strategy.name);
+                panic!("Unsupported selector type {}.", settings.name);
             }
         }
     }
@@ -76,8 +71,8 @@ pub struct NearestSelector {
 impl NearestSelector {
     fn new(settings: &SelectorSettings) -> Self {
         Self {
-            link_count: settings.strategy.link_count,
-            dist_threshold: settings.strategy.dist_threshold,
+            link_count: settings.link_count,
+            dist_threshold: settings.dist_threshold,
         }
     }
 
@@ -95,8 +90,8 @@ pub struct RandomSelector {
 impl RandomSelector {
     fn new(settings: &SelectorSettings) -> Self {
         Self {
-            link_count: settings.strategy.link_count,
-            dist_threshold: settings.strategy.dist_threshold,
+            link_count: settings.link_count,
+            dist_threshold: settings.dist_threshold,
         }
     }
 
@@ -114,8 +109,8 @@ pub struct MinimumNeighborSelector {
 impl MinimumNeighborSelector {
     fn new(settings: &SelectorSettings) -> Self {
         Self {
-            link_count: settings.strategy.link_count,
-            dist_threshold: settings.strategy.dist_threshold,
+            link_count: settings.link_count,
+            dist_threshold: settings.dist_threshold,
         }
     }
 
@@ -133,8 +128,8 @@ pub struct MinimumDataSelector {
 impl MinimumDataSelector {
     fn new(settings: &SelectorSettings) -> Self {
         Self {
-            link_count: settings.strategy.link_count,
-            dist_threshold: settings.strategy.dist_threshold,
+            link_count: settings.link_count,
+            dist_threshold: settings.dist_threshold,
         }
     }
 
