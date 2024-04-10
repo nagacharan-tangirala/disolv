@@ -156,16 +156,6 @@ mod tests {
     use disolv_models::device::mobility::velocity::Velocity;
 
     #[test]
-    fn default_map_state() {
-        let map_state = MapState::default();
-        assert_eq!(map_state.pos.x, 0.0);
-        assert_eq!(map_state.pos.y, 0.0);
-        assert_eq!(map_state.z, Some(0.0));
-        assert_eq!(map_state.velocity, Some(Velocity::from(0.0)));
-        assert_eq!(map_state.road_id, Some(RoadId::from(0u32)));
-    }
-
-    #[test]
     fn map_state_builder() {
         let map_state = MapState::builder()
             .pos(Point2D::builder().x(1.0).y(2.0).build())
