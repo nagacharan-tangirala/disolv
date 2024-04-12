@@ -2,7 +2,7 @@ use disolv_core::metrics::Metric;
 use serde::Deserialize;
 use std::ops::{Add, AddAssign};
 
-#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Deserialize)]
 pub struct Energy(u64);
 
 impl Energy {
