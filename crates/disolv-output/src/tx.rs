@@ -59,7 +59,7 @@ impl TxDataWriter {
         let tx_order = Field::new("tx_order", DataType::UInt32, false);
         let tx_status = Field::new("tx_status", DataType::UInt32, false);
         let payload_size = Field::new("payload_size", DataType::UInt64, false);
-        let tx_fail_reason = Field::new("distance", DataType::UInt32, false);
+        let tx_fail_reason = Field::new("tx_fail_reason", DataType::UInt32, false);
         let latency = Field::new("latency", DataType::UInt64, false);
         Schema::new(vec![
             time_ms,
