@@ -1,1 +1,1 @@
-This contains scenario specific files to use PAVeNet.
+This contains scenario specific files to trigger a simulation.

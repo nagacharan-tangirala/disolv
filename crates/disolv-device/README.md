@@ -1,1 +1,4 @@
-This crate demonstrates a node implementation in the form of a Device.
+## Disolv
+
+This crate contains a specific implementation of the device that utilizes the definitions from the core and models.
+
