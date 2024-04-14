@@ -23,7 +23,7 @@ where
 pub trait MetricSettings {}
 
 /// A trait that can be used to contain the measurement process of a metric. It must be applied on
-/// each struct that measure some kind of a metric.
+/// each struct that measures some kind of radio metric.
 pub trait Measurable<M>: Clone + Send + Sync
 where
     M: Metric,
@@ -32,12 +32,12 @@ where
     type S: MetricSettings;
     type T: TxReport;
 
-    fn with_settings(settings: Self::S) -> Self;
+    fn with_settings(settings: &Self::S) -> Self;
     fn measure(&mut self, tx_report: &Self::T, metadata: &Self::P) -> Feasibility<M>;
 }
 
 /// A trait that can be used to define a consumable that can be reset at each time step.
-/// This can be used to define radio resources that are measured as they are consumed.
+/// This can be used to define resources that are measured as they are consumed.
 pub trait Consumable<M>: Clone + Send + Sync
 where
     M: Metric,
@@ -48,19 +48,17 @@ where
     fn reset(&mut self);
     fn consume(&mut self, metadata: &Self::P) -> Feasibility<M>;
     fn available(&self) -> M;
-    fn constraint(&self) -> M;
 }
 
-/// A trait that can be used to define a resource that cannot be replenished. This can be used to
-/// define metrics that cannot be reset. Trying to consume more than the available resource should
-/// be infeasible.
-pub trait NonReplenishable<M>: Clone + Send + Sync
+/// A trait that can be used to define a resource that cannot be reset.
+/// Trying to consume more than the available resource should be infeasible.
+pub trait Resource<M>: Clone + Send + Sync
 where
     M: Metric,
 {
     type P: Metadata;
     type S: MetricSettings;
-    fn with_settings(settings: Self::S) -> Self;
+    fn with_settings(settings: &Self::S) -> Self;
     fn consume(&mut self, metadata: &Self::P) -> Feasibility<M>;
-    fn get_available(&self) -> M;
+    fn available(&self) -> M;
 }
