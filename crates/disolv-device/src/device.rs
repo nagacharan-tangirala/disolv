@@ -3,11 +3,15 @@ use disolv_core::agent::{Activatable, Agent, Movable, Orderable};
 use disolv_core::agent::{AgentId, AgentOrder};
 use disolv_core::bucket::TimeMS;
 use disolv_core::core::Core;
+use disolv_core::metrics::Measurable;
+use disolv_core::metrics::Resource;
 use disolv_core::radio::{Receiver, Responder, Transmitter};
 use disolv_models::bucket::flow::FlowRegister;
 use disolv_models::device::actions::{do_actions, filter_blobs_to_fwd, set_actions_before_tx};
 use disolv_models::device::actor::Actor;
 use disolv_models::device::compose::Composer;
+use disolv_models::device::energy::EnergyType;
+use disolv_models::device::hardware::StorageType;
 use disolv_models::device::mobility::MapState;
 use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::device::reply::Replier;
@@ -27,6 +31,8 @@ pub struct DeviceModel {
     pub sl_flow: FlowRegister,
     pub composer: Composer,
     pub replier: Replier,
+    pub storage: StorageType,
+    pub energy: EnergyType,
     pub actor: Actor,
     pub selector: Vec<(DeviceClass, Selector)>,
 }
@@ -108,6 +114,8 @@ impl Device {
             .models
             .composer
             .compose_payload(target_class, self.content);
+
+        self.models.storage.consume(&payload.metadata);
 
         targets.into_iter().for_each(|target_link| {
             let target_stats = core.stats_of(&target_link.target);
