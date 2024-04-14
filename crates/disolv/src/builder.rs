@@ -5,6 +5,7 @@ use disolv_core::bucket::TimeMS;
 use disolv_core::core::Core;
 use disolv_core::hashbrown::HashMap;
 use disolv_core::map_scheduler::MapScheduler;
+use disolv_core::metrics::Resource;
 use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::model::Model;
 use disolv_core::scheduler::DefaultScheduler;
@@ -19,6 +20,8 @@ use disolv_models::bucket::flow::FlowRegister;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
 use disolv_models::device::compose::Composer;
+use disolv_models::device::energy::EnergyType;
+use disolv_models::device::hardware::StorageType;
 use disolv_models::device::power::PowerManager;
 use disolv_models::device::reply::Replier;
 use disolv_models::device::select::Selector;
@@ -192,6 +195,8 @@ impl SimulationBuilder {
             .selector(selector_vec)
             .actor(Actor::new(&class_settings.actions.clone()))
             .replier(Replier::with_settings(&class_settings.replier))
+            .energy(EnergyType::with_settings(&class_settings.energy))
+            .storage(StorageType::with_settings(&class_settings.storage))
             .build();
 
         Device::builder()
@@ -357,7 +362,7 @@ impl SimulationBuilder {
 
     fn build_network_metrics(&self, slice_settings: &SliceSettings) -> RadioMetrics {
         RadioMetrics::builder()
-            .latency_type(LatencyType::with_settings(slice_settings.latency.clone()))
+            .latency_type(LatencyType::with_settings(&slice_settings.latency))
             .build()
     }
 
