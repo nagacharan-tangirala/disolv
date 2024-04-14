@@ -3,6 +3,7 @@
 pub mod agent;
 pub mod bucket;
 pub mod core;
+pub mod map_scheduler;
 pub mod message;
 pub mod metrics;
 pub mod model;
