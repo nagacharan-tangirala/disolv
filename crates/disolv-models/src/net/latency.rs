@@ -37,12 +37,12 @@ impl Measurable<Latency> for LatencyType {
     type S = LatencyConfig;
     type T = TxMetrics;
 
-    fn with_settings(config: LatencyConfig) -> Self {
+    fn with_settings(config: &LatencyConfig) -> Self {
         match config.variant.to_lowercase().as_str() {
-            "constant" => LatencyType::Constant(ConstantLatency::with_settings(config)),
-            "random" => LatencyType::Random(RandomLatency::with_settings(config)),
-            "distance" => LatencyType::Distance(DistanceLatency::with_settings(config)),
-            "ordered" => LatencyType::Ordered(OrderedLatency::with_settings(config)),
+            "constant" => LatencyType::Constant(ConstantLatency::with_settings(&config)),
+            "random" => LatencyType::Random(RandomLatency::with_settings(&config)),
+            "distance" => LatencyType::Distance(DistanceLatency::with_settings(&config)),
+            "ordered" => LatencyType::Ordered(OrderedLatency::with_settings(&config)),
             _ => {
                 error!(
                     "Only Constant, Random, Distance and Ordered latency variants are supported."
@@ -76,7 +76,7 @@ impl Measurable<Latency> for ConstantLatency {
     type S = LatencyConfig;
     type T = TxMetrics;
 
-    fn with_settings(config: LatencyConfig) -> Self {
+    fn with_settings(config: &LatencyConfig) -> Self {
         let latency = config.constant_term.unwrap_or_else(|| {
             error!("Missing constant, setting it to 0.");
             Latency::new(0)
@@ -104,12 +104,17 @@ impl Measurable<Latency> for RandomLatency {
     type S = LatencyConfig;
     type T = TxMetrics;
 
-    fn with_settings(config: LatencyConfig) -> Self {
+    fn with_settings(config: &LatencyConfig) -> Self {
         RandomLatency {
             min_latency: config.min_latency.expect("Missing min latency"),
             max_latency: config.max_latency.expect("Missing max latency"),
             constraint: config.constraint,
-            sampler: RngSampler::new(config.dist_params.expect("Missing distribution parameters")),
+            sampler: RngSampler::new(
+                config
+                    .dist_params
+                    .clone()
+                    .expect("Missing distribution parameters"),
+            ),
         }
     }
 
@@ -139,7 +144,7 @@ impl Measurable<Latency> for DistanceLatency {
     type S = LatencyConfig;
     type T = TxMetrics;
 
-    fn with_settings(config: LatencyConfig) -> Self {
+    fn with_settings(config: &LatencyConfig) -> Self {
         DistanceLatency {
             constant_term: config.constant_term.unwrap_or(Latency::new(0)),
             factor: config.factor.unwrap_or(1.),
@@ -175,7 +180,7 @@ impl Measurable<Latency> for OrderedLatency {
     type S = LatencyConfig;
     type T = TxMetrics;
 
-    fn with_settings(config: LatencyConfig) -> Self {
+    fn with_settings(config: &LatencyConfig) -> Self {
         OrderedLatency {
             const_param: config.constant_term.unwrap_or(Latency::new(0)),
             factor: config.factor.unwrap_or(1.),
