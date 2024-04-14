@@ -1,6 +1,7 @@
 # Disolv
 
 Disolv stands for **D**ataflow-centric **I**ntegrated **S**imulation **O**f **L**arge scale **V**ANETs.
+For a more conceptual overview and the architecture design decisions, refer to the documentation at [Disolv-Documentation](https://nagacharan-tangirala.github.io/disolv-docs/).
 
 ### What is Disolv?
 
@@ -31,6 +32,16 @@ Due to the scale, cost and the safety concerns involved in live testing, VANET s
 </details>
 
 ---
+
+### Why Disolv?
+
+Disolv emerged as a combination of several ideas in my initial phase of PhD.
+The architectural design of the simulator is validated by the research community.
+The resulting performance benefits of Disolv will be exploited to evaluate large-scale VANET studies.
+The integration of AI is an ongoing development task.
+The goal is to establish Disolv as a preferred choice to evaluate large-scale AI + VANET scenarios.
+
+--- 
 
 ### Crates
 
@@ -108,7 +119,7 @@ Please cite the following article if you used Disolv in your research.
 ### Acknowledgements
 ---
 
-This project is not possible without the following communities - 
+This project is not possible without the following communities and members -
 
 [krABMaga](https://krabmaga.github.io/) \
 [KD-tree](https://github.com/sdd/kiddo)
