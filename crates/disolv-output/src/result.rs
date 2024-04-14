@@ -35,11 +35,10 @@ pub struct FileOutConfig {
 pub struct OutputSettings {
     pub output_interval: TimeMS,
     pub output_path: String,
-    pub file_type: FileType,
     pub file_out_config: Vec<FileOutConfig>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ResultWriter {
     tx_writer: Option<TxDataWriter>,
     rx_count_writer: Option<RxCountWriter>,
@@ -121,7 +120,7 @@ impl ResultWriter {
     }
 
     pub fn write_output(&mut self, step: TimeMS) {
-        debug!("Writing output at step {}", step.as_u32());
+        debug!("Writing output at step {}", step);
         match &mut self.tx_writer {
             Some(writer) => writer.write_to_file(),
             None => (),
@@ -137,6 +136,21 @@ impl ResultWriter {
         match &mut self.net_stat_writer {
             Some(writer) => writer.write_to_file(),
             None => (),
+        };
+    }
+
+    pub fn close_files(self, step: TimeMS) {
+        if let Some(writer) = self.tx_writer {
+            writer.close_files()
+        };
+        if let Some(writer) = self.rx_count_writer {
+            writer.close_files()
+        };
+        if let Some(writer) = self.agent_pos_writer {
+            writer.close_files()
+        };
+        if let Some(writer) = self.net_stat_writer {
+            writer.close_files()
         };
     }
 }

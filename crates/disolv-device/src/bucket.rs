@@ -119,10 +119,10 @@ impl Bucket for DeviceBucket {
 
     fn stream_input(&mut self, step: TimeMS) {
         self.models.mapper_holder.iter_mut().for_each(|(_, space)| {
-            space.stream_data(step);
+            space.stream_data(self.step);
         });
         self.models.linker_holder.iter_mut().for_each(|linker| {
-            linker.stream_data(step);
+            linker.stream_data(self.step);
         });
     }
 
@@ -130,7 +130,8 @@ impl Bucket for DeviceBucket {
         self.models.result_writer.write_output(self.step);
     }
 
-    fn terminate(&mut self, step: TimeMS) {
+    fn terminate(mut self, step: TimeMS) {
         self.models.result_writer.write_output(step);
+        self.models.result_writer.close_files(step);
     }
 }

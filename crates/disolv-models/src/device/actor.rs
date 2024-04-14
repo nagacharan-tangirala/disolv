@@ -49,6 +49,4 @@ impl Actor {
             .expect("Missing actions for class")
             .1
     }
-
-    pub fn apply_actions(&self, target_class: &DeviceClass) {}
 }

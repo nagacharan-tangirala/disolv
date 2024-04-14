@@ -46,9 +46,6 @@ impl AgentId {
     pub fn as_u64(&self) -> u64 {
         self.0
     }
-    pub fn as_u32(&self) -> u32 {
-        self.0 as u32
-    }
 }
 
 /// Trait that represents the kind of agent. Extend this to a custom type

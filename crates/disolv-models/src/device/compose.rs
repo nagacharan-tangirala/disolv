@@ -98,7 +98,7 @@ impl BasicComposer {
             if ds_settings.agent_class != *target_class {
                 continue;
             }
-            if self.step.as_u32() % ds_settings.source_step.as_u32() != TimeMS::default().as_u32() {
+            if self.step.as_u64() % ds_settings.source_step.as_u64() != TimeMS::default().as_u64() {
                 continue;
             }
 

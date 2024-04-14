@@ -3,6 +3,8 @@ use disolv_core::bucket::TimeMS;
 use disolv_device::linker::LinkerSettings;
 use disolv_device::space::{FieldSettings, MobilitySettings};
 use disolv_models::device::compose::ComposerSettings;
+use disolv_models::device::energy::EnergySettings;
+use disolv_models::device::hardware::StorageSettings;
 use disolv_models::device::reply::ReplierSettings;
 use disolv_models::device::select::SelectorSettings;
 use disolv_models::device::types::{DeviceClass, DeviceType};
@@ -63,6 +65,8 @@ pub struct AgentClassSettings {
     pub composer: ComposerSettings,
     pub selector: Vec<SelectorSettings>,
     pub replier: ReplierSettings,
+    pub energy: EnergySettings,
+    pub storage: StorageSettings,
     pub actions: Option<Vec<ActionSettings>>,
 }
 

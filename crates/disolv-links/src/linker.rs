@@ -139,11 +139,10 @@ impl LinkerImpl {
             Ok(file) => file,
             Err(_) => panic!("Failed to create links file to write"),
         };
-        let writer = match ArrowWriter::try_new(output_file, SchemaRef::from(schema), Some(props)) {
+        match ArrowWriter::try_new(output_file, SchemaRef::from(schema), Some(props)) {
             Ok(writer) => writer,
             Err(_) => panic!("Failed to create links file writer"),
-        };
-        writer
+        }
     }
 
     pub(crate) fn write_links(

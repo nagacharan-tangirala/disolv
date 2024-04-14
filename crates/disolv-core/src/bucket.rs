@@ -46,9 +46,6 @@ impl TimeMS {
     pub fn as_i64(&self) -> i64 {
         self.0 as i64
     }
-    pub fn as_u32(&self) -> u32 {
-        self.0 as u32
-    }
     pub fn as_f32(&self) -> f32 {
         self.0 as f32
     }
@@ -87,7 +84,7 @@ impl AddAssign for TimeMS {
 /// A trait passed to the agent so that an agent can access other agents. Any common models
 /// applicable to all the agents irrespective of type should be assigned to a struct that
 /// implements this trait.
-pub trait Bucket: Send + Sync {
+pub trait Bucket: Send {
     fn initialize(&mut self, step: TimeMS);
     fn before_agents(&mut self, step: TimeMS);
     fn after_stage_one(&mut self) {}
@@ -97,20 +94,13 @@ pub trait Bucket: Send + Sync {
     fn after_agents(&mut self);
     fn stream_input(&mut self, step: TimeMS);
     fn stream_output(&mut self, step: TimeMS);
-    fn terminate(&mut self, step: TimeMS);
+    fn terminate(self, step: TimeMS);
 }
-
-/// The <code>Resultant</code> trait marks data that can be written as output. Use this to mark
-/// a struct which contains the data that needs to be written to a file.
-pub trait Resultant: Serialize + Copy + Clone + Debug {}
 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::Bucket;
     use super::TimeMS;
-    use crate::agent::tests::DeviceStats;
-    use crate::agent::{Agent, AgentId};
-    use hashbrown::HashMap;
 
     pub(crate) struct BucketModels {
         pub(crate) models: i32,
@@ -168,7 +158,7 @@ pub(crate) mod tests {
             println!("Streaming step in bucket at {}", step);
         }
 
-        fn terminate(&mut self, step: TimeMS) {
+        fn terminate(self, step: TimeMS) {
             println!("End in MyBucket at {}", step);
         }
     }

@@ -1,12 +1,15 @@
 use crate::base::{AgentClassSettings, AgentSettings, BaseConfig, BaseConfigReader};
 use crate::logger;
-use disolv_core::agent::{Agent, AgentId, AgentImpl, AgentOrder};
+use disolv_core::agent::{AgentId, AgentImpl};
 use disolv_core::bucket::TimeMS;
 use disolv_core::core::Core;
 use disolv_core::hashbrown::HashMap;
+use disolv_core::map_scheduler::MapScheduler;
+use disolv_core::metrics::Resource;
 use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::model::Model;
 use disolv_core::scheduler::DefaultScheduler;
+use disolv_core::ui::SimUIMetadata;
 use disolv_device::bucket::{BucketModels, DeviceBucket};
 use disolv_device::device::{Device, DeviceModel};
 use disolv_device::linker::{Linker, LinkerSettings};
@@ -17,22 +20,24 @@ use disolv_models::bucket::flow::FlowRegister;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
 use disolv_models::device::compose::Composer;
+use disolv_models::device::energy::EnergyType;
+use disolv_models::device::hardware::StorageType;
 use disolv_models::device::power::PowerManager;
 use disolv_models::device::reply::Replier;
 use disolv_models::device::select::Selector;
 use disolv_models::device::types::{DeviceClass, DeviceInfo, DeviceType};
 use disolv_models::net::bandwidth::BandwidthType;
 use disolv_models::net::latency::LatencyType;
-use disolv_models::net::metrics::RadioMetricTypes;
 use disolv_models::net::network::Network;
 use disolv_models::net::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use disolv_output::result::ResultWriter;
-use disolv_ui::content::SimUIMetadata;
-use log::{debug, info};
+use indexmap::IndexMap;
+use log::info;
 use std::path::{Path, PathBuf};
 
 pub type DCore = Core<Device, DeviceBucket>;
 pub type DScheduler = DefaultScheduler<Device, DeviceBucket>;
+pub type MScheduler = MapScheduler<Device, DeviceBucket>;
 pub type DAgentImpl = AgentImpl<Device, DeviceBucket>;
 
 pub struct SimulationBuilder {
@@ -85,6 +90,15 @@ impl SimulationBuilder {
         let device_bucket = self.build_device_bucket();
         let agent_map = self.build_agents();
         self.build_scheduler(agent_map, device_bucket)
+    }
+
+    pub(crate) fn build_with_map(&mut self) -> MScheduler {
+        logger::initiate_logger(&self.config_path, &self.base_config.log_settings);
+
+        info!("Building devices and device pools...");
+        let device_bucket = self.build_device_bucket();
+        let agent_map = self.build_agents();
+        self.build_map_scheduler(agent_map, device_bucket)
     }
 
     fn read_power_schedules(&self, device_type: DeviceType) -> HashMap<AgentId, PowerTimes> {
@@ -181,6 +195,8 @@ impl SimulationBuilder {
             .selector(selector_vec)
             .actor(Actor::new(&class_settings.actions.clone()))
             .replier(Replier::with_settings(&class_settings.replier))
+            .energy(EnergyType::with_settings(&class_settings.energy))
+            .storage(StorageType::with_settings(&class_settings.storage))
             .build();
 
         Device::builder()
@@ -212,6 +228,24 @@ impl SimulationBuilder {
             .duration(self.duration())
             .step_size(self.step_size())
             .agents(agent_map)
+            .core(DCore::new(device_bucket))
+            .streaming_interval(self.streaming_interval())
+            .output_interval(self.output_interval())
+            .build()
+    }
+
+    fn build_map_scheduler(
+        &mut self,
+        agent_map: HashMap<AgentId, DAgentImpl>,
+        device_bucket: DeviceBucket,
+    ) -> MScheduler {
+        info!("Building scheduler...");
+        MapScheduler::builder()
+            .duration(self.duration())
+            .step_size(self.step_size())
+            .active_agents(IndexMap::with_capacity(agent_map.len()))
+            .deactivated(Vec::with_capacity(agent_map.len()))
+            .inactive_agents(agent_map)
             .core(DCore::new(device_bucket))
             .streaming_interval(self.streaming_interval())
             .output_interval(self.output_interval())
@@ -328,7 +362,7 @@ impl SimulationBuilder {
 
     fn build_network_metrics(&self, slice_settings: &SliceSettings) -> RadioMetrics {
         RadioMetrics::builder()
-            .latency_type(LatencyType::with_settings(slice_settings.latency.clone()))
+            .latency_type(LatencyType::with_settings(&slice_settings.latency))
             .build()
     }
 

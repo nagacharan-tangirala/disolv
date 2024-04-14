@@ -88,6 +88,14 @@ impl Add for Bandwidth {
     }
 }
 
+impl Sub for Bandwidth {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
+    }
+}
+
 impl SubAssign for Bandwidth {
     fn sub_assign(&mut self, other: Self) {
         self.0 -= other.0;
