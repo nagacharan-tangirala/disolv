@@ -1,7 +1,7 @@
 use crate::dist::{DistParams, RngSampler};
 use crate::net::message::{PayloadInfo, TxMetrics};
 use crate::net::metrics::Latency;
-use disolv_core::metrics::{Feasibility, Measurable, MetricSettings};
+use disolv_core::metrics::{Measurable, MetricSettings};
 use log::error;
 use rand::RngCore;
 use serde::Deserialize;
@@ -52,11 +52,7 @@ impl Measurable<Latency> for LatencyType {
         }
     }
 
-    fn measure(
-        &mut self,
-        transfer_metrics: &TxMetrics,
-        payload: &PayloadInfo,
-    ) -> Feasibility<Latency> {
+    fn measure(&mut self, transfer_metrics: &TxMetrics, payload: &PayloadInfo) -> Latency {
         match self {
             LatencyType::Constant(latency) => latency.measure(transfer_metrics, payload),
             LatencyType::Random(latency) => latency.measure(transfer_metrics, payload),
@@ -84,8 +80,8 @@ impl Measurable<Latency> for ConstantLatency {
         ConstantLatency { latency }
     }
 
-    fn measure(&mut self, _rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
-        Feasibility::Feasible(self.latency)
+    fn measure(&mut self, _rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Latency {
+        self.latency
     }
 }
 
@@ -118,13 +114,9 @@ impl Measurable<Latency> for RandomLatency {
         }
     }
 
-    fn measure(&mut self, _rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, _rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Latency {
         let latency_factor = self.sampler.rng.next_u64();
-        let latency = Latency::new(5); // todo: Fix this
-        if latency > self.constraint {
-            return Feasibility::Infeasible(latency);
-        }
-        Feasibility::Feasible(latency)
+        Latency::new(5)
     }
 }
 
@@ -152,16 +144,13 @@ impl Measurable<Latency> for DistanceLatency {
         }
     }
 
-    fn measure(&mut self, _rx_metrics: &TxMetrics, payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, _rx_metrics: &TxMetrics, payload: &PayloadInfo) -> Latency {
         let distance_factor = match payload.selected_link.properties.distance {
             Some(distance) => distance * self.factor,
             None => 0.0,
         };
         let latency = Latency::new(self.constant_term.as_u64() + distance_factor as u64);
-        if latency > self.constraint {
-            return Feasibility::Infeasible(latency);
-        }
-        Feasibility::Feasible(latency)
+        latency
     }
 }
 
@@ -188,12 +177,9 @@ impl Measurable<Latency> for OrderedLatency {
         }
     }
 
-    fn measure(&mut self, rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Latency {
         let order_factor = rx_metrics.tx_order as f32 * self.factor;
         let latency = Latency::new(self.const_param.as_u64() + order_factor as u64);
-        if latency > self.constraint {
-            return Feasibility::Infeasible(latency);
-        }
-        Feasibility::Feasible(latency)
+        latency
     }
 }

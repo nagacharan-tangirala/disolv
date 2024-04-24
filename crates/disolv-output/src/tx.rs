@@ -17,9 +17,7 @@ pub(crate) struct TxDataWriter {
     data_count: Vec<u32>,
     link_found: Vec<u64>,
     tx_order: Vec<u32>,
-    tx_status: Vec<u32>,
     payload_size: Vec<u64>,
-    tx_fail_reason: Vec<u32>,
     latency: Vec<u64>,
     to_output: DataOutput,
 }
@@ -42,9 +40,7 @@ impl TxDataWriter {
             data_count: Vec::new(),
             link_found: Vec::new(),
             tx_order: Vec::new(),
-            tx_status: Vec::new(),
             payload_size: Vec::new(),
-            tx_fail_reason: Vec::new(),
             latency: Vec::new(),
         }
     }
@@ -57,9 +53,7 @@ impl TxDataWriter {
         let data_count = Field::new("data_count", DataType::UInt32, false);
         let link_found = Field::new("link_found", DataType::UInt64, false);
         let tx_order = Field::new("tx_order", DataType::UInt32, false);
-        let tx_status = Field::new("tx_status", DataType::UInt32, false);
         let payload_size = Field::new("payload_size", DataType::UInt64, false);
-        let tx_fail_reason = Field::new("tx_fail_reason", DataType::UInt32, false);
         let latency = Field::new("latency", DataType::UInt64, false);
         Schema::new(vec![
             time_ms,
@@ -69,9 +63,7 @@ impl TxDataWriter {
             data_count,
             link_found,
             tx_order,
-            tx_status,
             payload_size,
-            tx_fail_reason,
             latency,
         ])
     }
@@ -91,9 +83,7 @@ impl TxDataWriter {
         self.data_count.push(payload.metadata.total_count);
         self.link_found.push(time_step.as_u64());
         self.tx_order.push(tx_metrics.tx_order);
-        self.tx_status.push(tx_metrics.tx_status.as_int());
         self.payload_size.push(tx_metrics.payload_size.as_u64());
-        self.tx_fail_reason.push(tx_metrics.tx_fail_reason.as_int());
         self.latency.push(tx_metrics.latency.as_u64());
     }
 
@@ -135,18 +125,8 @@ impl TxDataWriter {
                         Arc::new(UInt32Array::from(std::mem::take(&mut self.tx_order))) as ArrayRef,
                     ),
                     (
-                        "tx_status",
-                        Arc::new(UInt32Array::from(std::mem::take(&mut self.tx_status)))
-                            as ArrayRef,
-                    ),
-                    (
                         "payload_size",
                         Arc::new(UInt64Array::from(std::mem::take(&mut self.payload_size)))
-                            as ArrayRef,
-                    ),
-                    (
-                        "tx_fail_reason",
-                        Arc::new(UInt32Array::from(std::mem::take(&mut self.tx_fail_reason)))
                             as ArrayRef,
                     ),
                     (

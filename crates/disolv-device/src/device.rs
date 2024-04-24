@@ -3,7 +3,6 @@ use disolv_core::agent::{Activatable, Agent, Movable, Orderable};
 use disolv_core::agent::{AgentId, AgentOrder};
 use disolv_core::bucket::TimeMS;
 use disolv_core::core::Core;
-use disolv_core::metrics::Measurable;
 use disolv_core::metrics::Resource;
 use disolv_core::radio::{Receiver, Responder, Transmitter};
 use disolv_models::bucket::flow::FlowRegister;
@@ -195,20 +194,16 @@ impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for D
             payload.metadata.data_blobs.len()
         );
 
-        self.models.flow.register_outgoing_attempt(&payload);
+        self.models.flow.register_outgoing(&payload);
         let tx_metrics = bucket.models.network.transfer(&payload);
         bucket
             .models
             .result_writer
             .add_tx_data(self.step, &target_link, &payload, tx_metrics);
-
-        if tx_metrics.tx_status == TxStatus::Ok {
-            self.models.flow.register_outgoing_feasible(&payload);
-            bucket
-                .models
-                .data_lake
-                .add_payload_to(target_link.target, payload);
-        }
+        bucket
+            .models
+            .data_lake
+            .add_payload_to(target_link.target, payload);
     }
 
     fn transmit_sl(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
@@ -217,20 +212,16 @@ impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for D
             payload.agent_state.device_info.id, target_link.target
         );
 
-        self.models.sl_flow.register_outgoing_attempt(&payload);
+        self.models.sl_flow.register_outgoing(&payload);
         let sl_metrics = bucket.models.network.transfer(&payload);
         bucket
             .models
             .result_writer
             .add_tx_data(self.step, &target_link, &payload, sl_metrics);
-
-        if sl_metrics.tx_status == TxStatus::Ok {
-            self.models.sl_flow.register_outgoing_feasible(&payload);
-            bucket
-                .models
-                .data_lake
-                .add_sl_payload_to(target_link.target, payload);
-        }
+        bucket
+            .models
+            .data_lake
+            .add_sl_payload_to(target_link.target, payload);
     }
 }
 

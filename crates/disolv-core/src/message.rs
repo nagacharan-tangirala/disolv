@@ -33,9 +33,6 @@ where
     pub gathered_states: Option<Vec<A>>,
 }
 
-/// A trait to indicate a type that can be used to represent the transfer status of a payload.
-pub trait PayloadStatus: Clone + Send + Sync {}
-
 /// A trait to indicate a type that can be used to convey the payload transfer status back
 /// to the device that sent the payload.
 ///

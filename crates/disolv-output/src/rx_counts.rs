@@ -12,13 +12,9 @@ use std::sync::Arc;
 pub(crate) struct RxCountWriter {
     time_step: Vec<u64>,
     agent_id: Vec<u64>,
-    attempted_in_agent_count: Vec<u32>,
-    attempted_in_data_size: Vec<u64>,
-    attempted_in_data_count: Vec<u32>,
-    feasible_in_agent_count: Vec<u32>,
-    feasible_in_data_size: Vec<u64>,
-    feasible_in_data_count: Vec<u32>,
-    success_rate: Vec<f32>,
+    in_agent_count: Vec<u32>,
+    in_data_size: Vec<u64>,
+    in_data_count: Vec<u32>,
     to_output: DataOutput,
 }
 
@@ -35,39 +31,24 @@ impl RxCountWriter {
             to_output: DataOutput::new(&output_file, Self::schema()),
             time_step: Vec::new(),
             agent_id: Vec::new(),
-            attempted_in_agent_count: Vec::new(),
-            attempted_in_data_size: Vec::new(),
-            attempted_in_data_count: Vec::new(),
-            feasible_in_agent_count: Vec::new(),
-            feasible_in_data_size: Vec::new(),
-            feasible_in_data_count: Vec::new(),
-            success_rate: Vec::new(),
+            in_agent_count: Vec::new(),
+            in_data_size: Vec::new(),
+            in_data_count: Vec::new(),
         }
     }
 
     fn schema() -> Schema {
         let time_ms = Field::new("time_step", DataType::UInt64, false);
         let agent_id = Field::new("agent_id", DataType::UInt64, false);
-        let attempted_in_agent_count =
-            Field::new("attempted_in_agent_count", DataType::UInt32, false);
-        let attempted_in_data_size = Field::new("attempted_in_data_size", DataType::UInt64, false);
-        let attempted_in_data_count =
-            Field::new("attempted_in_data_count", DataType::UInt32, false);
-        let feasible_in_agent_count =
-            Field::new("feasible_in_agent_count", DataType::UInt32, false);
-        let feasible_in_data_size = Field::new("feasible_in_data_size", DataType::UInt64, false);
-        let feasible_in_data_count = Field::new("feasible_in_data_count", DataType::UInt32, false);
-        let success_rate = Field::new("success_rate", DataType::Float32, false);
+        let in_agent_count = Field::new("in_agent_count", DataType::UInt32, false);
+        let in_data_size = Field::new("in_data_size", DataType::UInt64, false);
+        let in_data_count = Field::new("in_data_count", DataType::UInt32, false);
         Schema::new(vec![
             time_ms,
             agent_id,
-            attempted_in_agent_count,
-            attempted_in_data_size,
-            attempted_in_data_count,
-            feasible_in_agent_count,
-            feasible_in_data_size,
-            feasible_in_data_count,
-            success_rate,
+            in_agent_count,
+            in_data_size,
+            in_data_count,
         ])
     }
 
@@ -79,19 +60,11 @@ impl RxCountWriter {
     ) {
         self.time_step.push(time_step.as_u64());
         self.agent_id.push(agent_id.as_u64());
-        self.attempted_in_agent_count
-            .push(in_data_stats.attempted.agent_count);
-        self.attempted_in_data_size
-            .push(in_data_stats.attempted.data_size.as_u64());
-        self.attempted_in_data_count
-            .push(in_data_stats.attempted.data_count);
-        self.feasible_in_agent_count
-            .push(in_data_stats.feasible.agent_count);
-        self.feasible_in_data_size
-            .push(in_data_stats.feasible.data_size.as_u64());
-        self.feasible_in_data_count
-            .push(in_data_stats.feasible.data_count);
-        self.success_rate.push(in_data_stats.get_success_rate());
+        self.in_agent_count
+            .push(in_data_stats.out_counts.agent_count);
+        self.in_data_size
+            .push(in_data_stats.out_counts.data_size.as_u64());
+        self.in_data_count.push(in_data_stats.out_counts.data_count);
     }
 
     pub fn write_to_file(&mut self) {
@@ -109,43 +82,17 @@ impl RxCountWriter {
                     ),
                     (
                         "attempted_in_agent_count",
-                        Arc::new(UInt32Array::from(std::mem::take(
-                            &mut self.attempted_in_agent_count,
-                        ))) as ArrayRef,
+                        Arc::new(UInt32Array::from(std::mem::take(&mut self.in_agent_count)))
+                            as ArrayRef,
                     ),
                     (
                         "attempted_in_data_size",
-                        Arc::new(UInt64Array::from(std::mem::take(
-                            &mut self.attempted_in_data_size,
-                        ))) as ArrayRef,
+                        Arc::new(UInt64Array::from(std::mem::take(&mut self.in_data_size)))
+                            as ArrayRef,
                     ),
                     (
                         "attempted_in_data_count",
-                        Arc::new(UInt32Array::from(std::mem::take(
-                            &mut self.attempted_in_data_count,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "feasible_in_agent_count",
-                        Arc::new(UInt32Array::from(std::mem::take(
-                            &mut self.feasible_in_agent_count,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "feasible_in_data_size",
-                        Arc::new(UInt64Array::from(std::mem::take(
-                            &mut self.feasible_in_data_size,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "feasible_in_data_count",
-                        Arc::new(UInt32Array::from(std::mem::take(
-                            &mut self.feasible_in_data_count,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "success_rate",
-                        Arc::new(Float32Array::from(std::mem::take(&mut self.success_rate)))
+                        Arc::new(UInt32Array::from(std::mem::take(&mut self.in_data_count)))
                             as ArrayRef,
                     ),
                 ])

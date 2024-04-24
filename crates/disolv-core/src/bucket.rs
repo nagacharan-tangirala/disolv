@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, Mul};
 use std::str::FromStr;

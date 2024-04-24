@@ -76,45 +76,20 @@ impl Display for Counts {
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct OutgoingStats {
-    pub attempted: Counts,
-    pub feasible: Counts,
+    pub out_counts: Counts,
     pub avg_latency: Latency,
-}
-
-impl Display for OutgoingStats {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "(attempted: {}, feasible: {}, avg_latency: {})",
-            self.attempted, self.feasible, self.avg_latency
-        )
-    }
 }
 
 impl OutgoingStats {
     pub fn reset(&mut self) {
-        self.attempted.reset();
-        self.feasible.reset();
+        self.out_counts.reset();
         self.avg_latency = Latency::default();
     }
 
-    pub fn get_success_rate(&self) -> f32 {
-        if self.attempted.agent_count == 0 {
-            return 0.0;
-        }
-        self.feasible.agent_count as f32 / self.attempted.agent_count as f32
-    }
-
-    pub fn add_attempted(&mut self, metadata: &PayloadInfo) {
-        self.attempted.agent_count += 1;
-        self.attempted.data_size += metadata.total_size;
-        self.attempted.data_count += metadata.total_count;
-    }
-
-    pub fn add_feasible(&mut self, metadata: &PayloadInfo) {
-        self.feasible.agent_count += 1;
-        self.feasible.data_size += metadata.total_size;
-        self.feasible.data_count += metadata.total_count;
+    pub fn update(&mut self, metadata: &PayloadInfo) {
+        self.out_counts.agent_count += 1;
+        self.out_counts.data_size += metadata.total_size;
+        self.out_counts.data_count += metadata.total_count;
     }
 }
 

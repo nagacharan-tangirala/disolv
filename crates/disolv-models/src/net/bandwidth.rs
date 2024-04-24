@@ -1,6 +1,6 @@
 use crate::net::message::PayloadInfo;
 use crate::net::metrics::Bandwidth;
-use disolv_core::metrics::{Consumable, Feasibility, MetricSettings};
+use disolv_core::metrics::{Consumable, MetricSettings};
 use serde::Deserialize;
 
 #[serde_with::skip_serializing_none]
@@ -33,7 +33,7 @@ impl Consumable<Bandwidth> for BandwidthType {
         }
     }
 
-    fn consume(&mut self, metadata: &Self::P) -> Feasibility<Bandwidth> {
+    fn consume(&mut self, metadata: &Self::P) -> Bandwidth {
         match self {
             Self::Constant(constant) => constant.consume(metadata),
         }
@@ -67,10 +67,10 @@ impl Consumable<Bandwidth> for ConstantBandwidth {
         self.bandwidth = Bandwidth::default();
     }
 
-    fn consume(&mut self, metadata: &Self::P) -> Feasibility<Bandwidth> {
+    fn consume(&mut self, metadata: &Self::P) -> Bandwidth {
         let data_bytes = metadata.total_size;
         self.bandwidth = Bandwidth::new(10000);
-        Feasibility::Feasible(self.bandwidth)
+        self.bandwidth
     }
 
     fn available(&self) -> Bandwidth {

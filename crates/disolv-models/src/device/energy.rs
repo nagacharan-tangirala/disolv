@@ -1,6 +1,5 @@
 use crate::net::message::PayloadInfo;
 use crate::net::message::TxMetrics;
-use disolv_core::metrics::Feasibility;
 use disolv_core::metrics::Measurable;
 use disolv_core::metrics::MetricSettings;
 use serde::Deserialize;
@@ -33,7 +32,7 @@ impl Measurable<Energy> for EnergyType {
         }
     }
 
-    fn measure(&mut self, tx_report: &TxMetrics, metadata: &PayloadInfo) -> Feasibility<Energy> {
+    fn measure(&mut self, tx_report: &TxMetrics, metadata: &PayloadInfo) -> Energy {
         match self {
             EnergyType::Proportional(energy) => energy.measure(tx_report, metadata),
         }
@@ -58,9 +57,9 @@ impl Measurable<Energy> for ProportionalEnergy {
         }
     }
 
-    fn measure(&mut self, tx_report: &TxMetrics, metadata: &PayloadInfo) -> Feasibility<Energy> {
+    fn measure(&mut self, tx_report: &TxMetrics, metadata: &PayloadInfo) -> Energy {
         let energy =
             self.static_energy + Energy::new(tx_report.payload_size.as_u64() * self.factor);
-        Feasibility::Feasible(self.static_energy)
+        energy
     }
 }

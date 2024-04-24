@@ -4,7 +4,7 @@ use crate::net::metrics::{Bandwidth, Bytes, Latency};
 use crate::net::radio::{Action, ActionType, DLink};
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
-use disolv_core::message::{AgentState, DataUnit, GPayload, Metadata, PayloadStatus};
+use disolv_core::message::{AgentState, DataUnit, GPayload, Metadata};
 use disolv_core::message::{GResponse, Queryable, Reply, TxReport};
 use disolv_core::uuid::Uuid;
 use serde::{Deserialize, Serialize};
@@ -106,33 +106,11 @@ impl TxStatus {
     }
 }
 
-impl PayloadStatus for TxStatus {}
-
-#[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
-pub enum TxFailReason {
-    #[default]
-    None = 0,
-    LatencyLimit,
-    NoBandwidth,
-}
-
-impl TxFailReason {
-    pub fn as_int(&self) -> u32 {
-        match self {
-            TxFailReason::None => 0,
-            TxFailReason::LatencyLimit => 1,
-            TxFailReason::NoBandwidth => 2,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Default, Copy)]
 pub struct TxMetrics {
     pub from_agent: AgentId,
     pub tx_order: u32,
-    pub tx_status: TxStatus,
     pub payload_size: Bytes,
-    pub tx_fail_reason: TxFailReason,
     pub link_found_at: TimeMS,
     pub latency: Latency,
     pub bandwidth: Bandwidth,

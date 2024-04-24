@@ -1,8 +1,8 @@
 use crate::net::bandwidth::{BandwidthConfig, BandwidthType};
 use crate::net::latency::{LatencyConfig, LatencyType};
-use crate::net::message::{DPayload, TxFailReason, TxMetrics, TxStatus};
+use crate::net::message::{DPayload, TxMetrics};
 use disolv_core::bucket::TimeMS;
-use disolv_core::metrics::{Consumable, Feasibility, Measurable};
+use disolv_core::metrics::{Consumable, Measurable};
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
@@ -44,31 +44,12 @@ impl Slice {
     pub fn transfer(&mut self, payload: &DPayload) -> TxMetrics {
         self.tx_order += 1;
         let mut tx_metrics = TxMetrics::new(payload, self.tx_order);
-        match self
+        tx_metrics.latency = self
             .metrics
             .latency_type
-            .measure(&tx_metrics, &payload.metadata)
-        {
-            Feasibility::Feasible(latency) => tx_metrics.latency = latency,
-            Feasibility::Infeasible(latency) => {
-                tx_metrics.latency = latency;
-                tx_metrics.tx_status = TxStatus::Fail;
-                tx_metrics.tx_fail_reason = TxFailReason::LatencyLimit;
-                return tx_metrics;
-            }
-        };
+            .measure(&tx_metrics, &payload.metadata);
 
-        match self.resources.bandwidth_type.consume(&payload.metadata) {
-            Feasibility::Feasible(bandwidth) => tx_metrics.bandwidth = bandwidth,
-            Feasibility::Infeasible(available) => {
-                tx_metrics.bandwidth = available;
-                tx_metrics.tx_status = TxStatus::Fail;
-                tx_metrics.tx_fail_reason = TxFailReason::NoBandwidth;
-                return tx_metrics;
-            }
-        };
-
-        tx_metrics.tx_status = TxStatus::Ok;
+        tx_metrics.bandwidth = self.resources.bandwidth_type.consume(&payload.metadata);
         tx_metrics
     }
 }

@@ -20,12 +20,8 @@ impl FlowRegister {
         self.out_link_agents.clear();
     }
 
-    pub fn register_outgoing_attempt(&mut self, payload: &DPayload) {
-        self.out_stats.add_attempted(&payload.metadata);
-    }
-
-    pub fn register_outgoing_feasible(&mut self, payload: &DPayload) {
-        self.out_stats.add_feasible(&payload.metadata);
+    pub fn register_outgoing(&mut self, payload: &DPayload) {
+        self.out_stats.update(&payload.metadata);
         self.out_link_agents
             .entry(payload.agent_state.device_info.device_class)
             .or_default()

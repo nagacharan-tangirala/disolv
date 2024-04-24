@@ -1,6 +1,6 @@
 use crate::net::message::PayloadInfo;
 use crate::net::metrics::Bytes;
-use disolv_core::metrics::{Feasibility, MetricSettings, Resource};
+use disolv_core::metrics::{MetricSettings, Resource};
 use serde::Deserialize;
 
 #[serde_with::skip_serializing_none]
@@ -28,7 +28,7 @@ impl Resource<Bytes> for StorageType {
         }
     }
 
-    fn consume(&mut self, metadata: &Self::P) -> Feasibility<Bytes> {
+    fn consume(&mut self, metadata: &Self::P) -> Bytes {
         match self {
             StorageType::Constant(storage) => storage.consume(metadata),
         }
@@ -58,14 +58,9 @@ impl Resource<Bytes> for ConstantStorage {
         }
     }
 
-    fn consume(&mut self, metadata: &Self::P) -> Feasibility<Bytes> {
-        let to_consume = self.available - metadata.total_size;
-        if self.available + to_consume > self.limit {
-            Feasibility::Infeasible(self.available)
-        } else {
-            self.available += to_consume;
-            Feasibility::Feasible(self.available)
-        }
+    fn consume(&mut self, metadata: &Self::P) -> Bytes {
+        self.available = self.available + metadata.total_size;
+        self.available
     }
 
     fn available(&self) -> Bytes {
