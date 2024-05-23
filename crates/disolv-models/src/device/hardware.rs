@@ -6,7 +6,7 @@ use serde::Deserialize;
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct StorageSettings {
-    pub variant: String,
+    pub name: String,
     pub limit: Bytes,
 }
 
@@ -22,9 +22,9 @@ impl Resource<Bytes> for StorageType {
     type S = StorageSettings;
 
     fn with_settings(settings: &Self::S) -> Self {
-        match settings.variant.to_lowercase().as_str() {
+        match settings.name.to_lowercase().as_str() {
             "constant" => StorageType::Constant(ConstantStorage::with_settings(&settings)),
-            _ => panic!("Unsupported storage type {}", settings.variant),
+            _ => panic!("Unsupported storage type {}", settings.name),
         }
     }
 
