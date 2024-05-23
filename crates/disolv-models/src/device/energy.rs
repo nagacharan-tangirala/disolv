@@ -7,6 +7,7 @@ use serde::Deserialize;
 use super::metrics::Energy;
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde_with::skip_serializing_none]
 pub struct EnergySettings {
     pub name: String,
     pub factor: u64,
