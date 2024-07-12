@@ -6,12 +6,11 @@ authors = [
 ]
 edition = "2021"
 license = "MIT"
-readme = "README.md"
 
 [dependencies]
 disolv-core = { path = "../disolv-core" }
 disolv-models = { path = "../disolv-models" }
-typed-builder = "0.18.1"
-log = "0.4.21"
-parquet = "51.0.0"
-arrow-array = "51.0.0"
+typed-builder = "0.18.2"
+log = "0.4.22"
+parquet = "52.1.0"
+arrow-array = "52.1.0"
