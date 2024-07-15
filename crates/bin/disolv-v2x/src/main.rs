@@ -4,6 +4,10 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 mod base;
 mod builder;
 mod logger;
+mod bucket;
+mod device;
+mod linker;
+mod space;
 
 use clap::Parser;
 use disolv_core::runner::run_simulation;

@@ -1,7 +1,7 @@
 use disolv_core::agent::AgentOrder;
 use disolv_core::bucket::TimeMS;
-use disolv_device::linker::LinkerSettings;
-use disolv_device::space::{FieldSettings, MobilitySettings};
+use crate::linker::LinkerSettings;
+use crate::space::{FieldSettings, MobilitySettings};
 use disolv_models::device::compose::ComposerSettings;
 use disolv_models::device::energy::EnergySettings;
 use disolv_models::device::hardware::StorageSettings;

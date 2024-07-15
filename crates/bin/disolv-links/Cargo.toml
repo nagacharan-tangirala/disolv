@@ -8,9 +8,9 @@ name = "disolv-links"
 path = "src/main.rs"
 
 [dependencies]
-disolv-models = { path = "../disolv-models" }
-disolv-core = { path = "../disolv-core" }
-disolv-input = { path = "../disolv-input" }
+disolv-models = { path = "../../lib/disolv-models" }
+disolv-core = { path = "../../lib/disolv-core" }
+disolv-input = { path = "../../lib/disolv-input" }
 parquet = "52.1.0"
 arrow = "52.1.0"
 hashbrown = "0.14.5"
@@ -23,4 +23,4 @@ clap = { version = "4.5.9", features = ['derive'] }
 log = "0.4.22"
 log4rs = "1.3.0"
 serde = { version = "1.0.204", features = ["derive"] }
-serde_with = "3.8.3"
+serde_with = "3.9.0"
