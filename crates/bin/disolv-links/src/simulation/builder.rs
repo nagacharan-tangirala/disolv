@@ -5,11 +5,11 @@ use hashbrown::HashMap;
 use disolv_core::bucket::TimeMS;
 use disolv_models::device::types::DeviceType;
 
-use crate::config::Config;
-use crate::linker::{LinkerImpl, LinkType};
-use crate::logger;
-use crate::reader::{Reader, TraceType};
-use crate::ui::LinkUIMetadata;
+use crate::links::linker::{LinkerImpl, LinkType};
+use crate::links::reader::{Reader, TraceType};
+use crate::simulation::config::Config;
+use crate::simulation::logger;
+use crate::simulation::ui::UIMetadata;
 
 pub(crate) struct LinkBuilder {
     pub(crate) step_size: TimeMS,
@@ -34,8 +34,8 @@ impl LinkBuilder {
         }
     }
 
-    pub(crate) fn build_link_metadata(&self) -> LinkUIMetadata {
-        LinkUIMetadata {
+    pub(crate) fn build_link_metadata(&self) -> UIMetadata {
+        UIMetadata {
             input_file: self
                 .config_path
                 .to_str()

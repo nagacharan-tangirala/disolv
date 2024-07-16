@@ -18,21 +18,21 @@ pub(crate) enum Message {
 }
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct LinkUIMetadata {
+pub(crate) struct UIMetadata {
     pub input_file: String,
     pub output_path: String,
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct LinkContent {
+pub(crate) struct Content {
     pub running: bool,
     pub total_steps: u64,
     pub now: u64,
-    pub metadata: LinkUIMetadata,
+    pub metadata: UIMetadata,
 }
 
-impl LinkContent {
-    pub fn new(total_steps: u64, metadata: LinkUIMetadata) -> Self {
+impl Content {
+    pub fn new(total_steps: u64, metadata: UIMetadata) -> Self {
         Self {
             total_steps,
             running: true,
@@ -55,7 +55,7 @@ impl LinkContent {
     }
 }
 
-pub fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
+pub fn render_ui(content: &mut Content, frame: &mut Frame) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
