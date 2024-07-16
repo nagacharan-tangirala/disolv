@@ -1,17 +1,12 @@
-use crate::net::message::DeviceContent;
-use crate::net::radio::{IncomingStats, OutgoingStats};
-use disolv_core::agent::{AgentClass, AgentId, AgentKind, AgentOrder, AgentStats};
-use serde::Deserialize;
 use std::fmt::{Display, Formatter};
+
+use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
-#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
-pub struct DeviceInfo {
-    pub id: AgentId,
-    pub device_type: DeviceType,
-    pub device_class: DeviceClass,
-    pub agent_order: AgentOrder,
-}
+use disolv_core::agent::{AgentClass, AgentId, AgentKind, AgentOrder, AgentStats};
+
+use crate::net::message::DeviceContent;
+use crate::net::radio::{IncomingStats, OutgoingStats};
 
 #[derive(Deserialize, Default, Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub enum DeviceClass {

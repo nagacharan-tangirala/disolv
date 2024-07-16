@@ -7,7 +7,7 @@ use disolv_core::hashbrown::HashMap;
 use disolv_testutils::agent::{DeviceType, TDevice};
 use disolv_testutils::bucket::MyBucket;
 use disolv_testutils::core::create_core;
-use disolv_v2x::scheduler::{DefaultScheduler, MapScheduler, Scheduler};
+use disolv_v2x::simulation::scheduler::{DefaultScheduler, MapScheduler, Scheduler};
 
 pub fn create_map_scheduler() -> MapScheduler<TDevice, MyBucket> {
     let agents = IndexMap::with_capacity(1000000);

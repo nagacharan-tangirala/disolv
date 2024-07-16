@@ -1,13 +1,15 @@
-use crate::config::Config;
-use crate::linker::{LinkType, LinkerImpl};
-use crate::logger;
-use crate::reader::{ConstantReader, MobileReader, Reader, TraceType};
-use disolv_core::bucket::TimeMS;
-use disolv_core::ui::LinkUIMetadata;
-use disolv_models::device::types::DeviceType;
-use hashbrown::HashMap;
-use log::debug;
 use std::path::PathBuf;
+
+use hashbrown::HashMap;
+
+use disolv_core::bucket::TimeMS;
+use disolv_models::device::types::DeviceType;
+
+use crate::config::Config;
+use crate::linker::{LinkerImpl, LinkType};
+use crate::logger;
+use crate::reader::{Reader, TraceType};
+use crate::ui::LinkUIMetadata;
 
 pub(crate) struct LinkBuilder {
     pub(crate) step_size: TimeMS,

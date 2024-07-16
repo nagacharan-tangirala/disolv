@@ -1,5 +1,5 @@
-use disolv_v2x::runner::run_simulation;
-use disolv_v2x::ui::SimUIMetadata;
+use disolv_v2x::simulation::runner::run_simulation;
+use disolv_v2x::simulation::ui::SimUIMetadata;
 
 use crate::scheduler::{create_map_scheduler, create_scheduler};
 
