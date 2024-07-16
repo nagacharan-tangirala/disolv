@@ -1,22 +1,26 @@
+use std::{io, thread};
+use std::path::PathBuf;
+use std::sync::mpsc;
+use std::time::Duration;
+
+use clap::Parser;
+use crossterm::event::{self, Event as CrosstermEvent};
+use log::{debug, info};
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
+
+use crate::builder::LinkBuilder;
+use crate::config::{Config, read_config};
+use crate::tui::{handle_link_key_events, Tui};
+use crate::ui::{LinkContent, Message};
+
 mod builder;
 mod config;
 mod linker;
 mod logger;
 mod reader;
-
-use crate::builder::LinkBuilder;
-use crate::config::{read_config, Config};
-use clap::Parser;
-use crossterm::event::{self, Event as CrosstermEvent};
-use disolv_core::tui::{handle_link_key_events, Tui};
-use disolv_core::ui::{LinkContent, Message};
-use log::{debug, info};
-use ratatui::backend::CrosstermBackend;
-use ratatui::Terminal;
-use std::path::PathBuf;
-use std::sync::mpsc;
-use std::time::Duration;
-use std::{io, thread};
+mod tui;
+mod ui;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]

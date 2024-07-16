@@ -1,18 +1,13 @@
+use clap::Parser;
+
+use crate::simulation::builder::SimulationBuilder;
+use crate::simulation::runner::run_simulation;
+
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-mod base;
-mod builder;
-mod logger;
-mod bucket;
-mod device;
-mod linker;
-mod space;
-
-use clap::Parser;
-use disolv_core::runner::run_simulation;
-
-use builder::SimulationBuilder;
+mod simulation;
+pub(crate) mod v2x;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]
