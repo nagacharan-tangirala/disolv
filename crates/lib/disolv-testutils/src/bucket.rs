@@ -1,9 +1,5 @@
 use disolv_core::bucket::{Bucket, TimeMS};
 
-pub(crate) struct BucketModels {
-    pub(crate) models: i32,
-}
-
 #[derive(Default, Clone)]
 pub struct MyBucket {
     pub step: TimeMS,

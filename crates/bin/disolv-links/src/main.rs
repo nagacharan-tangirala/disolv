@@ -9,18 +9,13 @@ use log::{debug, info};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 
-use crate::builder::LinkBuilder;
-use crate::config::{Config, read_config};
-use crate::tui::{handle_link_key_events, Tui};
-use crate::ui::{LinkContent, Message};
+use crate::simulation::builder::LinkBuilder;
+use crate::simulation::config::{Config, read_config};
+use crate::simulation::tui::{handle_link_key_events, Tui};
+use crate::simulation::ui::{Content, Message};
 
-mod builder;
-mod config;
-mod linker;
-mod logger;
-mod reader;
-mod tui;
-mod ui;
+mod links;
+mod simulation;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]
@@ -48,7 +43,7 @@ fn generate_links(mut builder: LinkBuilder) {
     let ui_metadata = builder.build_link_metadata();
     thread::scope(|s| {
         s.spawn(move || {
-            let mut ui_content = LinkContent::new(duration, ui_metadata);
+            let mut ui_content = Content::new(duration, ui_metadata);
 
             let backend = CrosstermBackend::new(io::stderr());
             let terminal = Terminal::new(backend).expect("failed to create terminal");
@@ -56,7 +51,7 @@ fn generate_links(mut builder: LinkBuilder) {
             tui.init().expect("failed to initialize the terminal");
 
             while ui_content.running {
-                tui.draw_link_ui(&mut ui_content).expect("failed to draw");
+                tui.draw_ui(&mut ui_content).expect("failed to draw");
                 match receiver_ui.recv() {
                     Ok(message) => match message {
                         Message::CurrentTime(now) => ui_content.update_now(now),
