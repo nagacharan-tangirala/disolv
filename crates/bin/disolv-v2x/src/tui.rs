@@ -1,11 +1,13 @@
-use crate::ui;
-use crate::ui::{ContentResult, LinkContent, SimContent};
+use std::io;
+use std::panic;
+
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::Backend;
 use ratatui::Terminal;
-use std::io;
-use std::panic;
+
+use crate::ui;
+use crate::ui::{ContentResult, LinkContent, SimContent};
 
 /// Representation of a terminal user interface.
 ///

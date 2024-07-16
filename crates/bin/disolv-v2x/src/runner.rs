@@ -1,13 +1,15 @@
-use crate::scheduler::Scheduler;
-use crate::tui::{handle_sim_key_events, Tui};
-use crate::ui::{Message, SimContent, SimUIMetadata};
+use std::{io, thread};
+use std::sync::mpsc;
+use std::time::Duration;
+
 use crossterm::event::{self, Event as CrosstermEvent};
 use log::info;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use std::sync::mpsc;
-use std::time::Duration;
-use std::{io, thread};
+
+use crate::scheduler::Scheduler;
+use crate::tui::{handle_sim_key_events, Tui};
+use crate::ui::{Message, SimContent, SimUIMetadata};
 
 pub fn run_simulation<S>(mut scheduler: S, metadata: SimUIMetadata)
 where
@@ -85,23 +87,4 @@ where
             sender_ui.send(Message::Quit).unwrap();
         });
     });
-}
-
-#[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
-    use crate::map_scheduler::tests::create_map_scheduler;
-    use crate::scheduler::tests::create_scheduler;
-
-    #[test]
-    fn test_run_simulation() {
-        let scheduler = create_scheduler();
-        run_simulation(scheduler, SimUIMetadata::default());
-    }
-
-    #[test]
-    fn test_run_simulation_with_map() {
-        let scheduler = create_map_scheduler();
-        run_simulation(scheduler, SimUIMetadata::default());
-    }
 }

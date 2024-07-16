@@ -1,13 +1,14 @@
+use std::error;
+
 use crossterm::event::{KeyEvent, MouseEvent};
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::widgets::{Borders, Gauge};
 use ratatui::{
+    Frame,
     layout::Alignment,
     style::{Color, Modifier, Style},
     widgets::{Block, BorderType, Paragraph},
-    Frame,
 };
-use std::error;
+use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::widgets::{Borders, Gauge};
 
 pub type ContentResult<T> = Result<T, Box<dyn error::Error>>;
 
@@ -102,7 +103,7 @@ impl LinkContent {
 }
 
 /// Renders the user interface widgets.
-pub(crate) fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
+pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
     // This is where you add new widgets.
     // See the following resources:
     // - https://docs.rs/ratatui/latest/ratatui/widgets/index.html
@@ -180,7 +181,7 @@ pub(crate) fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
     );
 }
 
-pub(crate) fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
+pub fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
