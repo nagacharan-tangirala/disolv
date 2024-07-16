@@ -1,15 +1,17 @@
+use log::debug;
+use serde::Deserialize;
+
+use disolv_core::agent::AgentId;
+use disolv_core::bucket::TimeMS;
+use disolv_models::device::mobility::MapState;
+use disolv_models::net::message::{TxMetrics, V2XPayload};
+use disolv_models::net::radio::{DLink, OutgoingStats};
+use disolv_models::net::slice::Slice;
+
 use crate::net::NetStatWriter;
 use crate::position::PosWriter;
 use crate::rx_counts::RxCountWriter;
 use crate::tx::TxDataWriter;
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-use disolv_models::device::mobility::MapState;
-use disolv_models::net::message::{DPayload, TxMetrics};
-use disolv_models::net::radio::{DLink, OutgoingStats};
-use disolv_models::net::slice::Slice;
-use log::debug;
-use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone, Copy, Eq, PartialEq)]
 pub enum OutputType {
@@ -94,7 +96,7 @@ impl ResultWriter {
         &mut self,
         time_step: TimeMS,
         link: &DLink,
-        payload: &DPayload,
+        payload: &V2XPayload,
         tx_metrics: TxMetrics,
     ) {
         match &mut self.tx_writer {

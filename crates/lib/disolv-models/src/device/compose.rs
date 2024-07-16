@@ -1,11 +1,13 @@
-use crate::device::types::DeviceClass;
-use crate::net::message::{DPayload, DataBlob, DataSource, DeviceContent, PayloadInfo};
-use crate::net::radio::{Action, DLink};
+use log::{debug, error};
+use serde::Deserialize;
+
 use disolv_core::bucket::TimeMS;
 use disolv_core::model::{Model, ModelSettings};
 use disolv_core::uuid;
-use log::{debug, error};
-use serde::Deserialize;
+
+use crate::device::types::DeviceClass;
+use crate::net::message::{DataBlob, DataSource, DeviceContent, PayloadInfo, V2XPayload};
+use crate::net::radio::{Action, DLink};
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct ComposerSettings {
@@ -37,7 +39,11 @@ impl Model for Composer {
 }
 
 impl Composer {
-    pub fn compose_payload(&self, target_class: &DeviceClass, content: DeviceContent) -> DPayload {
+    pub fn compose_payload(
+        &self,
+        target_class: &DeviceClass,
+        content: DeviceContent,
+    ) -> V2XPayload {
         match self {
             Composer::Basic(composer) => composer.compose_payload(target_class, content),
             Composer::Status(composer) => composer.compose_payload(target_class, content),
@@ -51,7 +57,7 @@ impl Composer {
         }
     }
 
-    pub fn append_blobs_to(&mut self, payload: &mut DPayload, blobs: &mut Vec<DataBlob>) {
+    pub fn append_blobs_to(&mut self, payload: &mut V2XPayload, blobs: &mut Vec<DataBlob>) {
         blobs.iter().for_each(|blob| {
             payload.metadata.total_size += blob.data_size;
             payload.metadata.total_count += 1;
@@ -82,9 +88,9 @@ impl BasicComposer {
         self.step = step;
     }
 
-    fn compose_payload(&self, target_class: &DeviceClass, content: DeviceContent) -> DPayload {
+    fn compose_payload(&self, target_class: &DeviceClass, content: DeviceContent) -> V2XPayload {
         let payload_info = self.compose_metadata(target_class);
-        DPayload::builder()
+        V2XPayload::builder()
             .metadata(payload_info)
             .agent_state(content)
             .gathered_states(Some(Vec::new()))
@@ -134,8 +140,8 @@ impl StatusComposer {
         }
     }
 
-    fn compose_payload(&self, _target_class: &DeviceClass, content: DeviceContent) -> DPayload {
-        DPayload::builder()
+    fn compose_payload(&self, _target_class: &DeviceClass, content: DeviceContent) -> V2XPayload {
+        V2XPayload::builder()
             .metadata(PayloadInfo::default())
             .agent_state(content)
             .gathered_states(Some(Vec::new()))

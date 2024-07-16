@@ -1,6 +1,7 @@
-use crate::net::message::{DPayload, TxMetrics};
-use crate::net::slice::Slice;
 use typed_builder::TypedBuilder;
+
+use crate::net::message::{TxMetrics, V2XPayload};
+use crate::net::slice::Slice;
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct Network {
@@ -8,7 +9,7 @@ pub struct Network {
 }
 
 impl Network {
-    pub fn transfer(&mut self, payload: &DPayload) -> TxMetrics {
+    pub fn transfer(&mut self, payload: &V2XPayload) -> TxMetrics {
         self.slices
             .get_mut(0)
             .expect("no slice found")

@@ -1,17 +1,20 @@
-use crate::base::{AgentClassSettings, AgentSettings, BaseConfig, BaseConfigReader};
-use crate::logger;
+use std::path::{Path, PathBuf};
+
+use indexmap::IndexMap;
+use log::info;
+
 use disolv_core::agent::{AgentId, AgentImpl};
 use disolv_core::bucket::TimeMS;
 use disolv_core::core::Core;
 use disolv_core::hashbrown::HashMap;
 use disolv_core::map_scheduler::MapScheduler;
-use disolv_core::metrics::Resource;
 use disolv_core::metrics::{Consumable, Measurable};
+use disolv_core::metrics::Resource;
 use disolv_core::model::Model;
 use disolv_core::scheduler::DefaultScheduler;
 use disolv_core::ui::SimUIMetadata;
 use disolv_input::links::LinkReader;
-use disolv_input::power::{read_power_schedule, PowerTimes};
+use disolv_input::power::{PowerTimes, read_power_schedule};
 use disolv_models::bucket::flow::FlowRegister;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
@@ -27,12 +30,12 @@ use disolv_models::net::latency::LatencyType;
 use disolv_models::net::network::Network;
 use disolv_models::net::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use disolv_output::result::ResultWriter;
-use indexmap::IndexMap;
-use log::info;
-use std::path::{Path, PathBuf};
-use crate::bucket::{BucketModels, DeviceBucket};
+
+use crate::base::{AgentClassSettings, AgentSettings, BaseConfig, BaseConfigReader};
+use crate::bucket::{BucketModels, DeviceBucket, V2XDataLake};
 use crate::device::{Device, DeviceModel};
 use crate::linker::{Linker, LinkerSettings};
+use crate::logger;
 use crate::space::{Mapper, Space};
 
 pub type DCore = Core<Device, DeviceBucket>;
@@ -267,7 +270,7 @@ impl SimulationBuilder {
             .space(self.build_space())
             .mapper_holder(self.build_mapper_vec())
             .linker_holder(self.build_linker_vec())
-            .data_lake(DataLake::default())
+            .data_lake(V2XDataLake::new())
             .build()
     }
 

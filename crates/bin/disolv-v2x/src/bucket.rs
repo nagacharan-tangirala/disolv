@@ -1,5 +1,6 @@
-use crate::linker::Linker;
-use crate::space::{Mapper, Space};
+use log::info;
+use typed_builder::TypedBuilder;
+
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::Bucket;
 use disolv_core::bucket::TimeMS;
@@ -8,11 +9,15 @@ use disolv_core::model::BucketModel;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::mobility::MapState;
 use disolv_models::device::types::{DeviceClass, DeviceType};
+use disolv_models::net::message::{DataSource, DeviceContent, PayloadInfo, TxMetrics};
 use disolv_models::net::network::Network;
 use disolv_models::net::radio::DLink;
 use disolv_output::result::ResultWriter;
-use log::info;
-use typed_builder::TypedBuilder;
+
+use crate::linker::Linker;
+use crate::space::{Mapper, Space};
+
+pub type V2XDataLake = DataLake<DeviceContent, PayloadInfo, DataSource, TxMetrics>;
 
 #[derive(TypedBuilder)]
 pub struct BucketModels {
@@ -21,8 +26,7 @@ pub struct BucketModels {
     pub space: Space,
     pub mapper_holder: Vec<(DeviceType, Mapper)>,
     pub linker_holder: Vec<Linker>,
-    #[builder(default)]
-    pub data_lake: DataLake,
+    pub data_lake: V2XDataLake,
 }
 
 #[derive(TypedBuilder)]

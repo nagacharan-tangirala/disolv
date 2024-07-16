@@ -1,10 +1,12 @@
-use crate::net::bandwidth::{BandwidthConfig, BandwidthType};
-use crate::net::latency::{LatencyConfig, LatencyType};
-use crate::net::message::{DPayload, TxFailReason, TxMetrics, TxStatus};
-use disolv_core::bucket::TimeMS;
-use disolv_core::metrics::{Consumable, Feasibility, Measurable};
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
+
+use disolv_core::bucket::TimeMS;
+use disolv_core::metrics::{Consumable, Feasibility, Measurable};
+
+use crate::net::bandwidth::{BandwidthConfig, BandwidthType};
+use crate::net::latency::{LatencyConfig, LatencyType};
+use crate::net::message::{TxFailReason, TxMetrics, TxStatus, V2XPayload};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SliceSettings {
@@ -41,7 +43,7 @@ impl Slice {
         self.resources.bandwidth_type.reset();
     }
 
-    pub fn transfer(&mut self, payload: &DPayload) -> TxMetrics {
+    pub fn transfer(&mut self, payload: &V2XPayload) -> TxMetrics {
         self.tx_order += 1;
         let mut tx_metrics = TxMetrics::new(payload, self.tx_order);
         match self

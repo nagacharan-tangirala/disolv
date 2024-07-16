@@ -1,12 +1,15 @@
-use crate::result::{OutputSettings, OutputType};
-use crate::writer::DataOutput;
-use arrow::array::{ArrayRef, Float32Array, RecordBatch, UInt32Array, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema};
-use disolv_core::bucket::TimeMS;
-use disolv_models::net::message::{DPayload, TxMetrics};
-use disolv_models::net::radio::DLink;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+use arrow::array::{ArrayRef, Float32Array, RecordBatch, UInt32Array, UInt64Array};
+use arrow::datatypes::{DataType, Field, Schema};
+
+use disolv_core::bucket::TimeMS;
+use disolv_models::net::message::{TxMetrics, V2XPayload};
+use disolv_models::net::radio::DLink;
+
+use crate::result::{OutputSettings, OutputType};
+use crate::writer::DataOutput;
 
 #[derive(Debug)]
 pub(crate) struct TxDataWriter {
@@ -80,7 +83,7 @@ impl TxDataWriter {
         &mut self,
         time_step: TimeMS,
         link: &DLink,
-        payload: &DPayload,
+        payload: &V2XPayload,
         tx_metrics: TxMetrics,
     ) {
         self.time_step.push(time_step.as_u64());

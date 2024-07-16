@@ -14,7 +14,6 @@ disolv-input = { path = "../../lib/disolv-input" }
 parquet = "52.1.0"
 arrow = "52.1.0"
 hashbrown = "0.14.5"
-sqlite = "0.36.0"
 crossterm = "0.27.0"
 ratatui = "0.26.1"
 toml = "0.8.14"

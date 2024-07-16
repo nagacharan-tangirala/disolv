@@ -1,16 +1,20 @@
-use crate::device::mobility::MapState;
-use crate::device::types::{DeviceClass, DeviceInfo};
-use crate::net::metrics::{Bandwidth, Bytes, Latency};
-use crate::net::radio::{Action, ActionType, DLink};
+use std::fmt::Display;
+
+use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
+
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_core::message::{AgentState, DataUnit, GPayload, Metadata, PayloadStatus};
 use disolv_core::message::{GResponse, Queryable, Reply, TxReport};
 use disolv_core::uuid::Uuid;
-use serde::{Deserialize, Serialize};
-use std::fmt::Display;
-use typed_builder::TypedBuilder;
 
+use crate::device::mobility::MapState;
+use crate::device::types::{DeviceClass, DeviceInfo};
+use crate::net::metrics::{Bandwidth, Bytes, Latency};
+use crate::net::radio::{Action, ActionType, DLink};
+
+/// Define a datatype to represent the type of data being sent.
 #[derive(Deserialize, Default, Debug, Hash, Copy, Clone, PartialEq, Eq)]
 pub enum DataType {
     #[default]
@@ -20,6 +24,7 @@ pub enum DataType {
     Lidar2D,
     Lidar3D,
     Radar,
+    ModelWeights,
 }
 
 impl Display for DataType {
@@ -31,6 +36,7 @@ impl Display for DataType {
             DataType::Lidar2D => write!(f, "Lidar2D"),
             DataType::Lidar3D => write!(f, "Lidar3D"),
             DataType::Radar => write!(f, "Radar"),
+            DataType::ModelWeights => write!(f, "ModelWeights"),
         }
     }
 }
@@ -45,6 +51,7 @@ pub struct DeviceContent {
 
 impl AgentState for DeviceContent {}
 
+/// Define a struct that contains the metadata about the sensor data.
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct DataBlob {
     pub data_type: DataType,
@@ -54,6 +61,7 @@ pub struct DataBlob {
 
 impl DataUnit for DataBlob {}
 
+/// Define a struct to represent a single message that will be transferred between agents.
 #[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct PayloadInfo {
     pub id: Uuid,
@@ -78,8 +86,9 @@ impl PayloadInfo {
 
 impl Metadata for PayloadInfo {}
 
-pub type DPayload = GPayload<DeviceContent, PayloadInfo>;
+pub type V2XPayload = GPayload<DeviceContent, PayloadInfo>;
 
+/// Define a struct that contains details about the data sensors that a device can hold.
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub struct DataSource {
     pub data_type: DataType,
@@ -139,7 +148,7 @@ pub struct TxMetrics {
 }
 
 impl TxMetrics {
-    pub fn new(payload: &DPayload, tx_order: u32) -> Self {
+    pub fn new(payload: &V2XPayload, tx_order: u32) -> Self {
         Self {
             from_agent: payload.agent_state.device_info.id,
             payload_size: payload.metadata.total_size,
@@ -151,4 +160,4 @@ impl TxMetrics {
 
 impl TxReport for TxMetrics {}
 
-pub type DResponse = GResponse<DataSource, TxMetrics>;
+pub type V2XResponse = GResponse<DataSource, TxMetrics>;

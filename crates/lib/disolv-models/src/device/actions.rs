@@ -1,7 +1,8 @@
-use crate::device::types::DeviceInfo;
-use crate::net::message::{DPayload, DataBlob, DeviceContent};
-use crate::net::radio::{Action, ActionType, DActions};
 use log::{debug, error};
+
+use crate::device::types::DeviceInfo;
+use crate::net::message::{DataBlob, DeviceContent, V2XPayload};
+use crate::net::radio::{Action, ActionType, DActions};
 
 /// Prepares a list of data blobs that the payload should consider forwarding.
 ///
@@ -13,7 +14,7 @@ use log::{debug, error};
 /// * `Vec<DataBlob>` - List of data blobs that need to be forwarded
 pub fn filter_blobs_to_fwd(
     target_info: &DeviceContent,
-    to_forward: &Vec<DPayload>,
+    to_forward: &Vec<V2XPayload>,
 ) -> Vec<DataBlob> {
     let mut blobs_to_forward: Vec<DataBlob> = Vec::new();
     for payload in to_forward.iter() {
@@ -46,7 +47,7 @@ pub fn filter_blobs_to_fwd(
 ///
 /// # Returns
 /// * `DPayload` - The payload with the new actions set
-pub fn set_actions_before_tx(mut payload: DPayload, actions: &DActions) -> DPayload {
+pub fn set_actions_before_tx(mut payload: V2XPayload, actions: &DActions) -> V2XPayload {
     payload.metadata.data_blobs.iter_mut().for_each(|blob| {
         let new_action = match actions.action_for(&blob.data_type) {
             Some(action) => action,
@@ -70,7 +71,7 @@ pub fn set_actions_before_tx(mut payload: DPayload, actions: &DActions) -> DPayl
 ///
 /// # Returns
 /// * `DPayload` - The payload with the new actions set
-pub fn do_actions(payload: &mut DPayload, agent_content: &DeviceContent) {
+pub fn do_actions(payload: &mut V2XPayload, agent_content: &DeviceContent) {
     payload
         .metadata
         .data_blobs

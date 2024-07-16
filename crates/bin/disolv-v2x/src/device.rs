@@ -1,4 +1,8 @@
-use crate::bucket::DeviceBucket;
+use std::fmt::Debug;
+
+use log::debug;
+use typed_builder::TypedBuilder;
+
 use disolv_core::agent::{Activatable, Agent, Movable, Orderable};
 use disolv_core::agent::{AgentId, AgentOrder};
 use disolv_core::bucket::TimeMS;
@@ -17,12 +21,11 @@ use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::device::reply::Replier;
 use disolv_models::device::select::Selector;
 use disolv_models::device::types::{DeviceClass, DeviceInfo, DeviceStats};
-use disolv_models::net::message::{DPayload, DeviceContent, PayloadInfo, TxStatus};
-use disolv_models::net::message::{DResponse, DataSource, TxMetrics};
+use disolv_models::net::message::{DataSource, TxMetrics, V2XResponse};
+use disolv_models::net::message::{DeviceContent, PayloadInfo, TxStatus, V2XPayload};
 use disolv_models::net::radio::{DLink, LinkProperties};
-use log::debug;
-use std::fmt::Debug;
-use typed_builder::TypedBuilder;
+
+use crate::bucket::DeviceBucket;
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct DeviceModel {
@@ -88,7 +91,7 @@ impl Device {
     fn talk_to_class(
         &mut self,
         target_class: &DeviceClass,
-        rx_payloads: &Option<Vec<DPayload>>,
+        rx_payloads: &Option<Vec<V2XPayload>>,
         core: &mut Core<Self, DeviceBucket>,
     ) {
         let link_options = match core.bucket.link_options_for(
@@ -187,7 +190,7 @@ impl Orderable for Device {
 impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for Device {
     type AgentClass = DeviceClass;
 
-    fn transmit(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
+    fn transmit(&mut self, payload: V2XPayload, target_link: DLink, bucket: &mut DeviceBucket) {
         debug!(
             "Transmitting payload from agent {} to agent {} with blobs {}",
             payload.agent_state.device_info.id,
@@ -211,7 +214,7 @@ impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for D
         }
     }
 
-    fn transmit_sl(&mut self, payload: DPayload, target_link: DLink, bucket: &mut DeviceBucket) {
+    fn transmit_sl(&mut self, payload: V2XPayload, target_link: DLink, bucket: &mut DeviceBucket) {
         debug!(
             "Transmitting SL payload from agent {} to agent {}",
             payload.agent_state.device_info.id, target_link.target
@@ -237,21 +240,21 @@ impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for D
 impl Receiver<DeviceContent, DeviceBucket, PayloadInfo> for Device {
     type C = DeviceClass;
 
-    fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<DPayload>> {
+    fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<V2XPayload>> {
         bucket.models.data_lake.payloads_for(self.device_info.id)
     }
 
-    fn receive_sl(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<DPayload>> {
+    fn receive_sl(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<V2XPayload>> {
         bucket.models.data_lake.sl_payloads_for(self.device_info.id)
     }
 }
 
 impl Responder<DeviceBucket, DataSource, TxMetrics> for Device {
-    fn respond(&mut self, response: Option<DResponse>, bucket: &mut DeviceBucket) {
+    fn respond(&mut self, response: Option<V2XResponse>, bucket: &mut DeviceBucket) {
         // send to talk_to_peers
     }
 
-    fn respond_sl(&mut self, response: Option<DResponse>, bucket: &mut DeviceBucket) {
+    fn respond_sl(&mut self, response: Option<V2XResponse>, bucket: &mut DeviceBucket) {
         // send to talk_to_peers
     }
 }
