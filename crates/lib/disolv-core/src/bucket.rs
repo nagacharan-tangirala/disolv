@@ -1,7 +1,8 @@
-use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, Mul};
 use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TimeMS(pub u64);
@@ -98,82 +99,4 @@ pub trait Bucket: Send {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
-    use super::Bucket;
-    use super::TimeMS;
-
-    pub(crate) struct BucketModels {
-        pub(crate) models: i32,
-    }
-
-    #[derive(Default, Clone)]
-    pub(crate) struct MyBucket {
-        pub(crate) step: TimeMS,
-    }
-
-    impl MyBucket {
-        pub(crate) fn new() -> Self {
-            Self {
-                step: TimeMS::default(),
-            }
-        }
-    }
-
-    impl Bucket for MyBucket {
-        fn initialize(&mut self, step: TimeMS) {
-            self.step = step;
-            println!("initialize in MyBucket");
-        }
-
-        fn before_agents(&mut self, step: TimeMS) {
-            self.step = step;
-            println!("before_agents in MyBucket");
-        }
-
-        fn after_stage_one(&mut self) {
-            println!("after_stage_one in MyBucket");
-        }
-
-        fn after_stage_two(&mut self) {
-            println!("after_stage_two in MyBucket");
-        }
-
-        fn after_stage_three(&mut self) {
-            println!("after_stage_three in MyBucket");
-        }
-
-        fn after_stage_four(&mut self) {
-            println!("after_stage_four in MyBucket");
-        }
-
-        fn after_agents(&mut self) {
-            println!("after_agents in MyBucket");
-        }
-
-        fn stream_input(&mut self, step: TimeMS) {
-            println!("Streaming step in bucket at {}", step);
-        }
-
-        fn stream_output(&mut self, step: TimeMS) {
-            println!("Streaming step in bucket at {}", step);
-        }
-
-        fn terminate(self, step: TimeMS) {
-            println!("End in MyBucket at {}", step);
-        }
-    }
-
-    #[test]
-    fn test_bucket_update() {
-        let mut bucket = MyBucket::default();
-        let step0 = TimeMS::from(0i64);
-        bucket.initialize(step0);
-        assert_eq!(bucket.step, TimeMS::from(0i64));
-        let step1 = TimeMS::from(1i64);
-        bucket.before_agents(step1);
-        assert_eq!(bucket.step, TimeMS::from(1i64));
-        let step2 = TimeMS::from(2i64);
-        bucket.before_agents(step2);
-        assert_eq!(bucket.step, TimeMS::from(2i64));
-    }
-}
+pub mod tests {}

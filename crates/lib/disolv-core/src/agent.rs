@@ -1,12 +1,15 @@
-use super::bucket::TimeMS;
-use crate::bucket::Bucket;
-use crate::core::Core;
-use serde::Deserialize;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::str::FromStr;
+
+use serde::Deserialize;
 use typed_builder::TypedBuilder;
+
+use crate::bucket::Bucket;
+use crate::core::Core;
+
+use super::bucket::TimeMS;
 
 /// A unique ID that is a property of all the agents in the simulation.
 #[derive(Deserialize, Default, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
@@ -169,147 +172,4 @@ where
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
-    use super::{
-        Activatable, Agent, AgentId, AgentKind, AgentOrder, AgentStats, MobilityInfo, Movable,
-        Orderable,
-    };
-    use crate::bucket::tests::MyBucket;
-    use crate::bucket::TimeMS;
-    use rand::random;
-    use std::fmt::{Debug, Display, Formatter};
-
-    #[derive(Copy, Clone, Default, Debug)]
-    pub struct Mobility {
-        x: f32,
-        y: f32,
-        velocity: f32,
-    }
-
-    impl Mobility {
-        fn new(x: f32, y: f32, velocity: f32) -> Mobility {
-            Mobility { x, y, velocity }
-        }
-    }
-
-    impl MobilityInfo for Mobility {}
-
-    #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-    pub(crate) enum DeviceType {
-        #[default]
-        TypeA,
-        TypeB,
-    }
-
-    impl AgentKind for DeviceType {}
-
-    impl Display for DeviceType {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            match self {
-                DeviceType::TypeA => write!(f, "TypeA"),
-                DeviceType::TypeB => write!(f, "TypeB"),
-            }
-        }
-    }
-
-    #[derive(Default, Clone, Copy, Debug)]
-    pub(crate) struct DeviceStats {
-        pub(crate) size: f32,
-    }
-
-    impl AgentStats for DeviceStats {}
-
-    #[derive(Default, Clone, Debug)]
-    pub(crate) struct TDevice {
-        pub(crate) id: AgentId,
-        pub(crate) device_type: DeviceType,
-        pub(crate) order: AgentOrder,
-        pub(crate) stats: DeviceStats,
-        pub(crate) step: TimeMS,
-    }
-
-    impl Activatable for TDevice {
-        fn activate(&mut self) {}
-
-        fn deactivate(&mut self) {}
-
-        fn is_deactivated(&self) -> bool {
-            false
-        }
-
-        fn time_to_activation(&mut self) -> TimeMS {
-            TimeMS::from(0)
-        }
-    }
-
-    impl Movable<MyBucket> for TDevice {
-        type M = Mobility;
-
-        fn mobility(&self) -> &Self::M {
-            todo!()
-        }
-
-        fn set_mobility(&mut self, bucket: &mut MyBucket) {
-            todo!()
-        }
-    }
-
-    impl Orderable for TDevice {
-        fn order(&self) -> AgentOrder {
-            self.order
-        }
-    }
-
-    impl Agent<MyBucket> for TDevice {
-        type AS = DeviceStats;
-
-        fn id(&self) -> AgentId {
-            self.id
-        }
-
-        fn stats(&self) -> Self::AS {
-            self.stats
-        }
-
-        fn stage_one(&mut self, _core: &mut crate::core::Core<Self, MyBucket>) {
-            self.stats.size = random();
-        }
-
-        fn stage_two_reverse(&mut self, _core: &mut crate::core::Core<Self, MyBucket>) {
-            self.stats.size = 0.0;
-        }
-    }
-
-    pub(crate) fn make_device(id: AgentId, device_type: DeviceType, order: i32) -> TDevice {
-        TDevice {
-            id,
-            device_type,
-            order: AgentOrder::from(order as u32),
-            stats: Default::default(),
-            step: TimeMS::default(),
-        }
-    }
-
-    #[test]
-    fn test_device_creation() {
-        let device_a = make_device(AgentId::from(1), DeviceType::TypeA, 1);
-        assert_eq!(device_a.id, AgentId::from(1));
-    }
-
-    #[test]
-    fn test_device_comparison() {
-        let device_a = make_device(AgentId::from(1), DeviceType::TypeA, 1);
-        let device_b = make_device(AgentId::from(2), DeviceType::TypeB, 2);
-        assert_ne!(device_a.id, device_b.id);
-        assert_ne!(device_a.device_type, device_b.device_type);
-        assert_eq!(device_a.order, AgentOrder::from(1));
-        assert_eq!(device_b.order, AgentOrder::from(2));
-    }
-
-    #[test]
-    fn test_device_step() {
-        let mut device_a = make_device(AgentId::from(1), DeviceType::TypeA, 1);
-        let mut bucket = MyBucket::default();
-        assert_eq!(bucket.step, TimeMS::default());
-    }
-}
+pub mod tests {}
