@@ -7,9 +7,9 @@ use log::info;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 
-use crate::scheduler::Scheduler;
-use crate::tui::{handle_sim_key_events, Tui};
-use crate::ui::{Message, SimContent, SimUIMetadata};
+use crate::simulation::scheduler::Scheduler;
+use crate::simulation::tui::{handle_sim_key_events, Tui};
+use crate::simulation::ui::{Message, SimContent, SimUIMetadata};
 
 pub fn run_simulation<S>(mut scheduler: S, metadata: SimUIMetadata)
 where

@@ -64,44 +64,6 @@ impl SimContent {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct LinkUIMetadata {
-    pub input_file: String,
-    pub output_path: String,
-}
-
-#[derive(Debug, Default)]
-pub struct LinkContent {
-    pub running: bool,
-    pub total_steps: u64,
-    pub now: u64,
-    pub metadata: LinkUIMetadata,
-}
-
-impl LinkContent {
-    pub fn new(total_steps: u64, metadata: LinkUIMetadata) -> Self {
-        Self {
-            total_steps,
-            running: true,
-            metadata,
-            ..Self::default()
-        }
-    }
-    pub fn tick(&self) {}
-
-    pub fn quit(&mut self) {
-        self.running = false;
-    }
-
-    pub fn update_now(&mut self, now: u64) {
-        self.now = now;
-    }
-
-    pub fn completion(&self) -> f64 {
-        self.now as f64 / self.total_steps as f64
-    }
-}
-
 /// Renders the user interface widgets.
 pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
     // This is where you add new widgets.
@@ -178,53 +140,5 @@ pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
             .style(Style::default().fg(Color::White).bg(Color::Black))
             .alignment(Alignment::Left),
         layout[2],
-    );
-}
-
-pub fn render_link_ui(content: &mut LinkContent, frame: &mut Frame) {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
-        .split(frame.size());
-
-    let completion = content.completion();
-    let progress_text = format!(
-        "Time Step: {} / {} steps. {:.2}%. ",
-        content.now,
-        content.total_steps,
-        content.completion() * 100.0
-    );
-    frame.render_widget(
-        Gauge::default()
-            .gauge_style(
-                Style::default()
-                    .fg(Color::Magenta)
-                    .bg(Color::Black)
-                    .add_modifier(Modifier::ITALIC),
-            )
-            .label(progress_text)
-            .ratio(completion)
-            .use_unicode(true)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Link Calculation Progress")
-                    .title_alignment(Alignment::Center),
-            ),
-        layout[0],
-    );
-
-    let simulation_details = format!(
-        "Input File: {}\n\
-        Output Path: {}\n\
-        ",
-        content.metadata.input_file, content.metadata.output_path,
-    );
-    frame.render_widget(
-        Paragraph::new(simulation_details)
-            .block(Block::default().borders(Borders::ALL).title("More details"))
-            .style(Style::default().fg(Color::White).bg(Color::Black))
-            .alignment(Alignment::Left),
-        layout[1],
     );
 }

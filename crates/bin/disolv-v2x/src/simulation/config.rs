@@ -1,7 +1,9 @@
+use std::path::PathBuf;
+
+use serde::Deserialize;
+
 use disolv_core::agent::AgentOrder;
 use disolv_core::bucket::TimeMS;
-use crate::linker::LinkerSettings;
-use crate::space::{FieldSettings, MobilitySettings};
 use disolv_models::device::compose::ComposerSettings;
 use disolv_models::device::energy::EnergySettings;
 use disolv_models::device::hardware::StorageSettings;
@@ -11,8 +13,9 @@ use disolv_models::device::types::{DeviceClass, DeviceType};
 use disolv_models::net::radio::ActionSettings;
 use disolv_models::net::slice::SliceSettings;
 use disolv_output::result::OutputSettings;
-use serde::Deserialize;
-use std::path::PathBuf;
+
+use crate::v2x::linker::LinkerSettings;
+use crate::v2x::space::{FieldSettings, MobilitySettings};
 
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]

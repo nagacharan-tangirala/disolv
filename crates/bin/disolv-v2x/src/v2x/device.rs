@@ -25,7 +25,7 @@ use disolv_models::net::message::{DataSource, TxMetrics, V2XResponse};
 use disolv_models::net::message::{DeviceContent, PayloadInfo, TxStatus, V2XPayload};
 use disolv_models::net::radio::{DLink, LinkProperties};
 
-use crate::bucket::DeviceBucket;
+use crate::v2x::bucket::DeviceBucket;
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct DeviceModel {

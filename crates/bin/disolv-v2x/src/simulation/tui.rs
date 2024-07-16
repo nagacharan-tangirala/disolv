@@ -6,8 +6,7 @@ use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::Backend;
 use ratatui::Terminal;
 
-use crate::ui;
-use crate::ui::{ContentResult, LinkContent, SimContent};
+use crate::simulation::ui::{ContentResult, render_sim_ui, SimContent};
 
 /// Representation of a terminal user interface.
 ///
@@ -50,12 +49,7 @@ impl<B: Backend> Tui<B> {
     /// [`Draw`]: ratatui::Terminal::draw
     /// [`rendering`]: crate::ui:render
     pub fn draw_sim_ui(&mut self, app: &mut SimContent) -> ContentResult<()> {
-        self.terminal.draw(|frame| ui::render_sim_ui(app, frame))?;
-        Ok(())
-    }
-
-    pub fn draw_link_ui(&mut self, app: &mut LinkContent) -> ContentResult<()> {
-        self.terminal.draw(|frame| ui::render_link_ui(app, frame))?;
+        self.terminal.draw(|frame| render_sim_ui(app, frame))?;
         Ok(())
     }
 
@@ -80,15 +74,6 @@ impl<B: Backend> Tui<B> {
 }
 
 pub fn handle_sim_key_events(key_event: KeyEvent, content: &mut SimContent) {
-    match key_event.code {
-        // Other handlers you could add here.
-        KeyCode::Esc | KeyCode::Char('q') => content.quit(),
-        _ => {}
-    }
-}
-
-/// Handles the key events and updates the state of [`LinkContent`].
-pub fn handle_link_key_events(key_event: KeyEvent, content: &mut LinkContent) {
     match key_event.code {
         // Other handlers you could add here.
         KeyCode::Esc | KeyCode::Char('q') => content.quit(),

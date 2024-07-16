@@ -14,8 +14,8 @@ use disolv_models::net::network::Network;
 use disolv_models::net::radio::DLink;
 use disolv_output::result::ResultWriter;
 
-use crate::linker::Linker;
-use crate::space::{Mapper, Space};
+use crate::v2x::linker::Linker;
+use crate::v2x::space::{Mapper, Space};
 
 pub type V2XDataLake = DataLake<DeviceContent, PayloadInfo, DataSource, TxMetrics>;
 
@@ -38,7 +38,7 @@ pub struct DeviceBucket {
 }
 
 impl DeviceBucket {
-    pub(crate) fn link_options_for(
+    pub fn link_options_for(
         &mut self,
         agent_id: AgentId,
         source_type: &DeviceType,
@@ -50,7 +50,7 @@ impl DeviceBucket {
         }
     }
 
-    pub(crate) fn positions_for(
+    pub fn positions_for(
         &mut self,
         agent_id: AgentId,
         device_type: &DeviceType,
