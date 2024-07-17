@@ -138,11 +138,11 @@ where
     type AS: AgentStats;
     fn id(&self) -> AgentId;
     fn stats(&self) -> Self::AS;
-    fn stage_one(&mut self, core: &mut Core<Self, B>);
-    fn stage_two_reverse(&mut self, core: &mut Core<Self, B>);
-    fn stage_three(&mut self, _core: &mut Core<Self, B>) {}
-    fn stage_four_reverse(&mut self, _core: &mut Core<Self, B>) {}
-    fn stage_five(&mut self, _core: &mut Core<Self, B>) {}
+    fn stage_one(&mut self, core: &mut Core<Self::AS, B>);
+    fn stage_two_reverse(&mut self, core: &mut Core<Self::AS, B>);
+    fn stage_three(&mut self, _core: &mut Core<Self::AS, B>) {}
+    fn stage_four_reverse(&mut self, _core: &mut Core<Self::AS, B>) {}
+    fn stage_five(&mut self, _core: &mut Core<Self::AS, B>) {}
 }
 
 pub trait AgentStats: Copy + Clone + Send + Sync {}

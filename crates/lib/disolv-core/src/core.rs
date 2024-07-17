@@ -1,21 +1,21 @@
 use hashbrown::HashMap;
 
-use crate::agent::{Agent, AgentId};
+use crate::agent::{AgentId, AgentStats};
 use crate::bucket::{Bucket, TimeMS};
 
 pub struct Core<A, B>
 where
-    A: Agent<B>,
+    A: AgentStats,
     B: Bucket,
 {
     pub bucket: B,
     pub agent_cache: HashMap<TimeMS, Vec<AgentId>>,
-    pub agent_stats: HashMap<AgentId, A::AS>,
+    pub agent_stats: HashMap<AgentId, A>,
 }
 
 impl<A, B> Core<A, B>
 where
-    A: Agent<B>,
+    A: AgentStats,
     B: Bucket,
 {
     pub fn new(bucket: B) -> Core<A, B> {
@@ -33,7 +33,7 @@ where
             .push(agent_id);
     }
 
-    pub fn stats_of(&self, agent_id: &AgentId) -> &A::AS {
+    pub fn stats_of(&self, agent_id: &AgentId) -> &A {
         match self.agent_stats.get(agent_id) {
             Some(stats) => stats,
             None => panic!(
@@ -43,6 +43,3 @@ where
         }
     }
 }
-
-#[cfg(test)]
-pub mod tests {}

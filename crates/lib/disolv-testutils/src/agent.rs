@@ -101,11 +101,11 @@ impl Agent<MyBucket> for TDevice {
         self.stats
     }
 
-    fn stage_one(&mut self, _core: &mut Core<Self, MyBucket>) {
+    fn stage_one(&mut self, _core: &mut Core<DeviceStats, MyBucket>) {
         self.stats.size = 10000.0;
     }
 
-    fn stage_two_reverse(&mut self, _core: &mut Core<Self, MyBucket>) {
+    fn stage_two_reverse(&mut self, _core: &mut Core<DeviceStats, MyBucket>) {
         self.stats.size = 0.0;
     }
 }
