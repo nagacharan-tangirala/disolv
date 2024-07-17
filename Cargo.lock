@@ -1384,6 +1384,7 @@ dependencies = [
  "disolv-output",
  "indexmap 2.2.6",
  "log",
+ "log4rs",
  "serde",
  "typed-builder 0.19.1",
 ]
