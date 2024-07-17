@@ -1,11 +1,13 @@
-use crate::config::LogSettings;
-use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::config::runtime::ConfigErrors;
-use log4rs::config::{Appender, Config, Root};
-use log4rs::encode::pattern::PatternEncoder;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::config::runtime::ConfigErrors;
+use log4rs::encode::pattern::PatternEncoder;
+use log::LevelFilter;
+
+use crate::simulation::config::LogSettings;
 
 pub fn setup_logging(log_level: &str, log_file_path: PathBuf) -> Result<Config, ConfigErrors> {
     let log_level = get_logging_level(log_level);

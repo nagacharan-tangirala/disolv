@@ -1,17 +1,20 @@
-use crate::config::LinkSettings;
-use crate::reader::AgentIdPos;
+use std::fs::File;
+use std::sync::Arc;
+
 use arrow::array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
-use disolv_core::bucket::TimeMS;
-use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
 use kiddo::{KdTree, NearestNeighbour, SquaredEuclidean};
 use log::debug;
 use parquet::arrow::ArrowWriter;
 use parquet::basic::Compression;
 use parquet::file::properties::WriterProperties;
 use serde::Deserialize;
-use std::fs::File;
-use std::sync::Arc;
+
+use disolv_core::bucket::TimeMS;
+use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
+
+use crate::links::reader::AgentIdPos;
+use crate::simulation::config::LinkSettings;
 
 #[derive(Copy, Clone, Default, Debug, Deserialize)]
 pub struct Radius(f64);

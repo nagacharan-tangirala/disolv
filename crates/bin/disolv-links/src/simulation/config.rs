@@ -1,12 +1,13 @@
-use log::debug;
 use std::path::PathBuf;
+
+use serde::Deserialize;
 use toml;
 
-use crate::linker::{DeviceCount, LinkType, Radius};
-use crate::reader::TraceType;
 use disolv_core::bucket::TimeMS;
 use disolv_models::device::types::DeviceType;
-use serde::Deserialize;
+
+use crate::links::linker::{DeviceCount, LinkType, Radius};
+use crate::links::reader::TraceType;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -23,6 +24,7 @@ pub struct LogSettings {
     pub log_file_name: String,
     pub log_overwrite: bool,
 }
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct Settings {
     pub threads: u32,

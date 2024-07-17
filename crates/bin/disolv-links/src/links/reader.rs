@@ -1,17 +1,20 @@
-use crate::config::PositionFiles;
+use std::fs::File;
+use std::path::PathBuf;
+
 use arrow::array::RecordBatch;
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-use disolv_input::batch::{read_f64_column, read_u64_column};
-use disolv_input::columns::{AGENT_ID, COORD_X, COORD_Y, TIME_STEP};
 use hashbrown::HashMap;
 use kiddo::KdTree;
 use log::debug;
 use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use serde::Deserialize;
-use std::fs::File;
-use std::path::PathBuf;
+
+use disolv_core::agent::AgentId;
+use disolv_core::bucket::TimeMS;
+use disolv_input::batch::{read_f64_column, read_u64_column};
+use disolv_input::columns::{AGENT_ID, COORD_X, COORD_Y, TIME_STEP};
+
+use crate::simulation::config::PositionFiles;
 
 pub type AgentIdPos = Vec<(AgentId, [f64; 2])>;
 pub type PositionMap = HashMap<TimeMS, AgentIdPos>;
@@ -243,6 +246,4 @@ impl ConstantReader {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-}
+mod tests {}
