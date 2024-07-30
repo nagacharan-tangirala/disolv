@@ -1365,6 +1365,8 @@ version = "0.0.0"
 dependencies = [
  "disolv-testutils",
  "hashbrown 0.14.5",
+ "indexmap 2.2.6",
+ "keyed_priority_queue",
  "log",
  "rand",
  "serde",
@@ -1461,6 +1463,7 @@ dependencies = [
 name = "disolv-v2x"
 version = "0.1.0"
 dependencies = [
+ "arrow",
  "clap",
  "crossterm",
  "disolv-core",
@@ -1470,9 +1473,9 @@ dependencies = [
  "disolv-testutils",
  "indexmap 2.2.6",
  "itertools 0.13.0",
- "keyed_priority_queue",
  "log",
  "log4rs",
+ "parquet",
  "rand",
  "ratatui 0.26.3",
  "serde",
