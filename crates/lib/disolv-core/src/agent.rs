@@ -1,13 +1,10 @@
 use std::fmt;
-use std::fmt::Debug;
 use std::hash::Hash;
 use std::str::FromStr;
 
 use serde::Deserialize;
-use typed_builder::TypedBuilder;
 
 use crate::bucket::Bucket;
-use crate::core::Core;
 
 use super::bucket::TimeMS;
 
@@ -21,7 +18,7 @@ impl fmt::Display for AgentId {
     }
 }
 
-impl Debug for AgentId {
+impl fmt::Debug for AgentId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -155,63 +152,40 @@ pub trait MobilityInfo: Copy + Clone {}
 
 /// A trait to get and set the mobility information of an agent. Must extend this for
 /// both the static and mobile agents.
-pub trait Movable<B> {
+pub trait Movable<B>
+where
+    B: Bucket,
+{
     type M: MobilityInfo;
     fn mobility(&self) -> &Self::M;
     fn set_mobility(&mut self, bucket: &mut B);
 }
 
 /// A trait that allows an agent to be scheduled for simulation.
-pub trait Activatable {
-    fn activate(&mut self);
+pub trait Activatable<B>
+where
+    B: Bucket,
+{
+    fn activate(&mut self, bucket: &mut B);
     fn deactivate(&mut self);
     fn is_deactivated(&self) -> bool;
-    fn time_to_activation(&mut self) -> TimeMS;
+    fn has_activation(&self) -> bool;
+    fn time_of_activation(&mut self) -> TimeMS;
 }
 
 /// A trait that represents an agent. Extend this to a custom device type (e.g. struct) that
 /// you want to simulate. Only types with this trait can be added to a bucket and hence
 /// scheduled for simulation.
 ///
-pub trait Agent<B>: Activatable + Orderable + Movable<B> + Clone + Send + Sync
+pub trait Agent<B>: Activatable<B> + Orderable + Movable<B> + Clone + Send + Sync
 where
     B: Bucket,
 {
-    type AS: AgentStats;
+    type P: AgentProperties;
     fn id(&self) -> AgentId;
-    fn stats(&self) -> Self::AS;
-    fn stage_one(&mut self, core: &mut Core<Self::AS, B>);
-    fn stage_two_reverse(&mut self, core: &mut Core<Self::AS, B>);
-    fn stage_three(&mut self, _core: &mut Core<Self::AS, B>) {}
-    fn stage_four_reverse(&mut self, _core: &mut Core<Self::AS, B>) {}
-    fn stage_five(&mut self, _core: &mut Core<Self::AS, B>) {}
+    fn stage_one(&mut self, bucket: &mut B);
+    fn stage_two_reverse(&mut self, bucket: &mut B);
+    fn stage_three(&mut self, _bucket: &mut B) {}
+    fn stage_four_reverse(&mut self, _bucket: &mut B) {}
+    fn stage_five(&mut self, _bucket: &mut B) {}
 }
-
-pub trait AgentStats: Copy + Clone + Send + Sync {}
-
-/// A struct that represents a generic agent. This is a wrapper around the agent type that
-/// implements the [Agent] trait. This is required to store the agents in the [scheduler].
-#[derive(Clone, Debug, Default, TypedBuilder)]
-pub struct AgentImpl<A, B>
-where
-    A: Agent<B>,
-    B: Bucket,
-{
-    pub agent_id: AgentId,
-    pub agent: A,
-    #[builder(default)]
-    pub _marker: std::marker::PhantomData<fn() -> B>,
-}
-
-impl<A, B> AgentImpl<A, B>
-where
-    A: Agent<B>,
-    B: Bucket,
-{
-    pub fn as_mut_agent(&mut self) -> &mut A {
-        &mut self.agent
-    }
-}
-
-#[cfg(test)]
-pub mod tests {}
