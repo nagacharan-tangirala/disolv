@@ -3,44 +3,38 @@ use std::path::{Path, PathBuf};
 use indexmap::IndexMap;
 use log::info;
 
-use disolv_core::agent::{AgentId, AgentImpl};
+use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::TimeMS;
-use disolv_core::core::Core;
 use disolv_core::hashbrown::HashMap;
 use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::metrics::Resource;
 use disolv_core::model::Model;
+use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
 use disolv_input::links::LinkReader;
 use disolv_input::power::{PowerTimes, read_power_schedule};
-use disolv_models::bucket::flow::FlowRegister;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
-use disolv_models::device::compose::Composer;
-use disolv_models::device::energy::EnergyType;
-use disolv_models::device::hardware::StorageType;
+use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::power::PowerManager;
-use disolv_models::device::reply::Replier;
-use disolv_models::device::select::Selector;
-use disolv_models::device::types::{DeviceClass, DeviceInfo, DeviceType};
-use disolv_models::net::bandwidth::BandwidthType;
-use disolv_models::net::latency::LatencyType;
 use disolv_models::net::network::Network;
-use disolv_models::net::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use disolv_output::result::ResultWriter;
 
+use crate::models::bandwidth::BandwidthType;
+use crate::models::compose::Composer;
+use crate::models::latency::LatencyType;
+use crate::models::network::{RadioMetrics, RadioResources, Slice, SliceSettings};
+use crate::models::output::OutputWriter;
+use crate::models::select::Selector;
 use crate::simulation::config::{AgentClassSettings, AgentSettings, BaseConfig, BaseConfigReader};
 use crate::simulation::logger;
-use crate::simulation::scheduler::{DefaultScheduler, MapScheduler};
 use crate::simulation::ui::SimUIMetadata;
-use crate::v2x::bucket::{BucketModels, DeviceBucket, V2XDataLake};
-use crate::v2x::device::{Device, DeviceModel};
+use crate::v2x::bucket::{BucketModels, DeviceBucket, V2XDataLake, V2XNetwork};
+use crate::v2x::device::{Device, DeviceInfo, DeviceModel};
 use crate::v2x::linker::{Linker, LinkerSettings};
 use crate::v2x::space::{Mapper, Space};
 
-pub type DCore = Core<Device, DeviceBucket>;
 pub type DScheduler = DefaultScheduler<Device, DeviceBucket>;
 pub type MScheduler = MapScheduler<Device, DeviceBucket>;
-pub type DAgentImpl = AgentImpl<Device, DeviceBucket>;
 
 pub struct SimulationBuilder {
     base_config: BaseConfig,
@@ -103,7 +97,7 @@ impl SimulationBuilder {
         self.build_map_scheduler(agent_map, device_bucket)
     }
 
-    fn read_power_schedules(&self, device_type: DeviceType) -> HashMap<AgentId, PowerTimes> {
+    fn read_power_schedules(&self, device_type: AgentKind) -> HashMap<AgentId, PowerTimes> {
         let device_settings: &AgentSettings = self
             .base_config
             .agents
@@ -126,7 +120,7 @@ impl SimulationBuilder {
         device_ids
     }
 
-    fn build_agents(&mut self) -> HashMap<AgentId, DAgentImpl> {
+    fn build_agents(&mut self) -> HashMap<AgentId, Device> {
         info!("Building devices...");
         let mut device_map = HashMap::new();
 
@@ -153,11 +147,7 @@ impl SimulationBuilder {
                         class_settings,
                         device_schedule,
                     );
-                    let agent_impl = AgentImpl::builder()
-                        .agent_id(*device_id)
-                        .agent(device)
-                        .build();
-                    device_map.insert(*device_id, agent_impl);
+                    device_map.insert(*device_id, device);
                     device_count += 1;
                     if device_count == class_count {
                         break;
@@ -171,7 +161,7 @@ impl SimulationBuilder {
     fn build_device(
         &mut self,
         device_id: AgentId,
-        device_type: &DeviceType,
+        device_type: &AgentKind,
         class_settings: &AgentClassSettings,
         power_times: PowerTimes,
     ) -> Device {
@@ -196,9 +186,6 @@ impl SimulationBuilder {
             .composer(Composer::with_settings(&class_settings.composer))
             .selector(selector_vec)
             .actor(Actor::new(&class_settings.actions.clone()))
-            .replier(Replier::with_settings(&class_settings.replier))
-            .energy(EnergyType::with_settings(&class_settings.energy))
-            .storage(StorageType::with_settings(&class_settings.storage))
             .build();
 
         Device::builder()
@@ -209,7 +196,7 @@ impl SimulationBuilder {
 
     fn build_device_info(
         device_id: AgentId,
-        device_type: &DeviceType,
+        device_type: &AgentKind,
         class_settings: &AgentClassSettings,
     ) -> DeviceInfo {
         DeviceInfo::builder()
@@ -222,7 +209,7 @@ impl SimulationBuilder {
 
     fn build_scheduler(
         &mut self,
-        agent_map: HashMap<AgentId, DAgentImpl>,
+        agent_map: HashMap<AgentId, Device>,
         device_bucket: DeviceBucket,
     ) -> DScheduler {
         info!("Building scheduler...");
@@ -230,15 +217,15 @@ impl SimulationBuilder {
             .duration(self.duration())
             .step_size(self.step_size())
             .agents(agent_map)
-            .core(DCore::new(device_bucket))
             .streaming_interval(self.streaming_interval())
             .output_interval(self.output_interval())
+            .bucket(device_bucket)
             .build()
     }
 
     fn build_map_scheduler(
         &mut self,
-        agent_map: HashMap<AgentId, DAgentImpl>,
+        agent_map: HashMap<AgentId, Device>,
         device_bucket: DeviceBucket,
     ) -> MScheduler {
         info!("Building scheduler...");
@@ -248,8 +235,8 @@ impl SimulationBuilder {
             .active_agents(IndexMap::with_capacity(agent_map.len()))
             .deactivated(Vec::with_capacity(agent_map.len()))
             .inactive_agents(agent_map)
-            .core(DCore::new(device_bucket))
             .streaming_interval(self.streaming_interval())
+            .bucket(device_bucket)
             .output_interval(self.output_interval())
             .build()
     }
@@ -264,17 +251,19 @@ impl SimulationBuilder {
 
     fn build_bucket_models(&mut self) -> BucketModels {
         BucketModels::builder()
-            .result_writer(ResultWriter::new(&self.base_config.output_settings))
+            .output(OutputWriter::new(&self.base_config.output_settings))
             .network(self.build_network())
             .space(self.build_space())
             .mapper_holder(self.build_mapper_vec())
             .linker_holder(self.build_linker_vec())
+            .stats_holder(HashMap::new())
+            .device_infos(HashMap::new())
             .data_lake(V2XDataLake::new())
             .build()
     }
 
-    fn build_mapper_vec(&self) -> Vec<(DeviceType, Mapper)> {
-        let mut mapper_vec: Vec<(DeviceType, Mapper)> = Vec::new();
+    fn build_mapper_vec(&self) -> Vec<(AgentKind, Mapper)> {
+        let mut mapper_vec: Vec<(AgentKind, Mapper)> = Vec::new();
         for device_setting in self.base_config.agents.iter() {
             let device_type = device_setting.agent_type;
             let mapper = Mapper::builder(&self.config_path)
@@ -301,7 +290,7 @@ impl SimulationBuilder {
         linker_vec
     }
 
-    fn build_linker(&self, source_type: &DeviceType, link_config: &LinkerSettings) -> Linker {
+    fn build_linker(&self, source_type: &AgentKind, link_config: &LinkerSettings) -> Linker {
         let links_file = self.config_path.join(&link_config.links_file);
         if !links_file.exists() {
             panic!("Link file {} is not found.", links_file.display());
@@ -327,10 +316,10 @@ impl SimulationBuilder {
             .build()
     }
 
-    fn read_class_to_type_map(&mut self) -> HashMap<DeviceClass, DeviceType> {
-        let mut class_to_type: HashMap<DeviceClass, DeviceType> = HashMap::new();
+    fn read_class_to_type_map(&mut self) -> HashMap<AgentClass, AgentKind> {
+        let mut class_to_type: HashMap<AgentClass, AgentKind> = HashMap::new();
         for device_setting in self.base_config.agents.iter() {
-            let device_classes: Vec<DeviceClass> =
+            let device_classes: Vec<AgentClass> =
                 device_setting.class.iter().map(|x| x.agent_class).collect();
             for device_class in device_classes.iter() {
                 class_to_type.insert(device_class.to_owned(), device_setting.agent_type);
@@ -339,17 +328,16 @@ impl SimulationBuilder {
         class_to_type
     }
 
-    fn build_network(&self) -> Network {
-        let mut slices: Vec<Slice> = Vec::new();
+    fn build_network(&self) -> V2XNetwork {
+        let mut slices = HashMap::new();
         for slice_setting in self.base_config.network_settings.slice.iter() {
             let slice = Slice::builder()
                 .id(slice_setting.id)
-                .name(slice_setting.name.clone())
                 .step_size(self.step_size())
                 .resources(self.build_network_resources(slice_setting))
                 .metrics(self.build_network_metrics(slice_setting))
                 .build();
-            slices.push(slice);
+            slices.insert(slice_setting.name, slice);
         }
         Network::builder().slices(slices).build()
     }
@@ -372,6 +360,10 @@ impl SimulationBuilder {
         self.base_config.simulation_settings.streaming_interval
     }
 
+    fn output_interval(&self) -> TimeMS {
+        self.base_config.output_settings.output_interval
+    }
+
     fn duration(&self) -> TimeMS {
         self.base_config.simulation_settings.duration
     }
@@ -382,10 +374,6 @@ impl SimulationBuilder {
 
     fn sim_seed(&self) -> u128 {
         u128::from(self.base_config.simulation_settings.seed)
-    }
-
-    fn output_interval(&self) -> TimeMS {
-        self.base_config.output_settings.output_interval
     }
 
     pub(crate) fn metadata(&self) -> SimUIMetadata {
