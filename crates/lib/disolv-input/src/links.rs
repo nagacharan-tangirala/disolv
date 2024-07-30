@@ -1,16 +1,20 @@
-use crate::batch::{get_row_groups_for_time, read_f64_column, read_u64_column};
-use crate::columns::{AGENT_ID, DISTANCE, LOAD_FACTOR, TARGET_ID, TIME_STEP};
+use std::fs::File;
+use std::path::PathBuf;
+
+use log::debug;
+use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
+use typed_builder::TypedBuilder;
+
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
-use disolv_models::net::radio::DLink;
-use log::debug;
-use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
-use std::fs::File;
-use std::path::PathBuf;
-use typed_builder::TypedBuilder;
+use disolv_core::radio::Link;
+use disolv_models::net::radio::LinkProperties;
 
-pub type LinkMap = HashMap<TimeMS, HashMap<AgentId, Vec<DLink>>>;
+use crate::batch::{get_row_groups_for_time, read_f64_column, read_u64_column};
+use crate::columns::{AGENT_ID, DISTANCE, LOAD_FACTOR, TARGET_ID, TIME_STEP};
+
+pub type LinkMap = HashMap<TimeMS, HashMap<AgentId, Vec<Link<LinkProperties>>>>;
 
 #[derive(Clone, TypedBuilder)]
 pub struct LinkReader {
@@ -41,7 +45,8 @@ impl LinkReader {
                 .into_iter()
                 .map(AgentId::from)
                 .collect();
-            let mut link_vec: Vec<DLink> = target_ids.into_iter().map(DLink::new).collect();
+            let mut link_vec: Vec<Link<LinkProperties>> =
+                target_ids.into_iter().map(Link::new).collect();
 
             let distance: Vec<f64>;
             if record_batch.column_by_name(DISTANCE).is_some() {
