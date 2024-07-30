@@ -1,7 +1,10 @@
-use crate::net::message::PayloadInfo;
-use crate::net::metrics::Bandwidth;
-use disolv_core::metrics::{Consumable, Feasibility, MetricSettings};
 use serde::Deserialize;
+
+use disolv_core::message::Metadata;
+use disolv_core::metrics::{Consumable, Feasibility, MetricSettings};
+use disolv_models::net::metrics::Bandwidth;
+
+use crate::models::message::PayloadInfo;
 
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
@@ -16,8 +19,7 @@ pub enum BandwidthType {
     Constant(ConstantBandwidth),
 }
 
-impl Consumable<Bandwidth> for BandwidthType {
-    type P = PayloadInfo;
+impl Consumable<Bandwidth, PayloadInfo> for BandwidthType {
     type S = BandwidthConfig;
 
     fn with_settings(settings: Self::S) -> Self {
@@ -33,7 +35,7 @@ impl Consumable<Bandwidth> for BandwidthType {
         }
     }
 
-    fn consume(&mut self, metadata: &Self::P) -> Feasibility<Bandwidth> {
+    fn consume(&mut self, metadata: &PayloadInfo) -> Feasibility<Bandwidth> {
         match self {
             Self::Constant(constant) => constant.consume(metadata),
         }
@@ -47,14 +49,12 @@ impl Consumable<Bandwidth> for BandwidthType {
 }
 
 /// A ConstantBandwidth is a bandwidth that is constant for all time steps.
-/// It is defined by the available bandwidth and a limit.
 #[derive(Debug, Clone, Default)]
 pub struct ConstantBandwidth {
     pub bandwidth: Bandwidth,
 }
 
-impl Consumable<Bandwidth> for ConstantBandwidth {
-    type P = PayloadInfo;
+impl Consumable<Bandwidth, PayloadInfo> for ConstantBandwidth {
     type S = BandwidthConfig;
 
     fn with_settings(settings: Self::S) -> Self {
@@ -67,8 +67,8 @@ impl Consumable<Bandwidth> for ConstantBandwidth {
         self.bandwidth = Bandwidth::default();
     }
 
-    fn consume(&mut self, metadata: &Self::P) -> Feasibility<Bandwidth> {
-        let data_bytes = metadata.total_size;
+    fn consume(&mut self, metadata: &PayloadInfo) -> Feasibility<Bandwidth> {
+        let data_bytes = metadata.size();
         self.bandwidth = Bandwidth::new(10000);
         Feasibility::Feasible(self.bandwidth)
     }

@@ -1,10 +1,14 @@
-use crate::dist::{DistParams, RngSampler};
-use crate::net::message::{PayloadInfo, TxMetrics};
-use crate::net::metrics::Latency;
-use disolv_core::metrics::{Feasibility, Measurable, MetricSettings};
 use log::error;
 use rand::RngCore;
 use serde::Deserialize;
+
+use disolv_core::message::{Metadata, TxReport};
+use disolv_core::metrics::{Feasibility, Measurable, MetricSettings};
+use disolv_core::radio::{Link, LinkFeatures};
+use disolv_models::dist::{DistParams, RngSampler};
+use disolv_models::net::metrics::Latency;
+
+use crate::models::message::{PayloadInfo, TxMetrics};
 
 /// All the latency configuration parameters are optional, but at least one of them must be present.
 /// Name of the variant is mandatory.
@@ -29,39 +33,28 @@ pub enum LatencyType {
     Constant(ConstantLatency),
     Random(RandomLatency),
     Distance(DistanceLatency),
-    Ordered(OrderedLatency),
 }
 
-impl Measurable<Latency> for LatencyType {
-    type P = PayloadInfo;
+impl Measurable<Latency, PayloadInfo> for LatencyType {
     type S = LatencyConfig;
-    type T = TxMetrics;
 
     fn with_settings(config: &LatencyConfig) -> Self {
         match config.variant.to_lowercase().as_str() {
             "constant" => LatencyType::Constant(ConstantLatency::with_settings(&config)),
             "random" => LatencyType::Random(RandomLatency::with_settings(&config)),
             "distance" => LatencyType::Distance(DistanceLatency::with_settings(&config)),
-            "ordered" => LatencyType::Ordered(OrderedLatency::with_settings(&config)),
             _ => {
-                error!(
-                    "Only Constant, Random, Distance and Ordered latency variants are supported."
-                );
+                error!("Only Constant, Random, and Distance latency variants are supported.");
                 panic!("Unsupported latency variant {}.", config.variant);
             }
         }
     }
 
-    fn measure(
-        &mut self,
-        transfer_metrics: &TxMetrics,
-        payload: &PayloadInfo,
-    ) -> Feasibility<Latency> {
+    fn measure(&mut self, metadata: &PayloadInfo) -> Feasibility<Latency> {
         match self {
-            LatencyType::Constant(latency) => latency.measure(transfer_metrics, payload),
-            LatencyType::Random(latency) => latency.measure(transfer_metrics, payload),
-            LatencyType::Distance(latency) => latency.measure(transfer_metrics, payload),
-            LatencyType::Ordered(latency) => latency.measure(transfer_metrics, payload),
+            LatencyType::Constant(latency) => latency.measure(metadata),
+            LatencyType::Random(latency) => latency.measure(metadata),
+            LatencyType::Distance(latency) => latency.measure(metadata),
         }
     }
 }
@@ -71,10 +64,8 @@ pub struct ConstantLatency {
     pub latency: Latency,
 }
 
-impl Measurable<Latency> for ConstantLatency {
-    type P = PayloadInfo;
+impl Measurable<Latency, PayloadInfo> for ConstantLatency {
     type S = LatencyConfig;
-    type T = TxMetrics;
 
     fn with_settings(config: &LatencyConfig) -> Self {
         let latency = config.constant_term.unwrap_or_else(|| {
@@ -84,7 +75,7 @@ impl Measurable<Latency> for ConstantLatency {
         ConstantLatency { latency }
     }
 
-    fn measure(&mut self, _rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, _metadata: &PayloadInfo) -> Feasibility<Latency> {
         Feasibility::Feasible(self.latency)
     }
 }
@@ -99,10 +90,8 @@ pub struct RandomLatency {
     pub sampler: RngSampler,
 }
 
-impl Measurable<Latency> for RandomLatency {
-    type P = PayloadInfo;
+impl Measurable<Latency, PayloadInfo> for RandomLatency {
     type S = LatencyConfig;
-    type T = TxMetrics;
 
     fn with_settings(config: &LatencyConfig) -> Self {
         RandomLatency {
@@ -118,7 +107,7 @@ impl Measurable<Latency> for RandomLatency {
         }
     }
 
-    fn measure(&mut self, _rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
+    fn measure(&mut self, _metadata: &PayloadInfo) -> Feasibility<Latency> {
         let latency_factor = self.sampler.rng.next_u64();
         let latency = Latency::new(5); // todo: Fix this
         if latency > self.constraint {
@@ -139,10 +128,8 @@ pub struct DistanceLatency {
     pub constraint: Latency,
 }
 
-impl Measurable<Latency> for DistanceLatency {
-    type P = PayloadInfo;
+impl Measurable<Latency, PayloadInfo> for DistanceLatency {
     type S = LatencyConfig;
-    type T = TxMetrics;
 
     fn with_settings(config: &LatencyConfig) -> Self {
         DistanceLatency {
@@ -152,45 +139,12 @@ impl Measurable<Latency> for DistanceLatency {
         }
     }
 
-    fn measure(&mut self, _rx_metrics: &TxMetrics, payload: &PayloadInfo) -> Feasibility<Latency> {
-        let distance_factor = match payload.selected_link.properties.distance {
+    fn measure(&mut self, metadata: &PayloadInfo) -> Feasibility<Latency> {
+        let distance_factor = match metadata.selected_link.properties.distance {
             Some(distance) => distance * self.factor,
             None => 0.0,
         };
         let latency = Latency::new(self.constant_term.as_u64() + distance_factor as u64);
-        if latency > self.constraint {
-            return Feasibility::Infeasible(latency);
-        }
-        Feasibility::Feasible(latency)
-    }
-}
-
-/// Ordered latency is a linear function of the transmission order. The constant term and the
-/// factor are mandatory. Latency is small for small order and increases linearly with the order.
-/// Factor controls the slope of the linear function.
-#[derive(Debug, Clone, Default, Copy)]
-pub struct OrderedLatency {
-    pub const_param: Latency,
-    pub factor: f32,
-    pub constraint: Latency,
-}
-
-impl Measurable<Latency> for OrderedLatency {
-    type P = PayloadInfo;
-    type S = LatencyConfig;
-    type T = TxMetrics;
-
-    fn with_settings(config: &LatencyConfig) -> Self {
-        OrderedLatency {
-            const_param: config.constant_term.unwrap_or(Latency::new(0)),
-            factor: config.factor.unwrap_or(1.),
-            constraint: config.constraint,
-        }
-    }
-
-    fn measure(&mut self, rx_metrics: &TxMetrics, _payload: &PayloadInfo) -> Feasibility<Latency> {
-        let order_factor = rx_metrics.tx_order as f32 * self.factor;
-        let latency = Latency::new(self.const_param.as_u64() + order_factor as u64);
         if latency > self.constraint {
             return Feasibility::Infeasible(latency);
         }
