@@ -1,20 +1,24 @@
-use crate::device::types::DeviceClass;
-use crate::net::radio::{Action, ActionSettings, DActions};
+use disolv_core::agent::AgentClass;
+use disolv_core::hashbrown::HashMap;
+use disolv_core::message::ContentType;
+use disolv_core::radio::Action;
+
+use crate::net::radio::ActionSettings;
 
 #[derive(Clone, Debug, Default)]
-pub struct Actor {
-    pub target_classes: Vec<DeviceClass>,
-    pub actions: Vec<(DeviceClass, DActions)>,
+pub struct Actor<C: ContentType> {
+    pub target_classes: Vec<AgentClass>,
+    pub actions: HashMap<AgentClass, HashMap<C, Action>>,
 }
 
-impl Actor {
-    pub fn new(action_settings: &Option<Vec<ActionSettings>>) -> Self {
+impl<C: ContentType> Actor<C> {
+    pub fn new(action_settings: &Option<Vec<ActionSettings<C>>>) -> Self {
         let action_settings = match action_settings {
             Some(settings) => settings,
             None => return Self::default(),
         };
-        let mut actions: Vec<(DeviceClass, DActions)> = Vec::new();
-        let mut target_classes: Vec<DeviceClass> = Vec::new();
+        let mut actions: HashMap<AgentClass, HashMap<C, Action>> = HashMap::new();
+        let mut target_classes: Vec<AgentClass> = Vec::new();
 
         for action_setting in action_settings.iter() {
             let action = Action::builder()
@@ -24,29 +28,23 @@ impl Actor {
                 .to_agent(action_setting.to_agent)
                 .build();
 
-            if let Some(class_actions) = actions.iter_mut().find(|x| x.0 == action_setting.target) {
-                class_actions.1.add_action(action_setting.data_type, action);
-            } else {
-                let mut new_action = DActions::default();
-                new_action.add_action(action_setting.data_type, action);
-                actions.push((action_setting.target, new_action));
-            }
-            if !target_classes.contains(&action_setting.target) {
-                target_classes.push(action_setting.target);
-            }
+            actions
+                .entry(action_setting.target)
+                .or_default()
+                .entry(action_setting.data_type)
+                .or_insert(action);
+            target_classes.push(action_setting.target);
         }
         Actor {
-            actions,
             target_classes,
+            actions,
         }
     }
 
-    pub fn actions_for(&self, target_class: &DeviceClass) -> &DActions {
+    pub fn actions_for(&self, target_class: &AgentClass) -> &HashMap<C, Action> {
         &self
             .actions
-            .iter()
-            .find(|x| x.0 == *target_class)
+            .get(target_class)
             .expect("Missing actions for class")
-            .1
     }
 }
