@@ -1,12 +1,13 @@
+use std::fs::File;
+use std::path::PathBuf;
+
 use arrow::datatypes::{Schema, SchemaRef};
 use parquet::arrow::ArrowWriter;
 use parquet::basic::Compression;
 use parquet::file::properties::WriterProperties;
-use std::fs::File;
-use std::path::PathBuf;
 
 #[derive(Debug)]
-pub(crate) enum DataOutput {
+pub enum DataOutput {
     Parquet(WriterParquet),
 }
 
@@ -29,8 +30,8 @@ impl DataOutput {
 }
 
 #[derive(Debug)]
-pub(crate) struct WriterParquet {
-    pub(crate) writer: ArrowWriter<File>,
+pub struct WriterParquet {
+    pub writer: ArrowWriter<File>,
 }
 
 impl WriterParquet {
@@ -49,7 +50,7 @@ impl WriterParquet {
         Self { writer }
     }
 
-    pub(crate) fn close(self) {
+    pub fn close(self) {
         self.writer.close().expect("Failed to close output file");
     }
 }
