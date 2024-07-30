@@ -1,13 +1,16 @@
-use crate::device::types::{DeviceClass, DeviceStats};
-use crate::net::radio::DLink;
-use disolv_core::model::{Model, ModelSettings};
 use log::error;
 use serde::Deserialize;
+
+use disolv_core::agent::AgentClass;
+use disolv_core::model::{Model, ModelSettings};
+use disolv_core::radio::Link;
+use disolv_models::device::models::LinkSelector;
+use disolv_models::net::radio::{CommStats, LinkProperties};
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde_with::skip_serializing_none]
 pub struct SelectorSettings {
-    pub target_class: DeviceClass,
+    pub target_class: AgentClass,
     pub name: String,
     pub link_count: Option<u32>,
     pub dist_threshold: Option<f32>,
@@ -45,12 +48,15 @@ impl Model for Selector {
     }
 }
 
-impl Selector {
-    pub fn do_selection(&self, links: Vec<DLink>, stats: &Vec<&DeviceStats>) -> Vec<DLink> {
+impl LinkSelector<LinkProperties> for Selector {
+    fn select_link(
+        &self,
+        links: Vec<Link<LinkProperties>>,
+        stats: &Vec<&CommStats>,
+    ) -> Vec<Link<LinkProperties>> {
         if links.len() == 1 {
             return links;
         }
-
         match self {
             Selector::None => vec![],
             Selector::All => links,
@@ -76,7 +82,7 @@ impl NearestSelector {
         }
     }
 
-    fn select_link(&self, links: Vec<DLink>) -> Vec<DLink> {
+    fn select_link(&self, links: Vec<Link<LinkProperties>>) -> Vec<Link<LinkProperties>> {
         links[0..1].to_vec()
     }
 }
@@ -95,7 +101,7 @@ impl RandomSelector {
         }
     }
 
-    fn select_link(&self, links: Vec<DLink>) -> Vec<DLink> {
+    fn select_link(&self, links: Vec<Link<LinkProperties>>) -> Vec<Link<LinkProperties>> {
         links
     }
 }
@@ -114,7 +120,11 @@ impl MinimumNeighborSelector {
         }
     }
 
-    fn select_link(&self, links: Vec<DLink>, stats: &Vec<&DeviceStats>) -> Vec<DLink> {
+    fn select_link(
+        &self,
+        links: Vec<Link<LinkProperties>>,
+        stats: &Vec<&CommStats>,
+    ) -> Vec<Link<LinkProperties>> {
         links
     }
 }
@@ -133,7 +143,11 @@ impl MinimumDataSelector {
         }
     }
 
-    fn select_link(&self, links: Vec<DLink>, stats: &Vec<&DeviceStats>) -> Vec<DLink> {
+    fn select_link(
+        &self,
+        links: Vec<Link<LinkProperties>>,
+        stats: &Vec<&CommStats>,
+    ) -> Vec<Link<LinkProperties>> {
         links
     }
 }
