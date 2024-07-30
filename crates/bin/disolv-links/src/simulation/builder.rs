@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use hashbrown::HashMap;
 
+use disolv_core::agent::AgentKind;
 use disolv_core::bucket::TimeMS;
-use disolv_models::device::types::DeviceType;
 
 use crate::links::linker::{LinkerImpl, LinkType};
 use crate::links::reader::{Reader, TraceType};
@@ -17,7 +17,7 @@ pub(crate) struct LinkBuilder {
     pub(crate) end: TimeMS,
     config_path: PathBuf,
     config: Config,
-    readers: HashMap<DeviceType, Reader>,
+    readers: HashMap<AgentKind, Reader>,
     linkers: Vec<LinkerImpl>,
 }
 

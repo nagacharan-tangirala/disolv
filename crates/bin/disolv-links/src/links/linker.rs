@@ -195,6 +195,6 @@ impl LinkerImpl {
         self.writer
             .write(&self.writer_cache.as_record_batch())
             .expect("Failed to flush link cache");
-        let _ = self.writer.close().expect("Failed to close the link file");
+        self.writer.close().expect("Failed to close the link file");
     }
 }

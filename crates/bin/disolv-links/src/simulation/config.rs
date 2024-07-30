@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use serde::Deserialize;
 use toml;
 
+use disolv_core::agent::AgentKind;
 use disolv_core::bucket::TimeMS;
-use disolv_models::device::types::DeviceType;
 
 use crate::links::linker::{DeviceCount, LinkType, Radius};
 use crate::links::reader::TraceType;
@@ -27,7 +27,6 @@ pub struct LogSettings {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Settings {
-    pub threads: u32,
     pub start: TimeMS,
     pub end: TimeMS,
     pub step_size: TimeMS,
@@ -37,7 +36,7 @@ pub struct Settings {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct PositionFiles {
-    pub device: DeviceType,
+    pub device: AgentKind,
     pub trace_type: TraceType,
     pub position_file: String,
 }
@@ -45,8 +44,8 @@ pub struct PositionFiles {
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct LinkSettings {
-    pub source: DeviceType,
-    pub target: DeviceType,
+    pub source: AgentKind,
+    pub target: AgentKind,
     pub link_count: Option<DeviceCount>,
     pub link_radius: Option<Radius>,
     pub link_model: String,
