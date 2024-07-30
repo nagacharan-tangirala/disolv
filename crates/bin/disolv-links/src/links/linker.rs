@@ -164,7 +164,7 @@ impl LinkerImpl {
                         self.writer_cache.times.push(now.as_u64());
                         self.writer_cache.sources.push(agent_id_pos.0.as_u64());
                         self.writer_cache.targets.push(neigh_dist.item);
-                        self.writer_cache.distances.push(neigh_dist.distance);
+                        self.writer_cache.distances.push(neigh_dist.distance.sqrt());
                     }
                 });
                 continue;
@@ -177,7 +177,7 @@ impl LinkerImpl {
                         self.writer_cache.times.push(now.as_u64());
                         self.writer_cache.sources.push(agent_id_pos.0.as_u64());
                         self.writer_cache.targets.push(neigh_dist.item);
-                        self.writer_cache.distances.push(neigh_dist.distance);
+                        self.writer_cache.distances.push(neigh_dist.distance.sqrt());
                     }
                 });
             }
