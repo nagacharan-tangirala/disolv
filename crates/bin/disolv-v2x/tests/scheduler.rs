@@ -4,16 +4,15 @@ use keyed_priority_queue::KeyedPriorityQueue;
 use disolv_core::agent::{Agent, AgentId, AgentImpl};
 use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
-use disolv_testutils::agent::{DeviceType, TDevice};
+use disolv_testutils::agent::{AgentKind, TDevice};
 use disolv_testutils::bucket::MyBucket;
-use disolv_testutils::core::create_core;
-use disolv_v2x::simulation::scheduler::{DefaultScheduler, MapScheduler, Scheduler};
+use disolv_v2x::simulation::scheduler::{DefaultScheduler, Scheduler};
 
 pub fn create_map_scheduler() -> MapScheduler<TDevice, MyBucket> {
     let agents = IndexMap::with_capacity(1000000);
     let mut inactive_agents = HashMap::with_capacity(1000000);
     for i in 0..1000000 {
-        let device = TDevice::make_device(AgentId::from(i), DeviceType::TypeA, i as i32);
+        let device = TDevice::make_device(AgentId::from(i), AgentKind::TypeA, i as i32);
         inactive_agents.insert(
             device.id(),
             AgentImpl::builder()
@@ -41,7 +40,7 @@ pub fn create_scheduler() -> DefaultScheduler<TDevice, MyBucket> {
     let mut agents = HashMap::new();
     let mut agent_queue = KeyedPriorityQueue::new();
     for i in 0..100000 {
-        let device = TDevice::make_device(AgentId::from(i), DeviceType::TypeA, i as i32);
+        let device = TDevice::make_device(AgentId::from(i), AgentKind::TypeA, i as i32);
         agent_queue.push(device.id, device.order);
         agents.insert(
             device.id(),
