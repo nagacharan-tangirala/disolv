@@ -51,31 +51,73 @@ impl AgentId {
     }
 }
 
-/// Trait that represents the kind of agent. Extend this to a custom type
-/// (e.g. enum) that represents the kind of your agent. Only one instance of this type
-/// is allowed. This is required to distinguish between different types of agents.
+/// Struct that represents the kind of agent at the higher level.
+/// This is required to distinguish between different types of agents.
 ///
 /// Multiple types of agents can be simulated in a single simulation. However, all agents
 /// must be distinguishable by only their kind. For example, in a vehicular scenario, this trait
 /// can be implemented for both vehicles and RSUs. There can also be multiple types of vehicles
 /// (e.g. cars, trucks, buses, etc.). Similarly, there can be multiple types of RSUs (e.g. RSUs
 /// with different transmission ranges). Each of these types can have their own struct that
-/// implements the [agent] trait. However, all these types must be documented in a single enum.
-/// Such enum should implement this trait.
-pub trait AgentKind:
-    Default + fmt::Display + Clone + Copy + PartialEq + Eq + Hash + Send + Sync
-{
+/// implements the [agent] trait. However, all these types must be documented in this struct.
+#[derive(Deserialize, Debug, Hash, Copy, Default, Clone, PartialEq, Eq)]
+pub enum AgentKind {
+    #[default]
+    Vehicle = 0,
+    RSU,
+    BaseStation,
+    Controller,
+    Server,
 }
 
-/// Trait that represents the variety within each `kind` of an agent. `kind` distinguishes
+impl fmt::Display for AgentKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AgentKind::Vehicle => write!(f, "Vehicle"),
+            AgentKind::RSU => write!(f, "RSU"),
+            AgentKind::BaseStation => write!(f, "BaseStation"),
+            AgentKind::Controller => write!(f, "Controller"),
+            AgentKind::Server => write!(f, "Server"),
+        }
+    }
+}
+
+/// Struct that represents the variety within each `kind` of an agent. `kind` distinguishes
 /// among the different types of devices, while `Class` will allow for varies categories within
 /// each kind.
 ///
 /// An example will be Vehicle5G, Vehicle4G being two classes of Vehicle Kind. This allows for
 /// defining behaviour at both the `kind` level and `Class` level.
-pub trait AgentClass:
-    Default + fmt::Display + Clone + Copy + Hash + Eq + PartialEq + Send + Sync
-{
+#[derive(Deserialize, Default, Clone, Copy, Debug, Hash, Eq, PartialEq)]
+pub enum AgentClass {
+    #[default]
+    None,
+    Vehicle5G,
+    RSU5G,
+    BaseStation5G,
+    Controller,
+    FlServer,
+}
+
+impl fmt::Display for AgentClass {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AgentClass::None => write!(f, "None"),
+            AgentClass::Vehicle5G => write!(f, "Vehicle5G"),
+            AgentClass::RSU5G => write!(f, "RSU5G"),
+            AgentClass::BaseStation5G => write!(f, "BaseStation5G"),
+            AgentClass::Controller => write!(f, "Controller"),
+            AgentClass::FlServer => write!(f, "FlServer"),
+        }
+    }
+}
+
+/// Trait that represents the basic properties of an agent. This should return the
+/// type, class and ID at a minimum and any other properties can also be added.
+pub trait AgentProperties: fmt::Debug + Copy + Clone + Send + Sync {
+    fn id(&self) -> AgentId;
+    fn kind(&self) -> &AgentKind;
+    fn class(&self) -> &AgentClass;
 }
 
 /// Agent order indicates the order in which the behavior of the agents is simulated.
