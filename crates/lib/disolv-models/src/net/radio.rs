@@ -1,11 +1,14 @@
-use crate::device::types::{DeviceClass, DeviceType};
-use crate::net::message::{DataType, PayloadInfo};
-use crate::net::metrics::{Bytes, Latency};
-use disolv_core::agent::AgentId;
-use disolv_core::radio::{ActionInfo, Actionable, Actions, GLink, LinkFeatures};
-use serde::Deserialize;
 use std::fmt::Display;
+
+use serde::Deserialize;
 use typed_builder::TypedBuilder;
+
+use disolv_core::agent::{AgentClass, AgentId, AgentKind};
+use disolv_core::message::{ContentType, Metadata};
+use disolv_core::metrics::Bytes;
+use disolv_core::radio::{ActionType, LinkFeatures};
+
+use crate::net::metrics::Latency;
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct LinkProperties {
@@ -15,38 +18,15 @@ pub struct LinkProperties {
 
 impl LinkFeatures for LinkProperties {}
 
-pub type DLink = GLink<LinkProperties>;
-
-#[derive(Deserialize, Clone, Debug, Copy, Eq, PartialEq, Default)]
-pub enum ActionType {
-    #[default]
-    Consume,
-    Forward,
-}
-
-impl Actionable for ActionType {}
-
-#[derive(Clone, Default, Debug, Copy, TypedBuilder)]
-pub struct Action {
-    pub action_type: ActionType,
-    pub to_class: Option<DeviceClass>,
-    pub to_agent: Option<AgentId>,
-    pub to_kind: Option<DeviceType>,
-}
-
-impl ActionInfo for Action {}
-
-pub type DActions = Actions<Action, DataType>;
-
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde_with::skip_serializing_none]
-pub struct ActionSettings {
-    pub target: DeviceClass,
-    pub data_type: DataType,
+pub struct ActionSettings<C: ContentType> {
+    pub target: AgentClass,
+    pub data_type: C,
     pub action_type: ActionType,
-    pub to_class: Option<DeviceClass>,
+    pub to_class: Option<AgentClass>,
     pub to_agent: Option<AgentId>,
-    pub to_kind: Option<DeviceType>,
+    pub to_kind: Option<AgentKind>,
 }
 
 #[derive(Default, Clone, Copy, Debug)]
@@ -105,16 +85,16 @@ impl OutgoingStats {
         self.feasible.agent_count as f32 / self.attempted.agent_count as f32
     }
 
-    pub fn add_attempted(&mut self, metadata: &PayloadInfo) {
+    pub fn add_attempted<M: Metadata>(&mut self, metadata: &M) {
         self.attempted.agent_count += 1;
-        self.attempted.data_size += metadata.total_size;
-        self.attempted.data_count += metadata.total_count;
+        self.attempted.data_size += metadata.size();
+        self.attempted.data_count += metadata.count();
     }
 
-    pub fn add_feasible(&mut self, metadata: &PayloadInfo) {
+    pub fn add_feasible<M: Metadata>(&mut self, metadata: &M) {
         self.feasible.agent_count += 1;
-        self.feasible.data_size += metadata.total_size;
-        self.feasible.data_count += metadata.total_count;
+        self.feasible.data_size += metadata.size();
+        self.feasible.data_count += metadata.count();
     }
 }
 
@@ -128,9 +108,22 @@ impl IncomingStats {
         self.in_counts.reset();
     }
 
-    pub fn update(&mut self, metadata: &PayloadInfo) {
+    pub fn update<M: Metadata>(&mut self, metadata: &M) {
         self.in_counts.agent_count += 1;
-        self.in_counts.data_size += metadata.total_size;
-        self.in_counts.data_count += metadata.total_count;
+        self.in_counts.data_size += metadata.size();
+        self.in_counts.data_count += metadata.count();
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, TypedBuilder)]
+pub struct CommStats {
+    pub outgoing_stats: OutgoingStats,
+    pub incoming_stats: IncomingStats,
+}
+
+impl CommStats {
+    pub fn reset(&mut self) {
+        self.incoming_stats.reset();
+        self.outgoing_stats.reset();
     }
 }
