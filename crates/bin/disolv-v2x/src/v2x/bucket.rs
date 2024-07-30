@@ -1,38 +1,49 @@
-use log::info;
+use log::{debug, info};
 use typed_builder::TypedBuilder;
 
-use disolv_core::agent::AgentId;
+use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::Bucket;
 use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
 use disolv_core::model::BucketModel;
+use disolv_core::radio::Link;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::mobility::MapState;
-use disolv_models::device::types::{DeviceClass, DeviceType};
-use disolv_models::net::message::{DataSource, DeviceContent, PayloadInfo, TxMetrics};
-use disolv_models::net::network::Network;
-use disolv_models::net::radio::DLink;
-use disolv_output::result::ResultWriter;
+use disolv_models::net::network::{Network, SliceType};
+use disolv_models::net::radio::{CommStats, LinkProperties};
+use disolv_output::position::PosWriter;
+use disolv_output::result::{BasicResults, ResultWriter};
 
+use crate::models::message::{DataBlob, DataType, MessageType, TxMetrics};
+use crate::models::message::PayloadInfo;
+use crate::models::network::{Slice, V2XSlice};
+use crate::models::output::OutputWriter;
+use crate::output::net::NetStatWriter;
+use crate::output::tx::TxDataWriter;
+use crate::v2x::device::DeviceInfo;
 use crate::v2x::linker::Linker;
 use crate::v2x::space::{Mapper, Space};
 
-pub type V2XDataLake = DataLake<DeviceContent, PayloadInfo, DataSource, TxMetrics>;
+pub type V2XDataLake = DataLake<DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType>;
+pub type V2XNetwork =
+    Network<Slice, DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType, V2XSlice, TxMetrics>;
 
 #[derive(TypedBuilder)]
 pub struct BucketModels {
-    pub result_writer: ResultWriter,
-    pub network: Network,
+    pub network: V2XNetwork,
+    pub output: OutputWriter,
     pub space: Space,
-    pub mapper_holder: Vec<(DeviceType, Mapper)>,
+    pub mapper_holder: Vec<(AgentKind, Mapper)>,
     pub linker_holder: Vec<Linker>,
+    pub stats_holder: HashMap<AgentId, CommStats>,
+    pub device_infos: HashMap<AgentId, DeviceInfo>,
     pub data_lake: V2XDataLake,
 }
 
 #[derive(TypedBuilder)]
 pub struct DeviceBucket {
     pub models: BucketModels,
-    pub class_to_type: HashMap<DeviceClass, DeviceType>,
+    pub class_to_type: HashMap<AgentClass, AgentKind>,
     #[builder(default)]
     pub step: TimeMS,
 }
@@ -41,9 +52,9 @@ impl DeviceBucket {
     pub fn link_options_for(
         &mut self,
         agent_id: AgentId,
-        source_type: &DeviceType,
-        target_class: &DeviceClass,
-    ) -> Option<Vec<DLink>> {
+        source_type: &AgentKind,
+        target_class: &AgentClass,
+    ) -> Option<Vec<Link<LinkProperties>>> {
         match self.linker_for(source_type, target_class) {
             Some(linker) => linker.links_of(agent_id),
             None => None,
@@ -53,15 +64,31 @@ impl DeviceBucket {
     pub fn positions_for(
         &mut self,
         agent_id: AgentId,
-        device_type: &DeviceType,
+        device_type: &AgentKind,
     ) -> Option<MapState> {
         self.mapper_for(device_type).map_state_of(agent_id)
     }
 
+    pub fn update_stats_of(&mut self, agent_id: AgentId, stats: CommStats) {
+        self.models.stats_holder.insert(agent_id, stats);
+    }
+
+    pub fn stats_for(&self, agent_id: &AgentId) -> Option<&CommStats> {
+        self.models.stats_holder.get(agent_id)
+    }
+
+    pub fn update_device_info_of(&mut self, agent_id: AgentId, d_info: DeviceInfo) {
+        self.models.device_infos.insert(agent_id, d_info);
+    }
+
+    pub fn device_info_of(&self, agent_id: &AgentId) -> Option<&DeviceInfo> {
+        self.models.device_infos.get(agent_id)
+    }
+
     fn linker_for(
         &mut self,
-        source_type: &DeviceType,
-        target_class: &DeviceClass,
+        source_type: &AgentKind,
+        target_class: &AgentClass,
     ) -> Option<&mut Linker> {
         let target_type = match self.class_to_type.get(target_class) {
             Some(t_type) => t_type,
@@ -73,7 +100,7 @@ impl DeviceBucket {
             .find(|linker| linker.source_type == *source_type && linker.target_type == *target_type)
     }
 
-    fn mapper_for(&mut self, device_type: &DeviceType) -> &mut Mapper {
+    fn mapper_for(&mut self, device_type: &AgentKind) -> &mut Mapper {
         self.models
             .mapper_holder
             .iter_mut()
@@ -103,7 +130,6 @@ impl Bucket for DeviceBucket {
         self.models.network.reset_slices();
 
         self.models.data_lake.clean_payloads();
-        self.models.data_lake.clean_responses();
         self.models
             .mapper_holder
             .iter_mut()
@@ -116,12 +142,15 @@ impl Bucket for DeviceBucket {
     }
 
     fn after_agents(&mut self) {
-        for slice in self.models.network.slices.iter() {
-            self.models.result_writer.add_net_stats(self.step, slice);
+        for slice in self.models.network.slices.values() {
+            match &mut self.models.output.network_writer {
+                Some(net_writer) => net_writer.add_data(self.step, slice),
+                None => {}
+            }
         }
     }
 
-    fn stream_input(&mut self, step: TimeMS) {
+    fn stream_input(&mut self) {
         self.models.mapper_holder.iter_mut().for_each(|(_, space)| {
             space.stream_data(self.step);
         });
@@ -130,12 +159,13 @@ impl Bucket for DeviceBucket {
         });
     }
 
-    fn stream_output(&mut self, step: TimeMS) {
-        self.models.result_writer.write_output(self.step);
+    fn stream_output(&mut self) {
+        debug!("Writing output at {}", self.step);
+        self.models.output.write_to_file();
     }
 
-    fn terminate(mut self, step: TimeMS) {
-        self.models.result_writer.write_output(step);
-        self.models.result_writer.close_files(step);
+    fn terminate(mut self) {
+        self.models.output.write_to_file();
+        self.models.output.close_output_files();
     }
 }
