@@ -25,7 +25,8 @@ serde = { version = "1.0.204", features = ["derive"] }
 serde_with = "3.9.0"
 ratatui = "0.26.3"
 crossterm = "0.27.0"
-keyed_priority_queue = "0.4.2"
+parquet = "52.1.0"
+arrow = "52.1.0"
 
 [dev-dependencies]
 disolv-testutils = { path = "../../lib/disolv-testutils" }
