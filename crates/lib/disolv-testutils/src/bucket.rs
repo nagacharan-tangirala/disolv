@@ -44,15 +44,15 @@ impl Bucket for MyBucket {
         println!("after_agents in MyBucket");
     }
 
-    fn stream_input(&mut self, step: TimeMS) {
-        println!("Streaming step in bucket at {}", step);
+    fn stream_input(&mut self) {
+        println!("Streaming step in bucket at {}", self.step);
     }
 
-    fn stream_output(&mut self, step: TimeMS) {
-        println!("Streaming step in bucket at {}", step);
+    fn stream_output(&mut self) {
+        println!("Streaming step in bucket at {}", self.step);
     }
 
-    fn terminate(self, step: TimeMS) {
-        println!("End in MyBucket at {}", step);
+    fn terminate(self) {
+        println!("End in MyBucket at {}", self.step);
     }
 }

@@ -1,11 +1,10 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display};
 
 use disolv_core::agent::{
-    Activatable, Agent, AgentId, AgentKind, AgentOrder, AgentStats, MobilityInfo, Movable,
-    Orderable,
+    Activatable, Agent, AgentClass, AgentId, AgentKind, AgentOrder, AgentProperties, MobilityInfo,
+    Movable, Orderable,
 };
 use disolv_core::bucket::TimeMS;
-use disolv_core::core::Core;
 
 use crate::bucket::MyBucket;
 
@@ -24,42 +23,54 @@ impl Mobility {
 
 impl MobilityInfo for Mobility {}
 
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum DeviceType {
-    #[default]
-    TypeA,
-    TypeB,
+#[derive(Default, Clone, Copy, Debug)]
+pub struct DeviceStats {
+    pub id: AgentId,
+    pub device_type: AgentKind,
+    pub device_class: AgentClass,
+    pub order: AgentOrder,
+    pub size: f32,
 }
 
-impl AgentKind for DeviceType {}
-
-impl Display for DeviceType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DeviceType::TypeA => write!(f, "TypeA"),
-            DeviceType::TypeB => write!(f, "TypeB"),
+impl DeviceStats {
+    pub fn new(
+        id: AgentId,
+        device_type: AgentKind,
+        device_class: AgentClass,
+        order: AgentOrder,
+    ) -> Self {
+        Self {
+            id,
+            device_type,
+            device_class,
+            order,
+            size: 0.0,
         }
     }
 }
 
-#[derive(Default, Clone, Copy, Debug)]
-pub struct DeviceStats {
-    pub size: f32,
-}
+impl AgentProperties for DeviceStats {
+    fn id(&self) -> AgentId {
+        self.id
+    }
 
-impl AgentStats for DeviceStats {}
+    fn kind(&self) -> &AgentKind {
+        &self.device_type
+    }
+
+    fn class(&self) -> &AgentClass {
+        &self.device_class
+    }
+}
 
 #[derive(Default, Clone, Debug)]
 pub struct TDevice {
-    pub id: AgentId,
-    pub device_type: DeviceType,
-    pub order: AgentOrder,
-    pub(crate) stats: DeviceStats,
-    pub(crate) step: TimeMS,
+    pub device_info: DeviceStats,
+    pub step: TimeMS,
 }
 
-impl Activatable for TDevice {
-    fn activate(&mut self) {}
+impl Activatable<MyBucket> for TDevice {
+    fn activate(&mut self, my_bucket: &mut MyBucket) {}
 
     fn deactivate(&mut self) {}
 
@@ -67,7 +78,11 @@ impl Activatable for TDevice {
         false
     }
 
-    fn time_to_activation(&mut self) -> TimeMS {
+    fn has_activation(&self) -> bool {
+        false
+    }
+
+    fn time_of_activation(&mut self) -> TimeMS {
         TimeMS::from(0)
     }
 }
@@ -86,37 +101,31 @@ impl Movable<MyBucket> for TDevice {
 
 impl Orderable for TDevice {
     fn order(&self) -> AgentOrder {
-        self.order
+        self.device_info.order
     }
 }
 
 impl Agent<MyBucket> for TDevice {
-    type AS = DeviceStats;
-
+    type P = DeviceStats;
     fn id(&self) -> AgentId {
-        self.id
+        self.device_info.id
     }
 
-    fn stats(&self) -> Self::AS {
-        self.stats
+    fn stage_one(&mut self, _bucket: &mut MyBucket) {
+        self.device_info.size = 10000.0;
     }
 
-    fn stage_one(&mut self, _core: &mut Core<DeviceStats, MyBucket>) {
-        self.stats.size = 10000.0;
-    }
-
-    fn stage_two_reverse(&mut self, _core: &mut Core<DeviceStats, MyBucket>) {
-        self.stats.size = 0.0;
+    fn stage_two_reverse(&mut self, _bucket: &mut MyBucket) {
+        self.device_info.size = 0.0;
     }
 }
 
 impl TDevice {
-    pub fn make_device(id: AgentId, device_type: DeviceType, order: i32) -> Self {
+    pub fn make_device(id: AgentId, device_type: AgentKind, order: u32) -> Self {
+        let device_class = AgentClass::Vehicle5G;
+        let device_info = DeviceStats::new(id, device_type, device_class, AgentOrder::from(order));
         Self {
-            id,
-            device_type,
-            order: AgentOrder::from(order as u32),
-            stats: Default::default(),
+            device_info,
             step: TimeMS::default(),
         }
     }
