@@ -41,23 +41,3 @@ pub trait PayloadStatus: Clone + Send + Sync {}
 ///
 /// Metadata can contain transfer metrics such as the status, latency, etc.
 pub trait TxReport: Clone + Send + Sync {}
-
-/// A trait to indicate a type that can be used to represent the content of a response. The content
-/// can contain queries that can be read by other devices.
-pub trait Reply: Clone + Send + Sync {}
-
-/// A generic struct that represents a response from a device. A response can be used to relay
-/// queries and payload transfer metrics to other devices after they send a payload.
-///
-/// Queries can be optionally included in the response to control the content that is
-/// being transferred.
-#[derive(Clone, Debug, Default, TypedBuilder)]
-pub struct GResponse<R, T>
-where
-    R: Reply,
-    T: TxReport,
-{
-    pub reply: Option<R>,
-    pub downstream: Option<Vec<R>>,
-    pub tx_report: T,
-}
