@@ -7,13 +7,16 @@ use log::info;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 
-use crate::simulation::scheduler::Scheduler;
+use disolv_core::bucket::Bucket;
+use disolv_core::scheduler::Scheduler;
+
 use crate::simulation::tui::{handle_sim_key_events, Tui};
 use crate::simulation::ui::{Message, SimContent, SimUIMetadata};
 
-pub fn run_simulation<S>(mut scheduler: S, metadata: SimUIMetadata)
+pub fn run_simulation<B, S>(mut scheduler: S, metadata: SimUIMetadata)
 where
-    S: Scheduler,
+    S: Scheduler<B>,
+    B: Bucket,
 {
     let (sender_ui, receiver_ui) = mpsc::sync_channel(0);
     let sender = sender_ui.clone();
@@ -72,7 +75,6 @@ where
             scheduler.initialize();
             while now < end_time {
                 scheduler.activate();
-                scheduler.collect_stats();
                 now = scheduler.trigger().as_u64();
                 match terminal_sender.send(Message::CurrentTime(now)) {
                     Ok(_) => {}

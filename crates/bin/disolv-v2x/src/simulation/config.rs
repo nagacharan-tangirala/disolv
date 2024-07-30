@@ -2,18 +2,15 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-use disolv_core::agent::AgentOrder;
+use disolv_core::agent::{AgentClass, AgentKind, AgentOrder};
 use disolv_core::bucket::TimeMS;
-use disolv_models::device::compose::ComposerSettings;
-use disolv_models::device::energy::EnergySettings;
-use disolv_models::device::hardware::StorageSettings;
-use disolv_models::device::reply::ReplierSettings;
-use disolv_models::device::select::SelectorSettings;
-use disolv_models::device::types::{DeviceClass, DeviceType};
 use disolv_models::net::radio::ActionSettings;
-use disolv_models::net::slice::SliceSettings;
 use disolv_output::result::OutputSettings;
 
+use crate::models::compose::ComposerSettings;
+use crate::models::message::DataType;
+use crate::models::network::SliceSettings;
+use crate::models::select::SelectorSettings;
 use crate::v2x::linker::LinkerSettings;
 use crate::v2x::space::{FieldSettings, MobilitySettings};
 
@@ -47,7 +44,7 @@ pub struct LogSettings {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct AgentSettings {
-    pub agent_type: DeviceType,
+    pub agent_type: AgentKind,
     pub power_file: String,
     pub mobility: MobilitySettings,
     pub linker: Option<Vec<LinkerSettings>>,
@@ -63,14 +60,11 @@ pub struct NetworkSettings {
 #[derive(Deserialize, Debug, Clone)]
 pub struct AgentClassSettings {
     pub agent_share: f32,
-    pub agent_class: DeviceClass,
+    pub agent_class: AgentClass,
     pub agent_order: AgentOrder,
     pub composer: ComposerSettings,
     pub selector: Vec<SelectorSettings>,
-    pub replier: ReplierSettings,
-    pub energy: EnergySettings,
-    pub storage: StorageSettings,
-    pub actions: Option<Vec<ActionSettings>>,
+    pub actions: Option<Vec<ActionSettings<DataType>>>,
 }
 
 pub struct BaseConfigReader {
