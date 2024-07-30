@@ -1,31 +1,52 @@
-use std::fmt::Debug;
-
-use log::debug;
-use typed_builder::TypedBuilder;
-
-use disolv_core::agent::{Activatable, Agent, Movable, Orderable};
+use disolv_core::agent::{
+    Activatable, Agent, AgentClass, AgentKind, AgentProperties, Movable, Orderable,
+};
 use disolv_core::agent::{AgentId, AgentOrder};
 use disolv_core::bucket::TimeMS;
-use disolv_core::core::Core;
 use disolv_core::metrics::Measurable;
 use disolv_core::metrics::Resource;
-use disolv_core::radio::{Receiver, Responder, Transmitter};
-use disolv_models::bucket::flow::FlowRegister;
-use disolv_models::device::actions::{do_actions, filter_blobs_to_fwd, set_actions_before_tx};
+use disolv_core::radio::{Link, Receiver, Transmitter};
+use disolv_models::device::actions::{
+    complete_actions, filter_units_to_fwd, set_actions_before_tx,
+};
 use disolv_models::device::actor::Actor;
-use disolv_models::device::compose::Composer;
-use disolv_models::device::energy::EnergyType;
-use disolv_models::device::hardware::StorageType;
+use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::mobility::MapState;
+use disolv_models::device::models::{Compose, LinkSelector};
 use disolv_models::device::power::{PowerManager, PowerState};
-use disolv_models::device::reply::Replier;
-use disolv_models::device::select::Selector;
-use disolv_models::device::types::{DeviceClass, DeviceInfo, DeviceStats};
-use disolv_models::net::message::{DataSource, TxMetrics, V2XResponse};
-use disolv_models::net::message::{DeviceContent, PayloadInfo, TxStatus, V2XPayload};
-use disolv_models::net::radio::{DLink, LinkProperties};
+use disolv_models::net::network::NetworkSlice;
+use disolv_models::net::radio::{CommStats, LinkProperties};
+use log::debug;
+use std::fmt::Debug;
+use typed_builder::TypedBuilder;
 
+use crate::models::compose::Composer;
+use crate::models::message::{DataBlob, DataType, MessageType, PayloadInfo, TxStatus, V2XPayload};
+use crate::models::network::V2XSlice;
+use crate::models::select::Selector;
 use crate::v2x::bucket::DeviceBucket;
+
+#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
+pub struct DeviceInfo {
+    pub id: AgentId,
+    pub device_type: AgentKind,
+    pub device_class: AgentClass,
+    pub agent_order: AgentOrder,
+}
+
+impl AgentProperties for DeviceInfo {
+    fn id(&self) -> AgentId {
+        self.id
+    }
+
+    fn kind(&self) -> &AgentKind {
+        &self.device_type
+    }
+
+    fn class(&self) -> &AgentClass {
+        &self.device_class
+    }
+}
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct DeviceModel {
@@ -33,23 +54,20 @@ pub struct DeviceModel {
     pub flow: FlowRegister,
     pub sl_flow: FlowRegister,
     pub composer: Composer,
-    pub replier: Replier,
-    pub storage: StorageType,
-    pub energy: EnergyType,
-    pub actor: Actor,
-    pub selector: Vec<(DeviceClass, Selector)>,
+    pub actor: Actor<DataType>,
+    pub selector: Vec<(AgentClass, Selector)>,
 }
 
 impl DeviceModel {
     fn select_links(
         &self,
-        link_options: Vec<DLink>,
-        target_class: &DeviceClass,
-        stats: &Vec<&DeviceStats>,
-    ) -> Option<Vec<DLink>> {
+        link_options: Vec<Link<LinkProperties>>,
+        target_class: &AgentClass,
+        stats: &Vec<&CommStats>,
+    ) -> Option<Vec<Link<LinkProperties>>> {
         for selectors in self.selector.iter() {
             if selectors.0 == *target_class {
-                return Some(selectors.1.do_selection(link_options, stats));
+                return Some(selectors.1.select_link(link_options, stats));
             }
         }
         None
@@ -67,34 +85,17 @@ pub struct Device {
     #[builder(default)]
     pub map_state: MapState,
     #[builder(default)]
-    pub content: DeviceContent,
-    #[builder(default)]
-    pub stats: DeviceStats,
+    pub stats: CommStats,
 }
 
 impl Device {
-    fn compose_content(&self) -> DeviceContent {
-        DeviceContent {
-            device_info: self.device_info,
-            map_state: self.map_state,
-        }
-    }
-
-    fn compute_stats(&mut self) {
-        self.stats = DeviceStats::builder()
-            .incoming_stats(self.models.flow.in_stats)
-            .outgoing_stats(self.models.flow.out_stats)
-            .device_content(self.content)
-            .build();
-    }
-
     fn talk_to_class(
         &mut self,
-        target_class: &DeviceClass,
+        target_class: &AgentClass,
         rx_payloads: &Option<Vec<V2XPayload>>,
-        core: &mut Core<Self, DeviceBucket>,
+        bucket: &mut DeviceBucket,
     ) {
-        let link_options = match core.bucket.link_options_for(
+        let link_options = match bucket.link_options_for(
             self.device_info.id,
             &self.device_info.device_type,
             target_class,
@@ -103,10 +104,13 @@ impl Device {
             None => return,
         };
 
-        let stats: Vec<&DeviceStats> = link_options
-            .iter()
-            .map(|link| core.stats_of(&link.target))
-            .collect();
+        let mut stats: Vec<&CommStats> = Vec::with_capacity(link_options.len());
+        link_options.iter().for_each(|link| {
+            let link_stats = bucket.stats_for(&link.target);
+            if link_stats.is_some() {
+                stats.push(link_stats.unwrap());
+            }
+        });
 
         let targets = match self.models.select_links(link_options, target_class, &stats) {
             Some(links) => links,
@@ -116,28 +120,30 @@ impl Device {
         let payload = self
             .models
             .composer
-            .compose_payload(target_class, self.content);
-
-        self.models.storage.consume(&payload.metadata);
+            .compose(target_class, &self.device_info);
 
         targets.into_iter().for_each(|target_link| {
-            let target_stats = core.stats_of(&target_link.target);
             let mut this_payload = payload.clone();
-            match rx_payloads {
-                Some(ref payloads) => {
-                    let mut blobs = filter_blobs_to_fwd(&target_stats.device_content, payloads);
-                    self.models
-                        .composer
-                        .append_blobs_to(&mut this_payload, &mut blobs);
+
+            // If we know about the target agent, take payload forwarding decisions.
+            if let Some(target_state) = bucket.device_info_of(&target_link.target) {
+                match rx_payloads {
+                    Some(ref payloads) => {
+                        let mut blobs = filter_units_to_fwd(target_state, payloads);
+                        self.models
+                            .composer
+                            .append_blobs_to(&mut this_payload, &mut blobs);
+                    }
+                    None => (),
                 }
-                None => (),
             }
+
             let actions = self.models.actor.actions_for(target_class);
             let prepared_payload = set_actions_before_tx(this_payload, actions);
             if target_class == &self.device_info.device_class {
-                self.transmit_sl(prepared_payload, target_link, &mut core.bucket);
+                self.transmit_sl(prepared_payload, target_link, bucket);
             } else {
-                self.transmit(prepared_payload, target_link, &mut core.bucket);
+                self.transmit(prepared_payload, target_link, bucket);
             }
         });
     }
@@ -154,17 +160,19 @@ impl Movable<DeviceBucket> for Device {
         self.map_state = bucket
             .positions_for(self.device_info.id, &self.device_info.device_type)
             .unwrap_or(self.map_state);
-        bucket
-            .models
-            .result_writer
-            .add_agent_pos(self.step, self.device_info.id, &self.map_state);
+        bucket.models.output.basic_results.positions.add_data(
+            self.step,
+            self.device_info.id,
+            &self.map_state,
+        );
     }
 }
 
-impl Activatable for Device {
-    fn activate(&mut self) {
+impl Activatable<DeviceBucket> for Device {
+    fn activate(&mut self, bucket: &mut DeviceBucket) {
         debug!("Starting agent: {}", self.device_info.id);
         self.power_state = PowerState::On;
+        bucket.update_device_info_of(self.device_info.id, self.device_info);
     }
 
     fn deactivate(&mut self) {
@@ -176,7 +184,11 @@ impl Activatable for Device {
         self.power_state == PowerState::Off
     }
 
-    fn time_to_activation(&mut self) -> TimeMS {
+    fn has_activation(&self) -> bool {
+        self.models.power.has_next_time_to_on()
+    }
+
+    fn time_of_activation(&mut self) -> TimeMS {
         self.models.power.pop_time_to_on()
     }
 }
@@ -187,23 +199,36 @@ impl Orderable for Device {
     }
 }
 
-impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for Device {
-    type AgentClass = DeviceClass;
-
-    fn transmit(&mut self, payload: V2XPayload, target_link: DLink, bucket: &mut DeviceBucket) {
+impl
+    Transmitter<
+        DeviceBucket,
+        DataType,
+        DataBlob,
+        LinkProperties,
+        PayloadInfo,
+        DeviceInfo,
+        MessageType,
+    > for Device
+{
+    fn transmit(
+        &mut self,
+        payload: V2XPayload,
+        target_link: Link<LinkProperties>,
+        bucket: &mut DeviceBucket,
+    ) {
         debug!(
             "Transmitting payload from agent {} to agent {} with blobs {}",
-            payload.agent_state.device_info.id,
+            payload.agent_state.id(),
             target_link.target,
-            payload.metadata.data_blobs.len()
+            payload.data_units.len()
         );
 
         self.models.flow.register_outgoing_attempt(&payload);
         let tx_metrics = bucket.models.network.transfer(&payload);
-        bucket
-            .models
-            .result_writer
-            .add_tx_data(self.step, &target_link, &payload, tx_metrics);
+        match &mut bucket.models.output.tx_data_writer {
+            Some(tx) => tx.add_data(self.step, &target_link, &payload, tx_metrics),
+            None => {}
+        }
 
         if tx_metrics.tx_status == TxStatus::Ok {
             self.models.flow.register_outgoing_feasible(&payload);
@@ -214,18 +239,25 @@ impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for D
         }
     }
 
-    fn transmit_sl(&mut self, payload: V2XPayload, target_link: DLink, bucket: &mut DeviceBucket) {
+    fn transmit_sl(
+        &mut self,
+        payload: V2XPayload,
+        target_link: Link<LinkProperties>,
+        bucket: &mut DeviceBucket,
+    ) {
         debug!(
             "Transmitting SL payload from agent {} to agent {}",
-            payload.agent_state.device_info.id, target_link.target
+            payload.agent_state.id(),
+            target_link.target
         );
 
         self.models.sl_flow.register_outgoing_attempt(&payload);
         let sl_metrics = bucket.models.network.transfer(&payload);
-        bucket
-            .models
-            .result_writer
-            .add_tx_data(self.step, &target_link, &payload, sl_metrics);
+
+        match &mut bucket.models.output.tx_data_writer {
+            Some(tx) => tx.add_data(self.step, &target_link, &payload, sl_metrics),
+            None => {}
+        }
 
         if sl_metrics.tx_status == TxStatus::Ok {
             self.models.sl_flow.register_outgoing_feasible(&payload);
@@ -237,9 +269,10 @@ impl Transmitter<DeviceContent, DeviceBucket, LinkProperties, PayloadInfo> for D
     }
 }
 
-impl Receiver<DeviceContent, DeviceBucket, PayloadInfo> for Device {
-    type C = DeviceClass;
-
+impl
+    Receiver<DeviceBucket, DataType, DataBlob, LinkProperties, PayloadInfo, DeviceInfo, MessageType>
+    for Device
+{
     fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<V2XPayload>> {
         bucket.models.data_lake.payloads_for(self.device_info.id)
     }
@@ -249,33 +282,17 @@ impl Receiver<DeviceContent, DeviceBucket, PayloadInfo> for Device {
     }
 }
 
-impl Responder<DeviceBucket, DataSource, TxMetrics> for Device {
-    fn respond(&mut self, response: Option<V2XResponse>, bucket: &mut DeviceBucket) {
-        // send to talk_to_peers
-    }
-
-    fn respond_sl(&mut self, response: Option<V2XResponse>, bucket: &mut DeviceBucket) {
-        // send to talk_to_peers
-    }
-}
-
 impl Agent<DeviceBucket> for Device {
-    type AS = DeviceStats;
+    type P = DeviceInfo;
 
     fn id(&self) -> AgentId {
         self.device_info.id
     }
 
-    fn stats(&self) -> Self::AS {
-        self.stats
-    }
-
-    fn stage_one(&mut self, core: &mut Core<Self, DeviceBucket>) {
-        self.step = core.bucket.step;
-        let bucket = &mut core.bucket;
+    fn stage_one(&mut self, bucket: &mut DeviceBucket) {
+        self.step = bucket.step;
         self.set_mobility(bucket);
-        self.content = self.compose_content();
-
+        bucket.update_stats_of(self.device_info.id, self.stats);
         debug!(
             "Uplink stage for agent: {} id at step: {}",
             self.device_info.id, self.step
@@ -287,47 +304,41 @@ impl Agent<DeviceBucket> for Device {
         if let Some(ref mut payloads) = rx_payloads {
             self.models.flow.register_incoming(payloads);
             payloads.iter_mut().for_each(|payload| {
-                do_actions(payload, &self.content);
+                complete_actions(payload, &self.device_info);
             });
         }
 
         for target_class in self.models.actor.target_classes.clone().iter() {
-            self.talk_to_class(target_class, &rx_payloads, core);
+            self.talk_to_class(target_class, &rx_payloads, bucket);
         }
-        self.talk_to_class(&self.device_info.device_class.clone(), &rx_payloads, core);
+        self.talk_to_class(&self.device_info.device_class.clone(), &rx_payloads, bucket);
     }
 
-    fn stage_two_reverse(&mut self, _core: &mut Core<Self, DeviceBucket>) {}
+    fn stage_two_reverse(&mut self, _bucket: &mut DeviceBucket) {}
 
-    fn stage_three(&mut self, core: &mut Core<Self, DeviceBucket>) {
+    fn stage_three(&mut self, bucket: &mut DeviceBucket) {
         // Receive data from the peers.
-        self.receive_sl(&mut core.bucket);
+        self.receive_sl(bucket);
     }
 
-    fn stage_four_reverse(&mut self, core: &mut Core<Self, DeviceBucket>) {
+    fn stage_four_reverse(&mut self, bucket: &mut DeviceBucket) {
         debug!(
             "Downlink stage for agent: {} id at step: {}",
             self.device_info.id, self.step
         );
-        let bucket = &mut core.bucket;
-        let response = bucket.models.data_lake.response_for(self.device_info.id);
-        self.respond(response, bucket);
 
-        core.bucket.models.result_writer.add_rx_counts(
+        bucket.models.output.basic_results.rx_counts.add_data(
             self.step,
             self.device_info.id,
-            &self.models.flow.out_stats,
+            &self.models.flow.comm_stats.outgoing_stats,
         );
 
         if self.step == self.models.power.peek_time_to_off() {
             self.power_state = PowerState::Off;
-            if self.models.power.has_next_time_to_on() {
-                core.add_agent(self.device_info.id, self.models.power.pop_time_to_on());
-            }
         }
     }
 
-    fn stage_five(&mut self, _core: &mut Core<Self, DeviceBucket>) {
-        self.compute_stats();
+    fn stage_five(&mut self, _bucket: &mut DeviceBucket) {
+        self.stats = self.models.flow.comm_stats;
     }
 }
