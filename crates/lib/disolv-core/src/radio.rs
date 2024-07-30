@@ -1,16 +1,19 @@
-use crate::agent::AgentClass;
-use crate::agent::AgentId;
-use crate::bucket::Bucket;
-use crate::message::{AgentState, GPayload, GResponse, Metadata, Queryable, Reply, TxReport};
 use std::fmt::Debug;
+
+use serde::Deserialize;
 use typed_builder::TypedBuilder;
+
+use crate::agent::{AgentClass, AgentId, AgentKind};
+use crate::agent::AgentProperties;
+use crate::bucket::Bucket;
+use crate::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 
 /// A trait that contains information about a link. It could be distance, load, etc.
 pub trait LinkFeatures: Copy + Clone + Debug + Default {}
 
 /// A struct that represents a link between two agents defined by the features F.
 #[derive(Debug, Copy, Clone, Default, TypedBuilder)]
-pub struct GLink<F>
+pub struct Link<F>
 where
     F: LinkFeatures,
 {
@@ -18,7 +21,7 @@ where
     pub properties: F,
 }
 
-impl<F> GLink<F>
+impl<F> Link<F>
 where
     F: LinkFeatures,
 {
@@ -30,86 +33,65 @@ where
     }
 }
 
-/// Use this trait to mark a type as an action. This can be used to define custom actions
-/// that can be performed on a payload in the form of enum to indicate actions such as
-/// consume, forward, etc.
-pub trait Actionable: Default + Copy + Clone + Send + Sync {}
-
-/// A trait that contains information that can assist in performing an action on a payload.
-/// Use this on a struct that contains information about the action to be performed.
-/// For example, the action can be to forward the payload to a specific agent or class.
-pub trait ActionInfo: Copy + Clone + Send + Sync {}
-
-/// A struct that represents an action that can be performed on a payload.
-/// Action can be different for different data types.
-#[derive(Debug, Clone, Default)]
-pub struct Actions<I, Q>
-where
-    I: ActionInfo,
-    Q: Queryable,
-{
-    pub data_type: Vec<Q>,
-    pub action_info: Vec<I>,
+/// The type of actions each data unit must be set to. This guides the devices in assisting
+/// what to do with each piece of information received from the neighbours.
+#[derive(Deserialize, Clone, Debug, Copy, Eq, PartialEq, Default)]
+pub enum ActionType {
+    #[default]
+    Consume,
+    Forward,
 }
 
-impl<I, Q> Actions<I, Q>
-where
-    I: ActionInfo,
-    Q: Queryable,
-{
-    pub fn add_action(&mut self, data_type: Q, action_info: I) {
-        self.data_type.push(data_type);
-        self.action_info.push(action_info);
-    }
+/// A generic action struct that can be used to contain the information about action to perform
+/// on a given message.
+#[derive(Clone, Default, Debug, Copy, TypedBuilder)]
+pub struct Action {
+    pub action_type: ActionType,
+    pub to_class: Option<AgentClass>,
+    pub to_agent: Option<AgentId>,
+    pub to_kind: Option<AgentKind>,
+}
 
-    pub fn action_for(&self, data_type: &Q) -> Option<&I> {
-        self.data_type
-            .iter()
-            .zip(self.action_info.iter())
-            .find(|(dt, _)| *dt == data_type)
-            .map(|(_, ai)| ai)
+impl Action {
+    pub fn with_action_type(action_type: ActionType) -> Self {
+        Self {
+            action_type,
+            to_class: None,
+            to_agent: None,
+            to_kind: None,
+        }
     }
 }
 
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
 /// can be flexibly handled by the entity and can transfer payloads to devices of any tier.
 /// This should be called in the <code>uplink_stage</code> method of the entity.
-pub trait Transmitter<A, B, F, M>
+pub trait Transmitter<B, C, D, F, M, P, Q>
 where
-    A: AgentState,
     B: Bucket,
+    C: ContentType,
+    D: DataUnit<C>,
     F: LinkFeatures,
     M: Metadata,
+    P: AgentProperties,
+    Q: QueryType,
 {
-    type AgentClass: AgentClass;
-
-    fn transmit(&mut self, payload: GPayload<A, M>, target: GLink<F>, bucket: &mut B);
-    fn transmit_sl(&mut self, payload: GPayload<A, M>, target: GLink<F>, bucket: &mut B);
+    fn transmit(&mut self, payload: Payload<C, D, M, P, Q>, target: Link<F>, bucket: &mut B);
+    fn transmit_sl(&mut self, payload: Payload<C, D, M, P, Q>, target: Link<F>, bucket: &mut B);
 }
 
 /// A trait that an entity must implement to receive messages from other entities in the
 /// simulation. The messages can be from the same class or from up/downstream.
-pub trait Receiver<A, B, M>
+pub trait Receiver<B, C, D, F, M, P, Q>
 where
-    A: AgentState,
     B: Bucket,
+    C: ContentType,
+    D: DataUnit<C>,
+    F: LinkFeatures,
     M: Metadata,
+    P: AgentProperties,
+    Q: QueryType,
 {
-    type C: AgentClass;
-
-    fn receive(&mut self, bucket: &mut B) -> Option<Vec<GPayload<A, M>>>;
-    fn receive_sl(&mut self, bucket: &mut B) -> Option<Vec<GPayload<A, M>>>;
-}
-
-/// A trait that an entity must implement to respond to payloads. Transmission of payloads
-/// can be flexibly handled by the entity transfer payloads to devices of any tier.
-/// This should be called in the <code>downlink_stage</code> method of the entity.
-pub trait Responder<B, R, T>
-where
-    B: Bucket,
-    R: Reply,
-    T: TxReport,
-{
-    fn respond(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
-    fn respond_sl(&mut self, response: Option<GResponse<R, T>>, bucket: &mut B);
+    fn receive(&mut self, bucket: &mut B) -> Option<Vec<Payload<C, D, M, P, Q>>>;
+    fn receive_sl(&mut self, bucket: &mut B) -> Option<Vec<Payload<C, D, M, P, Q>>>;
 }
