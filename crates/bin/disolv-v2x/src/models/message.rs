@@ -3,18 +3,31 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
-use disolv_core::agent::AgentId;
+use disolv_core::agent::{AgentId, AgentProperties};
 use disolv_core::bucket::TimeMS;
-use disolv_core::message::{AgentState, DataUnit, GPayload, Metadata, PayloadStatus};
-use disolv_core::message::{GResponse, Queryable, Reply, TxReport};
+use disolv_core::message::{
+    ContentType, DataUnit, Metadata, Payload, PayloadStatus, QueryType, TxReport,
+};
+use disolv_core::metrics::Bytes;
+use disolv_core::radio::{Action, Link};
 use disolv_core::uuid::Uuid;
+use disolv_models::net::metrics::{Bandwidth, Latency};
+use disolv_models::net::radio::LinkProperties;
 
-use crate::device::mobility::MapState;
-use crate::device::types::{DeviceClass, DeviceInfo};
-use crate::net::metrics::{Bandwidth, Bytes, Latency};
-use crate::net::radio::{Action, ActionType, DLink};
+use crate::v2x::device::DeviceInfo;
 
-/// Define a datatype to represent the type of data being sent.
+pub type V2XPayload = Payload<DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType>;
+
+/// A set of messages used by devices in Federated Learning context.
+#[derive(Deserialize, Default, Debug, Hash, Copy, Clone, PartialEq, Eq)]
+pub enum MessageType {
+    #[default]
+    Sensor,
+}
+
+impl QueryType for MessageType {}
+
+/// Types of data allowed to be transferred in a V2X scenario context.
 #[derive(Deserialize, Default, Debug, Hash, Copy, Clone, PartialEq, Eq)]
 pub enum DataType {
     #[default]
@@ -24,7 +37,6 @@ pub enum DataType {
     Lidar2D,
     Lidar3D,
     Radar,
-    ModelWeights,
 }
 
 impl Display for DataType {
@@ -36,68 +48,66 @@ impl Display for DataType {
             DataType::Lidar2D => write!(f, "Lidar2D"),
             DataType::Lidar3D => write!(f, "Lidar3D"),
             DataType::Radar => write!(f, "Radar"),
-            DataType::ModelWeights => write!(f, "ModelWeights"),
         }
     }
 }
 
-impl Queryable for DataType {}
-
-#[derive(Copy, Clone, Debug, Default)]
-pub struct DeviceContent {
-    pub device_info: DeviceInfo,
-    pub map_state: MapState,
-}
-
-impl AgentState for DeviceContent {}
+impl ContentType for DataType {}
 
 /// Define a struct that contains the metadata about the sensor data.
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub struct DataBlob {
+    pub action: Action,
     pub data_type: DataType,
     pub data_size: Bytes,
-    pub action: Action,
 }
 
-impl DataUnit for DataBlob {}
+impl DataUnit<DataType> for DataBlob {
+    fn action(&self) -> &Action {
+        &self.action
+    }
 
-/// Define a struct to represent a single message that will be transferred between agents.
+    fn content_type(&self) -> &DataType {
+        &self.data_type
+    }
+
+    fn size(&self) -> Bytes {
+        self.data_size
+    }
+
+    fn update_action(&mut self, new_action: &Action) {
+        self.action.action_type = new_action.action_type;
+        self.action.to_agent = new_action.to_agent;
+        self.action.to_class = new_action.to_class;
+        self.action.to_kind = new_action.to_kind;
+    }
+}
+/// Define a struct to represent a single message that will be transferred between agents in V2X.
 #[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct PayloadInfo {
     pub id: Uuid,
     pub total_size: Bytes,
     pub total_count: u32,
-    pub data_blobs: Vec<DataBlob>,
-    pub selected_link: DLink,
+    pub selected_link: Link<LinkProperties>,
 }
 
-impl PayloadInfo {
-    pub fn consume(&mut self) {
-        self.data_blobs.iter_mut().for_each(|blob| {
-            if blob.action.action_type == ActionType::Consume {
-                self.total_size -= blob.data_size;
-                self.total_count -= 1;
-            }
-        });
-        self.data_blobs
-            .retain(|blob| blob.action.action_type != ActionType::Consume);
+impl Metadata for PayloadInfo {
+    fn size(&self) -> Bytes {
+        self.total_size
+    }
+
+    fn count(&self) -> u32 {
+        self.total_count
+    }
+
+    fn set_size(&mut self, bytes: Bytes) {
+        self.total_size = bytes;
+    }
+
+    fn set_count(&mut self, count: u32) {
+        self.total_count = count;
     }
 }
-
-impl Metadata for PayloadInfo {}
-
-pub type V2XPayload = GPayload<DeviceContent, PayloadInfo>;
-
-/// Define a struct that contains details about the data sensors that a device can hold.
-#[derive(Deserialize, Debug, Clone, Copy)]
-pub struct DataSource {
-    pub data_type: DataType,
-    pub agent_class: DeviceClass,
-    pub data_size: Bytes,
-    pub source_step: TimeMS,
-}
-
-impl Reply for DataSource {}
 
 #[derive(Clone, Eq, PartialEq, Copy, Debug, Serialize, Default)]
 pub enum TxStatus {
@@ -150,7 +160,7 @@ pub struct TxMetrics {
 impl TxMetrics {
     pub fn new(payload: &V2XPayload, tx_order: u32) -> Self {
         Self {
-            from_agent: payload.agent_state.device_info.id,
+            from_agent: payload.agent_state.id(),
             payload_size: payload.metadata.total_size,
             tx_order,
             ..Default::default()
@@ -159,5 +169,3 @@ impl TxMetrics {
 }
 
 impl TxReport for TxMetrics {}
-
-pub type V2XResponse = GResponse<DataSource, TxMetrics>;
