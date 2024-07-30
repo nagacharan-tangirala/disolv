@@ -1,15 +1,18 @@
-use crate::result::{OutputSettings, OutputType};
-use crate::writer::DataOutput;
-use arrow::array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema};
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-use disolv_models::device::mobility::MapState;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use arrow::array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
+use arrow::datatypes::{DataType, Field, Schema};
+
+use disolv_core::agent::AgentId;
+use disolv_core::bucket::TimeMS;
+use disolv_models::device::mobility::MapState;
+
+use crate::result::ResultWriter;
+use crate::writer::DataOutput;
+
 #[derive(Debug)]
-pub(crate) struct PosWriter {
+pub struct PosWriter {
     time_step: Vec<u64>,
     agent_id: Vec<u64>,
     x: Vec<f64>,
@@ -18,14 +21,7 @@ pub(crate) struct PosWriter {
 }
 
 impl PosWriter {
-    pub fn new(output_settings: &OutputSettings) -> Self {
-        let output_path = PathBuf::from(&output_settings.output_path);
-        let config = output_settings
-            .file_out_config
-            .iter()
-            .find(|&file_out_config| file_out_config.output_type == OutputType::AgentPos)
-            .expect("PosWriter::new: No PosWriter config found");
-        let output_file = output_path.join(&config.output_filename);
+    pub fn new(output_file: PathBuf) -> Self {
         Self {
             to_output: DataOutput::new(&output_file, Self::schema()),
             time_step: Vec::new(),
@@ -35,6 +31,15 @@ impl PosWriter {
         }
     }
 
+    pub fn add_data(&mut self, time_step: TimeMS, agent_id: AgentId, map_state: &MapState) {
+        self.time_step.push(time_step.as_u64());
+        self.agent_id.push(agent_id.as_u64());
+        self.x.push(map_state.pos.x);
+        self.y.push(map_state.pos.y);
+    }
+}
+
+impl ResultWriter for PosWriter {
     fn schema() -> Schema {
         let time_ms = Field::new("time_step", DataType::UInt64, false);
         let agent_id = Field::new("agent_id", DataType::UInt64, false);
@@ -43,14 +48,7 @@ impl PosWriter {
         Schema::new(vec![time_ms, agent_id, x, y])
     }
 
-    pub fn add_data(&mut self, time_step: TimeMS, agent_id: AgentId, map_state: &MapState) {
-        self.time_step.push(time_step.as_u64());
-        self.agent_id.push(agent_id.as_u64());
-        self.x.push(map_state.pos.x);
-        self.y.push(map_state.pos.y);
-    }
-
-    pub fn write_to_file(&mut self) {
+    fn write_to_file(&mut self) {
         match &mut self.to_output {
             DataOutput::Parquet(to_output) => {
                 let record_batch = RecordBatch::try_from_iter(vec![
@@ -81,7 +79,7 @@ impl PosWriter {
         }
     }
 
-    pub(crate) fn close_files(self) {
+    fn close_file(self) {
         match self.to_output {
             DataOutput::Parquet(to_output) => to_output.close(),
         }

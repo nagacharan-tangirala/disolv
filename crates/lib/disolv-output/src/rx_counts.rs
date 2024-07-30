@@ -1,15 +1,18 @@
-use crate::result::{OutputSettings, OutputType};
-use crate::writer::DataOutput;
-use arrow::array::{ArrayRef, Float32Array, RecordBatch, UInt32Array, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema};
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-use disolv_models::net::radio::OutgoingStats;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use arrow::array::{ArrayRef, Float32Array, RecordBatch, UInt32Array, UInt64Array};
+use arrow::datatypes::{DataType, Field, Schema};
+
+use disolv_core::agent::AgentId;
+use disolv_core::bucket::TimeMS;
+use disolv_models::net::radio::OutgoingStats;
+
+use crate::result::ResultWriter;
+use crate::writer::DataOutput;
+
 #[derive(Debug)]
-pub(crate) struct RxCountWriter {
+pub struct RxCountWriter {
     time_step: Vec<u64>,
     agent_id: Vec<u64>,
     attempted_in_agent_count: Vec<u32>,
@@ -23,14 +26,7 @@ pub(crate) struct RxCountWriter {
 }
 
 impl RxCountWriter {
-    pub fn new(output_settings: &OutputSettings) -> Self {
-        let output_path = PathBuf::from(&output_settings.output_path);
-        let config = output_settings
-            .file_out_config
-            .iter()
-            .find(|&file_out_config| file_out_config.output_type == OutputType::RxCounts)
-            .expect("RxDataWriter::new: No RxDataWriter config found");
-        let output_file = output_path.join(&config.output_filename);
+    pub fn new(output_file: PathBuf) -> Self {
         Self {
             to_output: DataOutput::new(&output_file, Self::schema()),
             time_step: Vec::new(),
@@ -45,6 +41,31 @@ impl RxCountWriter {
         }
     }
 
+    pub fn add_data(
+        &mut self,
+        time_step: TimeMS,
+        agent_id: AgentId,
+        in_data_stats: &OutgoingStats,
+    ) {
+        self.time_step.push(time_step.as_u64());
+        self.agent_id.push(agent_id.as_u64());
+        self.attempted_in_agent_count
+            .push(in_data_stats.attempted.agent_count);
+        self.attempted_in_data_size
+            .push(in_data_stats.attempted.data_size.as_u64());
+        self.attempted_in_data_count
+            .push(in_data_stats.attempted.data_count);
+        self.feasible_in_agent_count
+            .push(in_data_stats.feasible.agent_count);
+        self.feasible_in_data_size
+            .push(in_data_stats.feasible.data_size.as_u64());
+        self.feasible_in_data_count
+            .push(in_data_stats.feasible.data_count);
+        self.success_rate.push(in_data_stats.get_success_rate());
+    }
+}
+
+impl ResultWriter for RxCountWriter {
     fn schema() -> Schema {
         let time_ms = Field::new("time_step", DataType::UInt64, false);
         let agent_id = Field::new("agent_id", DataType::UInt64, false);
@@ -71,30 +92,7 @@ impl RxCountWriter {
         ])
     }
 
-    pub fn add_data(
-        &mut self,
-        time_step: TimeMS,
-        agent_id: AgentId,
-        in_data_stats: &OutgoingStats,
-    ) {
-        self.time_step.push(time_step.as_u64());
-        self.agent_id.push(agent_id.as_u64());
-        self.attempted_in_agent_count
-            .push(in_data_stats.attempted.agent_count);
-        self.attempted_in_data_size
-            .push(in_data_stats.attempted.data_size.as_u64());
-        self.attempted_in_data_count
-            .push(in_data_stats.attempted.data_count);
-        self.feasible_in_agent_count
-            .push(in_data_stats.feasible.agent_count);
-        self.feasible_in_data_size
-            .push(in_data_stats.feasible.data_size.as_u64());
-        self.feasible_in_data_count
-            .push(in_data_stats.feasible.data_count);
-        self.success_rate.push(in_data_stats.get_success_rate());
-    }
-
-    pub fn write_to_file(&mut self) {
+    fn write_to_file(&mut self) {
         match &mut self.to_output {
             DataOutput::Parquet(to_output) => {
                 let record_batch = RecordBatch::try_from_iter(vec![
@@ -158,7 +156,7 @@ impl RxCountWriter {
         }
     }
 
-    pub(crate) fn close_files(self) {
+    fn close_file(self) {
         match self.to_output {
             DataOutput::Parquet(to_output) => to_output.close(),
         }
