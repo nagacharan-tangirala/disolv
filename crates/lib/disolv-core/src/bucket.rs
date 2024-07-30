@@ -93,9 +93,9 @@ pub trait Bucket: Send {
     fn after_stage_three(&mut self) {}
     fn after_stage_four(&mut self) {}
     fn after_agents(&mut self);
-    fn stream_input(&mut self, step: TimeMS);
-    fn stream_output(&mut self, step: TimeMS);
-    fn terminate(self, step: TimeMS);
+    fn stream_input(&mut self);
+    fn stream_output(&mut self);
+    fn terminate(self);
 }
 
 #[cfg(test)]
