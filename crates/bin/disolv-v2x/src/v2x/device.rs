@@ -1,3 +1,8 @@
+use std::fmt::Debug;
+
+use log::debug;
+use typed_builder::TypedBuilder;
+
 use disolv_core::agent::{
     Activatable, Agent, AgentClass, AgentKind, AgentProperties, Movable, Orderable,
 };
@@ -16,9 +21,6 @@ use disolv_models::device::models::{Compose, LinkSelector};
 use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::net::network::NetworkSlice;
 use disolv_models::net::radio::{CommStats, LinkProperties};
-use log::debug;
-use std::fmt::Debug;
-use typed_builder::TypedBuilder;
 
 use crate::models::compose::Composer;
 use crate::models::message::{DataBlob, DataType, MessageType, PayloadInfo, TxStatus, V2XPayload};

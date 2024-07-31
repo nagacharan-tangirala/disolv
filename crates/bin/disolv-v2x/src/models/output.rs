@@ -4,8 +4,8 @@ use typed_builder::TypedBuilder;
 
 use disolv_output::result::{BasicResults, OutputSettings, OutputType, ResultWriter};
 
-use crate::output::net::NetStatWriter;
-use crate::output::tx::TxDataWriter;
+use crate::out::net::NetStatWriter;
+use crate::out::tx::TxDataWriter;
 
 #[derive(TypedBuilder)]
 pub struct OutputWriter {
