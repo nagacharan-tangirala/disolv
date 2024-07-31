@@ -7,7 +7,7 @@ use crate::simulation::runner::run_simulation;
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 pub(crate) mod models;
-pub(crate) mod output;
+pub(crate) mod out;
 pub(crate) mod simulation;
 pub(crate) mod v2x;
 
