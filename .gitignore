@@ -4,6 +4,4 @@
 crates/*/test/data
 target
 output
-crates/*/output
-crates/*/target
 ```
