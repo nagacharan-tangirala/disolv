@@ -11,12 +11,12 @@ readme = "README.md"
 [dependencies]
 typed-builder = "0.19.1"
 hashbrown = "0.14.5"
-serde = { version = "1.0.204", features = ["derive"] }
+serde = { version = "1.0.206", features = ["derive"] }
 uuid = { version = "1.10.0", features = ["fast-rng", "v4"] }
 log = "0.4.22"
 rand = "0.8.5"
 keyed_priority_queue = "0.4.2"
-indexmap = "2.2.6"
+indexmap = "2.3.0"
 
 [dev-dependencies]
 disolv-testutils = { path = "../disolv-testutils" }
