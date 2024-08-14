@@ -1,6 +1,5 @@
 /target
 .idea
-/output
 crates/*/test/data
 target
 output
