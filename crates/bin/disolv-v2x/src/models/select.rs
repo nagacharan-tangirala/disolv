@@ -4,7 +4,7 @@ use serde::Deserialize;
 use disolv_core::agent::AgentClass;
 use disolv_core::model::{Model, ModelSettings};
 use disolv_core::radio::Link;
-use disolv_models::device::models::LinkSelector;
+use disolv_models::device::models::LinkSelect;
 use disolv_models::net::radio::{CommStats, LinkProperties};
 
 #[derive(Deserialize, Debug, Clone)]
@@ -48,7 +48,7 @@ impl Model for Selector {
     }
 }
 
-impl LinkSelector<LinkProperties> for Selector {
+impl LinkSelect<LinkProperties> for Selector {
     fn select_link(
         &self,
         links: Vec<Link<LinkProperties>>,
