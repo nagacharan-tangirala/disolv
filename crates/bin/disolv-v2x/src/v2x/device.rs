@@ -17,7 +17,7 @@ use disolv_models::device::actions::{
 use disolv_models::device::actor::Actor;
 use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::mobility::MapState;
-use disolv_models::device::models::{Compose, LinkSelector};
+use disolv_models::device::models::{Compose, LinkSelect};
 use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::net::network::NetworkSlice;
 use disolv_models::net::radio::{CommStats, LinkProperties};
@@ -60,22 +60,6 @@ pub struct DeviceModel {
     pub selector: Vec<(AgentClass, Selector)>,
 }
 
-impl DeviceModel {
-    fn select_links(
-        &self,
-        link_options: Vec<Link<LinkProperties>>,
-        target_class: &AgentClass,
-        stats: &Vec<&CommStats>,
-    ) -> Option<Vec<Link<LinkProperties>>> {
-        for selectors in self.selector.iter() {
-            if selectors.0 == *target_class {
-                return Some(selectors.1.select_link(link_options, stats));
-            }
-        }
-        None
-    }
-}
-
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct Device {
     pub device_info: DeviceInfo,
@@ -91,6 +75,20 @@ pub struct Device {
 }
 
 impl Device {
+    fn select_links(
+        &self,
+        link_options: Vec<Link<LinkProperties>>,
+        target_class: &AgentClass,
+        stats: &Vec<&CommStats>,
+    ) -> Option<Vec<Link<LinkProperties>>> {
+        for selectors in self.models.selector.iter() {
+            if selectors.0 == *target_class {
+                return Some(selectors.1.select_link(link_options, stats));
+            }
+        }
+        None
+    }
+
     fn talk_to_class(
         &mut self,
         target_class: &AgentClass,
@@ -114,7 +112,7 @@ impl Device {
             }
         });
 
-        let targets = match self.models.select_links(link_options, target_class, &stats) {
+        let targets = match self.select_links(link_options, target_class, &stats) {
             Some(links) => links,
             None => return,
         };
