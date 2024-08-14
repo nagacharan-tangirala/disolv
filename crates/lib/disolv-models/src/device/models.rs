@@ -18,7 +18,7 @@ where
 }
 
 /// Add this to a struct/enum that implements link selection based on any communication statistics.
-pub trait LinkSelector<F>: Model + Clone
+pub trait LinkSelect<F>: Model + Clone
 where
     F: LinkFeatures,
 {
