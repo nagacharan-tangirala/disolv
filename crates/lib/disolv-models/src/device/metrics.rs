@@ -1,6 +1,9 @@
-use disolv_core::metrics::Metric;
-use serde::Deserialize;
 use std::ops::{Add, AddAssign};
+
+use rand_distr::num_traits::ToPrimitive;
+use serde::Deserialize;
+
+use disolv_core::metrics::Metric;
 
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Deserialize)]
 pub struct Energy(u64);
@@ -33,6 +36,9 @@ impl MegaHertz {
     }
     pub fn as_u64(&self) -> u64 {
         self.0
+    }
+    pub fn as_f64(&self) -> f64 {
+        self.0.to_f64().expect("failed to convert cpu to f64")
     }
 }
 
