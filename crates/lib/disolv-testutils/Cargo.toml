@@ -1,0 +1,7 @@
+[package]
+name = "disolv-testutils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+disolv-core = { version = "0.0.0", path = "../disolv-core" }

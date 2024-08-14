@@ -1,7 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/*",
+    "crates/lib/*",
+    "crates/bin/*"
 ]
 
 [profile.dev]
