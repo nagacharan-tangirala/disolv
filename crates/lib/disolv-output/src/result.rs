@@ -44,7 +44,7 @@ pub struct BasicResults {
 impl BasicResults {
     pub fn new(output_settings: &OutputSettings) -> Self {
         let output_path = Path::new(&output_settings.output_path);
-        let pos_filepath = output_path.clone().join(
+        let pos_filepath = output_path.join(
             output_settings
                 .outputs
                 .iter()
