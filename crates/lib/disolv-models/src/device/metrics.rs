@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign};
+use std::ops::{Add, AddAssign, Sub};
 
 use rand_distr::num_traits::ToPrimitive;
 use serde::Deserialize;
@@ -49,6 +49,14 @@ impl Add for MegaHertz {
 
     fn add(self, other: Self) -> Self::Output {
         Self(self.0 + other.0)
+    }
+}
+
+impl Sub for MegaHertz {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
     }
 }
 
