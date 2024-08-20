@@ -40,6 +40,7 @@ pub enum ActionType {
     #[default]
     Consume,
     Forward,
+    Fl,
 }
 
 /// A generic action struct that can be used to contain the information about action to perform
@@ -82,12 +83,11 @@ where
 
 /// A trait that an entity must implement to receive messages from other entities in the
 /// simulation. The messages can be from the same class or from up/downstream.
-pub trait Receiver<B, C, D, F, M, P, Q>
+pub trait Receiver<B, C, D, M, P, Q>
 where
     B: Bucket,
     C: ContentType,
     D: DataUnit<C>,
-    F: LinkFeatures,
     M: Metadata,
     P: AgentProperties,
     Q: QueryType,
