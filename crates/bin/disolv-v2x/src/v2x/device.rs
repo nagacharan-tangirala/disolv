@@ -120,7 +120,7 @@ impl Device {
         let payload = self
             .models
             .composer
-            .compose(target_class, &self.device_info);
+            .compose(self.step, target_class, &self.device_info);
 
         targets.into_iter().for_each(|target_link| {
             let mut this_payload = payload.clone();
@@ -269,10 +269,7 @@ impl
     }
 }
 
-impl
-    Receiver<DeviceBucket, DataType, DataBlob, LinkProperties, PayloadInfo, DeviceInfo, MessageType>
-    for Device
-{
+impl Receiver<DeviceBucket, DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType> for Device {
     fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<V2XPayload>> {
         bucket.models.data_lake.payloads_for(self.device_info.id)
     }
