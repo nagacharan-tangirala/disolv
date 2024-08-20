@@ -5,13 +5,12 @@ use log::info;
 
 use disolv_core::agent::{AgentId, AgentImpl};
 use disolv_core::bucket::TimeMS;
-use disolv_core::core::Core;
 use disolv_core::hashbrown::HashMap;
-use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::metrics::Resource;
+use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::model::Model;
 use disolv_input::links::LinkReader;
-use disolv_input::power::{PowerTimes, read_power_schedule};
+use disolv_input::power::{read_power_schedule, PowerTimes};
 use disolv_models::bucket::flow::FlowRegister;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
@@ -21,22 +20,11 @@ use disolv_models::device::hardware::StorageType;
 use disolv_models::device::power::PowerManager;
 use disolv_models::device::reply::Replier;
 use disolv_models::device::select::Selector;
-use disolv_models::device::types::{DeviceClass, DeviceInfo, DeviceType};
 use disolv_models::net::bandwidth::BandwidthType;
 use disolv_models::net::latency::LatencyType;
 use disolv_models::net::network::Network;
 use disolv_models::net::slice::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use disolv_output::result::ResultWriter;
-use disolv_v2x::map_scheduler::MapScheduler;
-use disolv_v2x::scheduler::DefaultScheduler;
-use disolv_v2x::ui::SimUIMetadata;
-
-use crate::base::{AgentClassSettings, AgentSettings, BaseConfig, BaseConfigReader};
-use crate::bucket::{BucketModels, DeviceBucket};
-use crate::config::FlConfig;
-use crate::device::{Device, DeviceModel};
-use crate::linker::{Linker, LinkerSettings};
-use crate::space::{Mapper, Space};
 
 pub type DCore = Core<Device, DeviceBucket>;
 pub type DScheduler = DefaultScheduler<Device, DeviceBucket>;
@@ -104,7 +92,7 @@ impl SimulationBuilder {
         self.build_map_scheduler(agent_map, device_bucket)
     }
 
-    fn read_power_schedules(&self, device_type: DeviceType) -> HashMap<AgentId, PowerTimes> {
+    fn read_power_schedules(&self, device_type: AgentKind) -> HashMap<AgentId, PowerTimes> {
         let device_settings: &AgentSettings = self
             .base_config
             .agents
@@ -172,7 +160,7 @@ impl SimulationBuilder {
     fn build_device(
         &mut self,
         device_id: AgentId,
-        device_type: &DeviceType,
+        device_type: &AgentKind,
         class_settings: &AgentClassSettings,
         power_times: PowerTimes,
     ) -> Device {
@@ -210,7 +198,7 @@ impl SimulationBuilder {
 
     fn build_device_info(
         device_id: AgentId,
-        device_type: &DeviceType,
+        device_type: &AgentKind,
         class_settings: &AgentClassSettings,
     ) -> DeviceInfo {
         DeviceInfo::builder()
@@ -274,8 +262,8 @@ impl SimulationBuilder {
             .build()
     }
 
-    fn build_mapper_vec(&self) -> Vec<(DeviceType, Mapper)> {
-        let mut mapper_vec: Vec<(DeviceType, Mapper)> = Vec::new();
+    fn build_mapper_vec(&self) -> Vec<(AgentKind, Mapper)> {
+        let mut mapper_vec: Vec<(AgentKind, Mapper)> = Vec::new();
         for device_setting in self.base_config.agents.iter() {
             let device_type = device_setting.agent_type;
             let mapper = Mapper::builder(&self.config_path)
@@ -302,7 +290,7 @@ impl SimulationBuilder {
         linker_vec
     }
 
-    fn build_linker(&self, source_type: &DeviceType, link_config: &LinkerSettings) -> Linker {
+    fn build_linker(&self, source_type: &AgentKind, link_config: &LinkerSettings) -> Linker {
         let links_file = self.config_path.join(&link_config.links_file);
         if !links_file.exists() {
             panic!("Link file {} is not found.", links_file.display());
@@ -328,8 +316,8 @@ impl SimulationBuilder {
             .build()
     }
 
-    fn read_class_to_type_map(&mut self) -> HashMap<DeviceClass, DeviceType> {
-        let mut class_to_type: HashMap<DeviceClass, DeviceType> = HashMap::new();
+    fn read_class_to_type_map(&mut self) -> HashMap<DeviceClass, AgentKind> {
+        let mut class_to_type: HashMap<DeviceClass, AgentKind> = HashMap::new();
         for device_setting in self.base_config.agents.iter() {
             let device_classes: Vec<DeviceClass> =
                 device_setting.class.iter().map(|x| x.agent_class).collect();
