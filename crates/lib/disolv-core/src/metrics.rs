@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
 use serde::{Deserialize, Serialize};
 
@@ -28,6 +28,10 @@ impl Bytes {
 
     pub fn as_u64(&self) -> u64 {
         self.0
+    }
+
+    pub fn as_f64(&self) -> f64 {
+        self.0 as f64
     }
 }
 
