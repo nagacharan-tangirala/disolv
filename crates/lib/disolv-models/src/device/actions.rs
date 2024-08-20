@@ -97,6 +97,7 @@ pub fn complete_actions<
         .iter_mut()
         .for_each(|unit| match unit.action().action_type {
             ActionType::Consume => {}
+            ActionType::Fl => {}
             ActionType::Forward => {
                 if am_i_target(unit.action(), agent_content) {
                     let new_action = Action::with_action_type(ActionType::Consume);
