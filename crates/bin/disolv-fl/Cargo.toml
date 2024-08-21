@@ -22,3 +22,4 @@ serde = { version = "1.0.204", features = ["derive"] }
 serde_with = "3.9.0"
 parquet = "52.2.0"
 arrow = "52.2.0"
+rand = "0.8.5"

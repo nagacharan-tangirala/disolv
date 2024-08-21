@@ -1404,6 +1404,7 @@ dependencies = [
  "log",
  "log4rs",
  "parquet",
+ "rand",
  "serde",
  "serde_with",
  "typed-builder 0.19.1",
