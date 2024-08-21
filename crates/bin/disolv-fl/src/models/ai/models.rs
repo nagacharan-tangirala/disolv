@@ -14,9 +14,7 @@ use crate::models::ai::mnist::{MnistFlDataset, MnistTrainer};
 pub enum ClientState {
     #[default]
     Sensing,
-    Ongoing,
-    Complete,
-    Fail,
+    Training,
 }
 
 /// A trait that represents the server state while carrying a federated learning training session.
