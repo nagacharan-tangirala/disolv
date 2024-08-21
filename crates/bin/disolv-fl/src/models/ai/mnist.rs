@@ -112,13 +112,59 @@ pub struct MnistTrainingConfig {
 
 #[derive(Module, Debug)]
 pub struct MnistModel<B: Backend> {
-    pub conv1: Conv2d<B>,
-    pub conv2: Conv2d<B>,
+    pub(crate) conv1: Conv2d<B>,
+    pub(crate) conv2: Conv2d<B>,
     pub pool: AdaptiveAvgPool2d,
     pub dropout: Dropout,
     pub linear1: Linear<B>,
     pub linear2: Linear<B>,
     pub activation: Relu,
+}
+
+impl<B: Backend> MnistModel<B> {
+    pub(crate) fn do_fedavg(
+        mut global_model: MnistModel<B>,
+        other_models: Vec<MnistModel<B>>,
+        device: &B::Device,
+    ) -> MnistModel<B> {
+        let mut linear_weights = other_models
+            .iter()
+            .map(|model| model.linear1.weight.val())
+            .collect();
+        let mut avg_linear_tensor = Self::get_average_tensor(linear_weights);
+        global_model.linear1.weight = Param::from_data(avg_linear_tensor.into_data(), device);
+
+        linear_weights = other_models
+            .iter()
+            .map(|model| model.linear2.weight.val())
+            .collect();
+        avg_linear_tensor = self.get_average_tensor(linear_weights);
+
+        let mut conv_weights = other_models
+            .iter()
+            .map(|model| model.conv1.weight.val())
+            .collect();
+        let mut avg_conv_tensor = Self::get_average_tensor(conv_weights);
+        global_model.conv1.weight = Param::from_data(avg_conv_tensor.into_data(), device);
+
+        conv_weights = other_models
+            .iter()
+            .map(|model| model.conv2.weight.val())
+            .collect();
+        avg_conv_tensor = Self::get_average_tensor(conv_weights);
+        global_model.conv2.weight = Param::from_data(avg_conv_tensor.into_data(), device);
+        global_model
+    }
+
+    fn get_average_tensor<const D: usize>(weights: Vec<Tensor<B, D>>) -> Tensor<B, D> {
+        let mut avg_tensor = weights.get(0).expect("empty weights not possible").clone();
+        let total_weights = weights.len() as f32;
+        weights
+            .into_iter()
+            .skip(1)
+            .for_each(|tensor| avg_tensor = avg_tensor.clone().add(tensor));
+        avg_tensor.div_scalar(total_weights)
+    }
 }
 
 #[derive(Config, Debug)]
