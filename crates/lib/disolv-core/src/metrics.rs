@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use serde::{Deserialize, Serialize};
 
