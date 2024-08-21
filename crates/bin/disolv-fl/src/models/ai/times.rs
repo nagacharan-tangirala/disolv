@@ -11,7 +11,6 @@ pub(crate) struct ServerDurations {
     pub(crate) initiation: TimeMS,
     pub(crate) analysis: TimeMS,
     pub(crate) selection: TimeMS,
-    pub(crate) broadcast: TimeMS,
     pub(crate) aggregation: TimeMS,
     pub(crate) round_length: TimeMS,
 }
@@ -35,10 +34,9 @@ impl ServerTimes {
             + match current_state {
                 ServerState::Idle => self.durations.initiation,
                 ServerState::ClientAnalysis => self.durations.analysis,
-                ServerState::Aggregation => self.durations.aggregation,
                 ServerState::ClientSelection => self.durations.selection,
                 ServerState::TrainingRound => self.durations.round_length,
-                ServerState::GlobalUpdate => self.durations.broadcast,
+                ServerState::Aggregation => self.durations.aggregation,
             }
     }
 
