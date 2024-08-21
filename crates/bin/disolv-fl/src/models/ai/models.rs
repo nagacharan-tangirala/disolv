@@ -5,8 +5,8 @@ use disolv_core::agent::{Agent, AgentProperties};
 use disolv_core::bucket::Bucket;
 use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 
-use crate::models::ai::cifar::CifarTrainer;
-use crate::models::ai::mnist::{MnistFlDataset, MnistTrainer};
+use crate::models::ai::cifar::{CifarModel, CifarTrainer};
+use crate::models::ai::mnist::{MnistModel, MnistTrainer};
 
 /// A trait that represents the training state if the agent is participating in federated
 /// learning training process.

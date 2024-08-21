@@ -17,7 +17,7 @@ use crate::fl::client::AgentInfo;
 #[derive(Deserialize, Default, Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum Message {
     #[default]
-    StateRequest,
+    StateInfo,
     Sensor,
     GlobalModel,
     LocalModel,
@@ -81,6 +81,7 @@ impl DataUnit<MessageType> for MessageUnit {
         self.action.to_agent = new_action.to_agent;
         self.action.to_class = new_action.to_class;
         self.action.to_kind = new_action.to_kind;
+        self.action.to_broadcast = new_action.to_broadcast;
     }
 }
 
