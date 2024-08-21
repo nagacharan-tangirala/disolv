@@ -29,6 +29,35 @@ pub enum ServerState {
     Aggregating,
 }
 
+#[derive(Clone)]
+pub enum ModelType<A: AutodiffBackend, B: Backend> {
+    Mnist(MnistModel<B>),
+    Cifar(CifarModel<A>),
+}
+
+/// An enum enclosing different training setups.
+#[derive(Clone)]
+pub enum TrainerType<A: AutodiffBackend, B: Backend> {
+    Mnist(MnistTrainer<A>),
+    Cifar(CifarTrainer<B>),
+}
+
+impl<A: AutodiffBackend, B: Backend> TrainerType<A, B> {
+    pub(crate) fn device(&self) -> &B::Device {
+        match self {
+            TrainerType::Mnist(mnist) => mnist.device.clone(),
+            TrainerType::Cifar(cifar) => cifar.device.clone(),
+        }
+    }
+
+    pub(crate) fn no_of_weights(&self) -> u64 {
+        match self {
+            TrainerType::Mnist(mnist) => mnist.quantity,
+            TrainerType::Cifar(cifar) => cifar.quantity,
+        }
+    }
+}
+
 /// A simple enum to define test and train data types.
 #[derive(Clone)]
 pub enum BatchType {
