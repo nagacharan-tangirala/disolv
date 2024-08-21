@@ -72,7 +72,7 @@ where
     fn training_state(&self) -> ClientState;
 }
 
-pub trait Receiver<B, C, D, M, P, Q>
+pub trait FlAgent<B, C, D, M, P, Q>
 where
     B: Bucket,
     C: ContentType,
@@ -81,30 +81,10 @@ where
     P: AgentProperties,
     Q: QueryType,
 {
-    fn receive(&mut self, bucket: &mut B) -> Option<Vec<Payload<C, D, M, P, Q>>>;
-    fn receive_sl(&mut self, bucket: &mut B) -> Option<Vec<Payload<C, D, M, P, Q>>>;
-}
-pub trait FlServer<B, C, D, M, P, Q>
-where
-    B: Bucket,
-    C: ContentType,
-    D: DataUnit<C>,
-    M: Metadata,
-    P: AgentProperties,
-    Q: QueryType,
-{
-    fn process_fl_messages(&mut self, messages: Option<Vec<Payload<C, D, M, P, Q>>>);
+    fn handle_fl_messages(
+        &mut self,
+        bucket: &mut B,
+        messages: &mut Option<Vec<Payload<C, D, M, P, Q>>>,
+    );
     fn update_state(&mut self);
-}
-
-/// An enum enclosing different training setups.
-#[derive(Clone)]
-pub enum ModelType<A: AutodiffBackend, B: Backend> {
-    Mnist(MnistTrainer<A>),
-    Cifar(CifarTrainer<B>),
-}
-
-#[derive(Debug, Clone)]
-pub enum DatasetType {
-    MNIST(MnistFlDataset),
 }
