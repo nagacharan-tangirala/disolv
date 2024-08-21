@@ -14,11 +14,11 @@ disolv-output = { version = "0.0.0", path = "../../lib/disolv-output" }
 disolv-models = { version = "0.0.0", path = "../../lib/disolv-models" }
 burn = { version = "0.13.2", features = ["wgpu", "train", "vision"] }
 clap = { version = "4.5.13", features = ["derive"] }
-indexmap = "2.3.0"
+indexmap = "2.4.0"
 log = "0.4.22"
 log4rs = "1.3.0"
 typed-builder = "0.19.1"
-serde = { version = "1.0.204", features = ["derive"] }
+serde = { version = "1.0.208", features = ["derive"] }
 serde_with = "3.9.0"
 parquet = "52.2.0"
 arrow = "52.2.0"
