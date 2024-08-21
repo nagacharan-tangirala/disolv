@@ -1,4 +1,6 @@
 use burn::data::dataset::transform::Mapper;
+use burn::prelude::Backend;
+use burn::tensor::backend::AutodiffBackend;
 use log::info;
 use typed_builder::TypedBuilder;
 
@@ -14,18 +16,20 @@ use disolv_models::net::radio::{CommStats, LinkProperties};
 use disolv_output::result::ResultWriter;
 
 use crate::fl::client::AgentInfo;
-use crate::fl::linker::Linker;
-use crate::models::mapper::{GeoMap, GeoMapper};
-use crate::models::message::{FlPayloadInfo, Message, MessageType, MessageUnit, TxMetrics};
-use crate::models::network::{FlSlice, Slice};
-use crate::models::output::OutputWriter;
+use crate::models::ai::models::FlModel;
+use crate::models::device::lake::ModelLake;
+use crate::models::device::linker::Linker;
+use crate::models::device::mapper::{GeoMap, GeoMapper};
+use crate::models::device::message::{FlPayloadInfo, Message, MessageType, MessageUnit, TxMetrics};
+use crate::models::device::network::{FlSlice, Slice};
+use crate::models::device::output::OutputWriter;
 
 pub type FlDataLake = DataLake<MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>;
 pub type FlNetwork =
     Network<Slice, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message, FlSlice, TxMetrics>;
 
 #[derive(TypedBuilder)]
-pub(crate) struct FlModels {
+pub(crate) struct FlModels<A: AutodiffBackend, B: Backend> {
     pub(crate) output: OutputWriter,
     pub(crate) network: FlNetwork,
     pub(crate) space: GeoMap,
@@ -34,17 +38,18 @@ pub(crate) struct FlModels {
     pub(crate) stats_holder: HashMap<AgentId, CommStats>,
     pub(crate) agent_data: HashMap<AgentId, AgentInfo>,
     pub(crate) data_lake: FlDataLake,
+    pub(crate) model_lake: ModelLake<A, B>,
 }
 
 #[derive(TypedBuilder)]
-pub(crate) struct FlBucket {
-    pub(crate) models: FlModels,
+pub(crate) struct FlBucket<A: AutodiffBackend, B: Backend> {
+    pub(crate) models: FlModels<A, B>,
     pub class_to_type: HashMap<AgentClass, AgentKind>,
     #[builder(default)]
     pub(crate) step: TimeMS,
 }
 
-impl FlBucket {
+impl<A: AutodiffBackend, B: Backend> FlBucket<A, B> {
     pub(crate) fn link_options_for(
         &mut self,
         agent_id: AgentId,
@@ -106,7 +111,7 @@ impl FlBucket {
     }
 }
 
-impl Bucket for FlBucket {
+impl<A: AutodiffBackend, B: Backend> Bucket for FlBucket<A, B> {
     fn initialize(&mut self, step: TimeMS) {
         self.step = step;
         self.models
