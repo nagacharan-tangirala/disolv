@@ -37,7 +37,7 @@ impl<A: AutodiffBackend, B: Backend> Aggregator<A, B> {
         device: &B::Device,
     ) -> ModelType<A, B> {
         match self {
-            Aggregator::FedAvg(aggregator) => aggregator.aggregate_weights(global_model, device),
+            Aggregator::FedAvg(aggregator) => aggregator.aggregate(global_model, device),
         }
     }
 }
@@ -73,8 +73,7 @@ impl<A: AutodiffBackend, B: Backend> FedAvgAggregator<A, B> {
                         _ => panic!("wrong local model sent to aggregate"),
                     })
                     .collect();
-                let new_global_model =
-                    MnistModel::aggregate_weights(mnist_model, local_models, device);
+                let new_global_model = MnistModel::do_fedavg(mnist_model, local_models, device);
                 ModelType::Mnist(new_global_model)
             }
             _ => unimplemented!("cifar not implemented"),
