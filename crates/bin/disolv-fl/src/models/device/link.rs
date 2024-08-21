@@ -21,6 +21,7 @@ impl ModelSettings for LinkSelectorSettings {}
 
 #[derive(Debug, Clone)]
 pub(crate) enum LinkSelector {
+    All,
     Nearest(NearestLink),
 }
 
@@ -29,9 +30,10 @@ impl Model for LinkSelector {
 
     fn with_settings(settings: &LinkSelectorSettings) -> Self {
         match settings.name.to_lowercase().as_str() {
+            "all" => LinkSelector::All,
             "nearest" => LinkSelector::Nearest(NearestLink::new(settings)),
             _ => {
-                error!("Only nearest link selector is supported");
+                error!("Only all and nearest link selector is supported");
                 panic!("Unsupported selector type {}.", settings.name);
             }
         }
@@ -48,6 +50,7 @@ impl LinkSelect<LinkProperties> for LinkSelector {
             return links;
         }
         match self {
+            LinkSelector::All => links,
             LinkSelector::Nearest(selector) => selector.select_link(&links),
         }
     }
