@@ -45,12 +45,13 @@ pub enum ActionType {
 
 /// A generic action struct that can be used to contain the information about action to perform
 /// on a given message.
-#[derive(Clone, Default, Debug, Copy, TypedBuilder)]
+#[derive(Clone, Default, Debug, TypedBuilder)]
 pub struct Action {
     pub action_type: ActionType,
     pub to_class: Option<AgentClass>,
     pub to_agent: Option<AgentId>,
     pub to_kind: Option<AgentKind>,
+    pub to_broadcast: Option<Vec<AgentId>>,
 }
 
 impl Action {
@@ -60,6 +61,7 @@ impl Action {
             to_class: None,
             to_agent: None,
             to_kind: None,
+            to_broadcast: None,
         }
     }
 }
