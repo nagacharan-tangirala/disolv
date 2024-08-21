@@ -133,6 +133,11 @@ pub(crate) fn am_i_target<P: AgentProperties>(action: &Action, agent_info: &P) -
             return true;
         }
     }
+    if let Some(broadcast) = &action.to_broadcast {
+        if broadcast.contains(&agent_info.id()) {
+            return true;
+        }
+    }
     false
 }
 
@@ -164,6 +169,11 @@ fn should_i_forward<C: ContentType, D: DataUnit<C>, P: AgentProperties>(
     }
     if let Some(kind) = unit.action().to_kind {
         if kind == *target_info.kind() {
+            return true;
+        }
+    }
+    if let Some(broadcast) = &unit.action().to_broadcast {
+        if broadcast.contains(&target_info.id()) {
             return true;
         }
     }

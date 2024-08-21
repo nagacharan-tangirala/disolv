@@ -26,6 +26,7 @@ impl<C: ContentType> Actor<C> {
                 .to_kind(action_setting.to_kind)
                 .to_class(action_setting.to_class)
                 .to_agent(action_setting.to_agent)
+                .to_broadcast(action_setting.to_broadcast.clone())
                 .build();
 
             actions
