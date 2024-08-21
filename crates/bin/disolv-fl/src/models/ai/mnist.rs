@@ -4,7 +4,7 @@ use burn::config::Config;
 use burn::data::dataloader::{DataLoaderBuilder, Dataset};
 use burn::data::dataloader::batcher::Batcher;
 use burn::data::dataset::vision::{MnistDataset, MnistItem};
-use burn::module::Module;
+use burn::module::{Module, Param};
 use burn::nn::{Dropout, DropoutConfig, Linear, LinearConfig, Relu};
 use burn::nn::conv::{Conv2d, Conv2dConfig};
 use burn::nn::loss::CrossEntropyLoss;
@@ -18,7 +18,7 @@ use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, 
 use burn::train::metric::{AccuracyMetric, LossMetric};
 use typed_builder::TypedBuilder;
 
-use crate::models::ai::models::BatchType;
+use crate::models::ai::models::{BatchType, DatasetType, FlModel};
 use crate::simulation::render::CustomRenderer;
 
 #[derive(Default, Clone, Debug)]
@@ -243,14 +243,19 @@ pub struct MnistTrainer<B>
 where
     B: AutodiffBackend,
 {
-    device: B::Device,
+    pub(crate) device: B::Device,
+    pub(crate) quantity: u64,
     output_path: PathBuf,
-    model: MnistModel<B>,
     config: MnistTrainingConfig,
 }
 
 impl<B: AutodiffBackend> MnistTrainer<B> {
-    pub fn train(&mut self, test_data: MnistFlDataset, train_data: MnistFlDataset) {
+    pub fn train(
+        &mut self,
+        test_data: MnistFlDataset,
+        train_data: MnistFlDataset,
+        current_model: MnistModel<B>,
+    ) -> MnistModel<B> {
         let batcher_train = MnistBatcher::<B>::new(self.device.clone());
         let batcher_valid = MnistBatcher::<B::InnerBackend>::new(self.device.clone());
 
@@ -282,14 +287,15 @@ impl<B: AutodiffBackend> MnistTrainer<B> {
         .renderer(CustomRenderer {})
         .summary()
         .build(
-            self.config.model.init::<B>(&self.device),
+            current_model,
             self.config.optimizer.init(),
             self.config.learning_rate,
         );
 
-        let model_trained = learner.fit(dataloader_train, dataloader_test);
+        let updated_model = learner.fit(dataloader_train, dataloader_test);
 
-        model_trained
+        updated_model
+            .clone()
             .save_file(
                 self.output_path
                     .clone()
@@ -299,5 +305,6 @@ impl<B: AutodiffBackend> MnistTrainer<B> {
                 &CompactRecorder::new(),
             )
             .expect("Trained model should be saved successfully");
+        updated_model
     }
 }
