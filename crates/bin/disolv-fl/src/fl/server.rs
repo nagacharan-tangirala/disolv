@@ -154,7 +154,7 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
         payload: FlPayload,
         rx_payloads: &Option<Vec<FlPayload>>,
         bucket: &mut FlBucket<A, B>,
-        actions: &HashMap<MessageType, Action>,
+        actions: HashMap<MessageType, Action>,
     ) {
         links.into_iter().for_each(|target_link| {
             let mut this_payload = payload.clone();
@@ -172,7 +172,7 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
                 }
             }
 
-            let prepared_payload = set_actions_before_tx(this_payload, actions);
+            let prepared_payload = set_actions_before_tx(this_payload, &actions);
             if target_class == &self.server_info.agent_class {
                 self.transmit_sl(prepared_payload, target_link, bucket);
             } else {
@@ -255,12 +255,8 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
             .message_type(MessageType::KiloByte)
             .quantity(1)
             .build();
-
-        self.send_fl_message(
-            bucket,
-            message_to_build,
-            Some(self.fl_models.client_selector.selected_clients()),
-        );
+        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
+        self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
     fn handle_analysis(&mut self, bucket: &mut FlBucket<A, B>) {
@@ -275,11 +271,8 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
             .message_type(MessageType::F64Weights)
             .quantity(self.fl_models.trainer.no_of_weights())
             .build();
-        self.send_fl_message(
-            bucket,
-            message_to_build,
-            Some(self.fl_models.client_selector.selected_clients()),
-        );
+        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
+        self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
     fn handle_selection(&mut self, bucket: &mut FlBucket<A, B>) {
@@ -291,11 +284,8 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
             .message_type(MessageType::KiloByte)
             .quantity(1)
             .build();
-        self.send_fl_message(
-            bucket,
-            message_to_build,
-            Some(self.fl_models.client_selector.selected_clients()),
-        );
+        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
+        self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
     fn handle_training(&mut self, bucket: &mut FlBucket<A, B>) {
@@ -307,11 +297,8 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
             .message_type(MessageType::KiloByte)
             .quantity(1)
             .build();
-        self.send_fl_message(
-            bucket,
-            message_to_build,
-            Some(self.fl_models.client_selector.selected_clients()),
-        );
+        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
+        self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
     fn handle_aggregation(&mut self, bucket: &mut FlBucket<A, B>) {
@@ -328,11 +315,8 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
             .message_type(MessageType::KiloByte)
             .quantity(1)
             .build();
-        self.send_fl_message(
-            bucket,
-            message_to_build,
-            Some(self.fl_models.client_selector.selected_clients()),
-        );
+        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
+        self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 }
 
