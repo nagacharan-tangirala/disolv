@@ -12,9 +12,10 @@ use disolv_core::hashbrown::HashMap;
 use disolv_core::message::Payload;
 use disolv_core::radio::{Action, ActionType, Link, Receiver, Transmitter};
 use disolv_models::device::actions::{
-    complete_actions, filter_units_to_fwd, set_actions_before_tx,
+    am_i_target, complete_actions, filter_units_to_fwd, set_actions_before_tx,
 };
 use disolv_models::device::actor::Actor;
+use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::mobility::MapState;
 use disolv_models::device::models::{Compose, LinkSelect};
@@ -74,6 +75,7 @@ pub struct ServerModels {
     pub sl_flow: FlowRegister,
     pub composer: V2XComposer,
     pub actor: Actor<MessageType>,
+    pub directions: Directions,
     pub energy: EnergyType,
     pub link_selector: Vec<(AgentClass, LinkSelector)>,
     pub data_distributor: DataDistributor,
@@ -183,32 +185,34 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
         &mut self,
         bucket: &mut FlBucket<A, B>,
         message_to_build: FlMessageToBuild,
-        broadcast: Option<&Vec<AgentId>>,
+        broadcast: Option<Vec<AgentId>>,
     ) {
-        for target_class in self.models.actor.target_classes.clone().iter() {
-            match self.get_links(target_class, bucket) {
+        self.models
+            .directions
+            .stage_two
+            .target_classes
+            .clone()
+            .iter_mut()
+            .for_each(|target_class| match self.get_links(target_class, bucket) {
                 Some(links) => {
-                    let payload = self
-                        .fl_models
+                    self.fl_models
                         .composer
-                        .compose_payload(self.server_info, message_to_build.clone());
-                    let mut actions = self.models.actor.actions_for(target_class);
+                        .set_message_to_build(message_to_build);
+                    let payload = self.fl_models.composer.compose_payload(self.server_info);
+                    let mut actions = self.models.actor.actions_for(target_class).to_owned();
 
                     if let Some(agents) = broadcast.clone() {
-                        actions
-                            .values_mut()
-                            .for_each(|action| match &mut action.to_broadcast {
-                                Some(ref mut broadcast_vec) => {
-                                    broadcast_vec.extend(&mut agents.clone())
-                                }
+                        actions.clone().values_mut().for_each(|action| {
+                            match &mut action.to_broadcast {
+                                Some(ref mut broadcast_vec) => broadcast_vec.extend(agents.iter()),
                                 None => {}
-                            });
+                            }
+                        });
                     }
                     self.send_payload(links, target_class, payload, &None, bucket, actions);
                 }
                 None => {}
-            }
-        }
+            });
     }
 
     fn do_fl_actions(&mut self, bucket: &mut FlBucket<A, B>, payload: &mut FlPayload) {
