@@ -40,7 +40,6 @@ pub enum ActionType {
     #[default]
     Consume,
     Forward,
-    Fl,
 }
 
 /// A generic action struct that can be used to contain the information about action to perform
