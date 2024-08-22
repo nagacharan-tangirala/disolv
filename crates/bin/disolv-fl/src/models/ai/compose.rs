@@ -28,13 +28,15 @@ pub enum FlComposer {
 }
 
 impl FlComposer {
-    pub(crate) fn compose_payload(
-        &mut self,
-        agent_state: AgentInfo,
-        message: FlMessageToBuild,
-    ) -> FlPayload {
+    pub(crate) fn compose_payload(&mut self, agent_state: AgentInfo) -> FlPayload {
         match self {
-            FlComposer::Simple(composer) => composer.compose_payload(agent_state, message),
+            FlComposer::Simple(composer) => composer.compose_payload(agent_state),
+        }
+    }
+
+    pub(crate) fn set_message_to_build(&mut self, message: FlMessageToBuild) {
+        match self {
+            FlComposer::Simple(composer) => composer.set_message_to_build(message),
         }
     }
 }
@@ -50,7 +52,7 @@ impl Model for FlComposer {
     }
 }
 
-#[derive(TypedBuilder)]
+#[derive(Clone, Default, Copy, Debug, TypedBuilder)]
 pub struct FlMessageToBuild {
     pub message: Message,
     pub message_type: MessageType,
@@ -60,21 +62,23 @@ pub struct FlMessageToBuild {
 #[derive(Debug, Clone)]
 pub struct SimpleComposer {
     pub settings: FlDataSettings,
+    pub message_to_send: FlMessageToBuild,
 }
 
 impl SimpleComposer {
     fn new(composer_settings: &FlComposerSettings) -> Self {
         Self {
             settings: composer_settings.data_settings.to_owned(),
+            message_to_send: FlMessageToBuild::default(),
         }
     }
 
-    pub(crate) fn compose_payload(
-        &self,
-        agent_state: AgentInfo,
-        message_to_build: FlMessageToBuild,
-    ) -> FlPayload {
-        let message_unit = self.compose_data_unit(message_to_build);
+    fn set_message_to_build(&mut self, message: FlMessageToBuild) {
+        self.message_to_send = message;
+    }
+
+    fn compose_payload(&self, agent_state: AgentInfo) -> FlPayload {
+        let message_unit = self.compose_data_unit();
         let payload_info = self.build_metadata(&message_unit);
         FlPayload::builder()
             .agent_state(agent_state)
@@ -85,17 +89,17 @@ impl SimpleComposer {
             .build()
     }
 
-    fn compose_data_unit(&self, message_info: FlMessageToBuild) -> MessageUnit {
+    fn compose_data_unit(&self) -> MessageUnit {
         let mut message_size = self
             .settings
             .size_map
-            .get(&message_info.message)
+            .get(&self.message_to_send.message)
             .expect("Invalid message")
             .to_owned();
 
-        message_size = Bytes::new(message_size.as_u64() * message_info.quantity);
+        message_size = Bytes::new(message_size.as_u64() * self.message_to_send.quantity);
         MessageUnit::builder()
-            .message_type(message_info.message_type.clone())
+            .message_type(self.message_to_send.message_type.clone())
             .message_size(message_size)
             .action(Action::default())
             .build()
