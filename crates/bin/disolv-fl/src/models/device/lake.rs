@@ -7,10 +7,15 @@ use disolv_core::hashbrown::HashMap;
 use crate::models::ai::models::ModelType;
 
 pub(crate) struct ModelLake<A: AutodiffBackend, B: Backend> {
+    pub(crate) global_model: ModelType<A, B>,
     pub(crate) model_map: HashMap<AgentId, ModelType<A, B>>,
 }
 
 impl<A: AutodiffBackend, B: Backend> ModelLake<A, B> {
+    pub(crate) fn update_global_model(&mut self, new_model: ModelType<A, B>) {
+        self.global_model = new_model;
+    }
+
     pub(crate) fn add_local_model(&mut self, agent_id: AgentId, model: ModelType<A, B>) {
         self.model_map.insert(agent_id, model);
     }
@@ -22,7 +27,7 @@ impl<A: AutodiffBackend, B: Backend> ModelLake<A, B> {
     }
 
     pub(crate) fn local_models(&mut self) -> Vec<ModelType<A, B>> {
-        let local_models = self.model_map.values().collect();
+        let local_models = self.model_map.clone().into_values().collect();
         self.model_map.clear();
         local_models
     }
