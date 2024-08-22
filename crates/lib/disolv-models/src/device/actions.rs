@@ -97,7 +97,6 @@ pub fn complete_actions<
         .iter_mut()
         .for_each(|unit| match unit.action().action_type {
             ActionType::Consume => {}
-            ActionType::Fl => {}
             ActionType::Forward => {
                 if am_i_target(unit.action(), agent_content) {
                     let new_action = Action::with_action_type(ActionType::Consume);
@@ -116,7 +115,7 @@ pub fn complete_actions<
 ///
 /// # Returns
 /// * `bool` - True if the current agent is the intended target, false otherwise
-pub(crate) fn am_i_target<P: AgentProperties>(action: &Action, agent_info: &P) -> bool {
+pub fn am_i_target<P: AgentProperties>(action: &Action, agent_info: &P) -> bool {
     // Order of precedence: Agent -> Class -> Kind
     if let Some(target_agent) = action.to_agent {
         if target_agent == agent_info.id() {
