@@ -489,32 +489,38 @@ impl<A: AutodiffBackend, B: Backend> Agent<FlBucket<A, B>> for Server<A, B> {
             });
         }
 
-        for target_class in self.models.actor.target_classes.clone().iter() {
-            match self.get_links(target_class, bucket) {
+        self.models
+            .directions
+            .stage_two
+            .target_classes
+            .clone()
+            .iter()
+            .for_each(|target_class| match self.get_links(target_class, bucket) {
                 Some(links) => {
                     let payload =
                         self.models
                             .composer
                             .compose(self.step, target_class, &self.server_info);
-                    let actions = self.models.actor.actions_for(target_class);
+                    let actions = self.models.actor.actions_for(target_class).to_owned();
                     self.send_payload(links, target_class, payload, &rx_payloads, bucket, actions);
                 }
                 None => {}
-            }
-        }
+            });
 
         // Talk to the agents in side link.
-        let target_class = self.server_info.agent_class.clone();
-        match self.get_links(&target_class, bucket) {
-            Some(links) => {
-                let payload =
-                    self.models
-                        .composer
-                        .compose(self.step, &target_class, &self.server_info);
-                let actions = self.models.actor.actions_for(&target_class);
-                self.send_payload(links, &target_class, payload, &rx_payloads, bucket, actions);
+        if self.models.directions.stage_one.is_sidelink {
+            let target_class = self.server_info.agent_class.clone();
+            match self.get_links(&target_class, bucket) {
+                Some(links) => {
+                    let payload =
+                        self.models
+                            .composer
+                            .compose(self.step, &target_class, &self.server_info);
+                    let actions = self.models.actor.actions_for(&target_class).to_owned();
+                    self.send_payload(links, &target_class, payload, &rx_payloads, bucket, actions);
+                }
+                None => {}
             }
-            None => {}
         }
     }
 
