@@ -15,6 +15,7 @@ use disolv_models::device::actions::{
     complete_actions, filter_units_to_fwd, set_actions_before_tx,
 };
 use disolv_models::device::actor::Actor;
+use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::mobility::MapState;
 use disolv_models::device::models::{Compose, LinkSelect};
@@ -57,6 +58,7 @@ pub struct DeviceModel {
     pub sl_flow: FlowRegister,
     pub composer: Composer,
     pub actor: Actor<DataType>,
+    pub directions: Directions,
     pub selector: Vec<(AgentClass, Selector)>,
 }
 
@@ -305,9 +307,15 @@ impl Agent<DeviceBucket> for Device {
             });
         }
 
-        for target_class in self.models.actor.target_classes.clone().iter() {
-            self.talk_to_class(target_class, &rx_payloads, bucket);
-        }
+        self.models
+            .directions
+            .stage_one
+            .target_classes
+            .clone()
+            .iter()
+            .for_each(|target_class| {
+                self.talk_to_class(target_class, &rx_payloads, bucket);
+            });
         self.talk_to_class(&self.device_info.device_class.clone(), &rx_payloads, bucket);
     }
 
