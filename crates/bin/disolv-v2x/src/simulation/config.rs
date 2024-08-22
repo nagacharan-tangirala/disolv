@@ -4,6 +4,7 @@ use serde::Deserialize;
 
 use disolv_core::agent::{AgentClass, AgentKind, AgentOrder};
 use disolv_core::bucket::TimeMS;
+use disolv_models::device::directions::CommDirections;
 use disolv_models::net::radio::ActionSettings;
 use disolv_output::result::OutputSettings;
 
@@ -65,6 +66,7 @@ pub struct AgentClassSettings {
     pub composer: ComposerSettings,
     pub selector: Vec<SelectorSettings>,
     pub actions: Option<Vec<ActionSettings<DataType>>>,
+    pub directions: Option<Vec<CommDirections>>,
 }
 
 pub struct BaseConfigReader {

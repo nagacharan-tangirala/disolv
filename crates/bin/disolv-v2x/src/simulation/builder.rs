@@ -14,6 +14,7 @@ use disolv_input::links::LinkReader;
 use disolv_input::power::{PowerTimes, read_power_schedule};
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
+use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::power::PowerManager;
 use disolv_models::net::network::Network;
@@ -186,6 +187,7 @@ impl SimulationBuilder {
             .composer(Composer::with_settings(&class_settings.composer))
             .selector(selector_vec)
             .actor(Actor::new(&class_settings.actions.clone()))
+            .directions(Directions::new(&class_settings.directions))
             .build();
 
         Device::builder()
