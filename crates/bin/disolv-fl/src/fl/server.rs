@@ -78,26 +78,24 @@ pub struct ServerModels {
     pub directions: Directions,
     pub energy: EnergyType,
     pub link_selector: Vec<(AgentClass, LinkSelector)>,
-    pub data_distributor: DataDistributor,
 }
 
 #[derive(Clone, TypedBuilder)]
-pub(crate) struct FlModels<A: AutodiffBackend, B: Backend> {
+pub(crate) struct FlModels<B: AutodiffBackend> {
     pub(crate) client_classes: Vec<AgentClass>,
-    pub(crate) trainer: TrainerType<A, B>,
-    pub(crate) global_model: ModelType<A, B>,
+    pub(crate) trainer: Trainer<B>,
     pub(crate) composer: FlComposer,
     pub(crate) client_selector: ClientSelector,
     pub(crate) times: ServerTimes,
-    pub(crate) aggregator: Aggregator<A, B>,
+    pub(crate) aggregator: Aggregator<B>,
 }
 
 #[derive(Clone, TypedBuilder)]
-pub(crate) struct Server<A: AutodiffBackend, B: Backend> {
+pub(crate) struct Server<B: AutodiffBackend> {
     pub(crate) server_info: AgentInfo,
     pub(crate) server_state: ServerState,
     pub(crate) models: ServerModels,
-    pub(crate) fl_models: FlModels<A, B>,
+    pub(crate) fl_models: FlModels<B>,
     #[builder(default)]
     pub(crate) step: TimeMS,
     #[builder(default)]
@@ -108,7 +106,7 @@ pub(crate) struct Server<A: AutodiffBackend, B: Backend> {
     pub(crate) stats: CommStats,
 }
 
-impl<A: AutodiffBackend, B: Backend> Server<A, B> {
+impl<B: AutodiffBackend> Server<B> {
     fn select_links(
         &self,
         link_options: Vec<Link<LinkProperties>>,
@@ -126,7 +124,7 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
     fn get_links(
         &mut self,
         target_class: &AgentClass,
-        bucket: &mut FlBucket<A, B>,
+        bucket: &mut FlBucket<B>,
     ) -> Option<Vec<Link<LinkProperties>>> {
         let link_options = match bucket.link_options_for(
             self.server_info.id,
@@ -153,7 +151,7 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
         target_class: &AgentClass,
         payload: FlPayload,
         rx_payloads: &Option<Vec<FlPayload>>,
-        bucket: &mut FlBucket<A, B>,
+        bucket: &mut FlBucket<B>,
         actions: HashMap<MessageType, Action>,
     ) {
         links.into_iter().for_each(|target_link| {
@@ -183,7 +181,7 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
 
     fn send_fl_message(
         &mut self,
-        bucket: &mut FlBucket<A, B>,
+        bucket: &mut FlBucket<B>,
         message_to_build: FlMessageToBuild,
         broadcast: Option<Vec<AgentId>>,
     ) {
@@ -215,12 +213,13 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
             });
     }
 
-    fn do_fl_actions(&mut self, bucket: &mut FlBucket<A, B>, payload: &mut FlPayload) {
+    fn do_fl_actions(&mut self, bucket: &mut FlBucket<B>, payload: &mut FlPayload) {
         match payload.query_type {
             Message::StateInfo => self.register_client(bucket, payload),
             Message::LocalModel => self.collect_local_model(bucket, payload),
             _ => panic!("Server should not receive this message"),
         }
+
         // Mark the payload to be consumed.
         payload
             .data_units
@@ -228,14 +227,14 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
             .for_each(|message| message.action.action_type = ActionType::Consume);
     }
 
-    fn register_client(&mut self, bucket: &mut FlBucket<A, B>, payload: &mut FlPayload) {
+    fn register_client(&mut self, bucket: &mut FlBucket<B>, payload: &mut FlPayload) {
         match bucket.agent_data_of(&payload.agent_state.id) {
             Some(client_info) => self.fl_models.client_selector.register_client(client_info),
             None => panic!("bucket does not know about this client"),
         }
     }
 
-    fn collect_local_model(&mut self, bucket: &mut FlBucket<A, B>, payload: &mut FlPayload) {
+    fn collect_local_model(&mut self, bucket: &mut FlBucket<B>, payload: &mut FlPayload) {
         let local_model = bucket
             .models
             .model_lake
@@ -243,7 +242,7 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
         self.fl_models.aggregator.add_local_model(local_model);
     }
 
-    fn handle_initiation(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn handle_initiation(&mut self, bucket: &mut FlBucket<B>) {
         debug!("Changing from idle to analysis at {}", self.step);
         self.fl_models
             .times
@@ -259,7 +258,7 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
         self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
-    fn handle_analysis(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn handle_analysis(&mut self, bucket: &mut FlBucket<B>) {
         debug!("Changing from analysis to selection at {}", self.step);
         self.fl_models
             .times
@@ -288,7 +287,7 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
         self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
-    fn handle_training(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn handle_training(&mut self, bucket: &mut FlBucket<B>) {
         debug!("Changing from training to aggregation at {}", self.step);
         self.server_state = ServerState::Aggregation;
 
@@ -320,8 +319,8 @@ impl<A: AutodiffBackend, B: Backend> Server<A, B> {
     }
 }
 
-impl<A: AutodiffBackend, B: Backend> Activatable<FlBucket<A, B>> for Server<A, B> {
-    fn activate(&mut self, bucket: &mut FlBucket<A, B>) {
+impl<B: AutodiffBackend> Activatable<FlBucket<B>> for Server<B> {
+    fn activate(&mut self, bucket: &mut FlBucket<B>) {
         debug!("Starting agent: {}", self.server_info.id);
         self.power_state = PowerState::On;
         bucket.update_agent_data_of(self.server_info.id, self.server_info);
@@ -344,20 +343,20 @@ impl<A: AutodiffBackend, B: Backend> Activatable<FlBucket<A, B>> for Server<A, B
     }
 }
 
-impl<A: AutodiffBackend, B: Backend> Orderable for Server<A, B> {
+impl<B: AutodiffBackend> Orderable for Server<B> {
     fn order(&self) -> AgentOrder {
         self.server_info.agent_order
     }
 }
 
-impl<A: AutodiffBackend, B: Backend> Movable<FlBucket<A, B>> for Server<A, B> {
+impl<B: AutodiffBackend> Movable<FlBucket<B>> for Server<B> {
     type M = MapState;
 
     fn mobility(&self) -> &Self::M {
         &self.map_state
     }
 
-    fn set_mobility(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn set_mobility(&mut self, bucket: &mut FlBucket<B>) {
         self.map_state = bucket
             .positions_for(self.server_info.id, &self.server_info.agent_type)
             .unwrap_or(self.map_state);
@@ -369,22 +368,22 @@ impl<A: AutodiffBackend, B: Backend> Movable<FlBucket<A, B>> for Server<A, B> {
     }
 }
 
-impl<A: AutodiffBackend, B: Backend>
+impl<B: AutodiffBackend>
     Transmitter<
-        FlBucket<A, B>,
+        FlBucket<B>,
         MessageType,
         MessageUnit,
         LinkProperties,
         FlPayloadInfo,
         AgentInfo,
         Message,
-    > for Server<A, B>
+    > for Server<B>
 {
     fn transmit(
         &mut self,
         payload: FlPayload,
         target: Link<LinkProperties>,
-        bucket: &mut FlBucket<A, B>,
+        bucket: &mut FlBucket<B>,
     ) {
         debug!(
             "Transmitting payload from agent {} to agent {} with blobs {}",
@@ -411,7 +410,7 @@ impl<A: AutodiffBackend, B: Backend>
         &mut self,
         payload: FlPayload,
         target: Link<LinkProperties>,
-        bucket: &mut FlBucket<A, B>,
+        bucket: &mut FlBucket<B>,
     ) {
         debug!(
             "Transmitting SL payload from agent {} to agent {}",
@@ -435,30 +434,27 @@ impl<A: AutodiffBackend, B: Backend>
     }
 }
 
-impl<A: AutodiffBackend, B: Backend>
-    Receiver<FlBucket<A, B>, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>
-    for Server<A, B>
+impl<B: AutodiffBackend>
+    Receiver<FlBucket<B>, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>
+    for Server<B>
 {
-    fn receive(&mut self, bucket: &mut FlBucket<A, B>) -> Option<Vec<FlPayload>> {
+    fn receive(&mut self, bucket: &mut FlBucket<B>) -> Option<Vec<FlPayload>> {
         bucket.models.data_lake.payloads_for(self.server_info.id)
     }
 
-    fn receive_sl(&mut self, bucket: &mut FlBucket<A, B>) -> Option<Vec<FlPayload>> {
+    fn receive_sl(&mut self, bucket: &mut FlBucket<B>) -> Option<Vec<FlPayload>> {
         bucket.models.data_lake.sl_payloads_for(self.server_info.id)
     }
 }
 
-impl<A: AutodiffBackend, B: Backend> Agent<FlBucket<A, B>> for Server<A, B> {
-    type P = AgentInfo;
-
+impl<B: AutodiffBackend> Agent<FlBucket<B>> for Server<B> {
     fn id(&self) -> AgentId {
         self.server_info.id
     }
 
-    fn stage_one(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn stage_one(&mut self, bucket: &mut FlBucket<B>) {
         self.step = bucket.step;
         self.set_mobility(bucket);
-        bucket.update_agent_data_of(self.server_info.id, self.server_info);
         bucket.update_stats_of(self.server_info.id, self.stats);
         debug!(
             "Uplink stage for agent: {} id at step: {}",
@@ -466,7 +462,6 @@ impl<A: AutodiffBackend, B: Backend> Agent<FlBucket<A, B>> for Server<A, B> {
         );
         self.models.flow.reset();
 
-        // Receive data from the downstream agents.
         let mut rx_payloads = self.receive(bucket);
         self.handle_fl_messages(bucket, &mut rx_payloads);
 
@@ -512,7 +507,7 @@ impl<A: AutodiffBackend, B: Backend> Agent<FlBucket<A, B>> for Server<A, B> {
         }
     }
 
-    fn stage_two_reverse(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn stage_two_reverse(&mut self, bucket: &mut FlBucket<B>) {
         // Depending on the training state, send messages to clients.
         if self.fl_models.times.is_time_to_change(self.step) {
             match self.server_state {
@@ -525,12 +520,12 @@ impl<A: AutodiffBackend, B: Backend> Agent<FlBucket<A, B>> for Server<A, B> {
         }
     }
 
-    fn stage_three(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn stage_three(&mut self, bucket: &mut FlBucket<B>) {
         // Receive data from the peers.
         self.receive_sl(bucket);
     }
 
-    fn stage_four_reverse(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn stage_four_reverse(&mut self, bucket: &mut FlBucket<B>) {
         debug!(
             "Downlink stage for agent: {} id at step: {}",
             self.server_info.id, self.step
@@ -547,18 +542,18 @@ impl<A: AutodiffBackend, B: Backend> Agent<FlBucket<A, B>> for Server<A, B> {
         }
     }
 
-    fn stage_five(&mut self, _bucket: &mut FlBucket<A, B>) {
+    fn stage_five(&mut self, _bucket: &mut FlBucket<B>) {
         self.stats = self.models.flow.comm_stats;
     }
 }
 
-impl<A: AutodiffBackend, B: Backend>
-    FlAgent<FlBucket<A, B>, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>
-    for Server<A, B>
+impl<B: AutodiffBackend>
+    FlAgent<FlBucket<B>, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>
+    for Server<B>
 {
     fn handle_fl_messages(
         &mut self,
-        bucket: &mut FlBucket<A, B>,
+        bucket: &mut FlBucket<B>,
         messages: &mut Option<Vec<FlPayload>>,
     ) {
         if let Some(payloads) = messages {

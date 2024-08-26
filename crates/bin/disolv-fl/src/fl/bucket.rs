@@ -16,7 +16,6 @@ use disolv_models::net::radio::{CommStats, LinkProperties};
 use disolv_output::result::ResultWriter;
 
 use crate::fl::client::AgentInfo;
-use crate::models::ai::models::FlModel;
 use crate::models::device::lake::ModelLake;
 use crate::models::device::linker::Linker;
 use crate::models::device::mapper::{GeoMap, GeoMapper};
@@ -29,7 +28,7 @@ pub type FlNetwork =
     Network<Slice, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message, FlSlice, TxMetrics>;
 
 #[derive(TypedBuilder)]
-pub(crate) struct FlModels<A: AutodiffBackend, B: Backend> {
+pub(crate) struct FlModels<B: Backend> {
     pub(crate) output: OutputWriter,
     pub(crate) network: FlNetwork,
     pub(crate) space: GeoMap,
@@ -38,18 +37,18 @@ pub(crate) struct FlModels<A: AutodiffBackend, B: Backend> {
     pub(crate) stats_holder: HashMap<AgentId, CommStats>,
     pub(crate) agent_data: HashMap<AgentId, AgentInfo>,
     pub(crate) data_lake: FlDataLake,
-    pub(crate) model_lake: ModelLake<A, B>,
+    pub(crate) model_lake: ModelLake<B>,
 }
 
 #[derive(TypedBuilder)]
-pub(crate) struct FlBucket<A: AutodiffBackend, B: Backend> {
-    pub(crate) models: FlModels<A, B>,
+pub(crate) struct FlBucket<B: Backend> {
+    pub(crate) models: FlModels<B>,
     pub class_to_type: HashMap<AgentClass, AgentKind>,
     #[builder(default)]
     pub(crate) step: TimeMS,
 }
 
-impl<A: AutodiffBackend, B: Backend> FlBucket<A, B> {
+impl<B: Backend> FlBucket<B> {
     pub(crate) fn link_options_for(
         &mut self,
         agent_id: AgentId,
@@ -111,7 +110,7 @@ impl<A: AutodiffBackend, B: Backend> FlBucket<A, B> {
     }
 }
 
-impl<A: AutodiffBackend, B: Backend> Bucket for FlBucket<A, B> {
+impl<B: Backend> Bucket for FlBucket<B> {
     fn initialize(&mut self, step: TimeMS) {
         self.step = step;
         self.models
