@@ -24,6 +24,7 @@ pub enum Message {
     Selected,
     InitiateTraining,
     CompleteTraining,
+    TrainingFailed,
 }
 
 impl QueryType for Message {}
