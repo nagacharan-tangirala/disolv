@@ -282,8 +282,6 @@ impl Receiver<DeviceBucket, DataType, DataBlob, PayloadInfo, DeviceInfo, Message
 }
 
 impl Agent<DeviceBucket> for Device {
-    type P = DeviceInfo;
-
     fn id(&self) -> AgentId {
         self.device_info.id
     }
