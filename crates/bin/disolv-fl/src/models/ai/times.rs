@@ -65,8 +65,6 @@ impl ClientTimes {
         }
     }
 
-    // Add training duration when switching from sensing. Switching away from sensing should
-    // happen only when sufficient time is spent in sensing so that data is collected.
     pub(crate) fn update_time(&mut self, now: TimeMS, current_state: ClientState) {
         self.next_change_at = now
             + match current_state {
