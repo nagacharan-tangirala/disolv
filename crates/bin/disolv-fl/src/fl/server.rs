@@ -278,13 +278,19 @@ impl<B: AutodiffBackend> Server<B> {
         self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
-    fn handle_aggregation(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn handle_aggregation(&mut self, bucket: &mut FlBucket<B>) {
         debug!("Changing from aggregation to initiation at {}", self.step);
         self.server_state = ServerState::Idle;
 
-        self.fl_models.global_model = self.fl_models.aggregator.aggregate(
-            self.fl_models.global_model.clone(),
-            self.fl_models.trainer.device(),
+        self.fl_models.trainer.model = self.fl_models.aggregator.aggregate(
+            self.fl_models.trainer.model.clone(),
+            &self.fl_models.trainer.device,
+        );
+        self.fl_models.trainer.save_model_to_file();
+        let model_accuracy = self.fl_models.trainer.test_model();
+        debug!(
+            "Global model accuracy is {} at {}",
+            model_accuracy, self.step
         );
 
         let message_to_build = FlMessageToBuild::builder()
