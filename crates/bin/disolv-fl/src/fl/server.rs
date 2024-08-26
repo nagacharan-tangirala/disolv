@@ -46,28 +46,6 @@ pub(crate) enum ServerState {
     Aggregation,
 }
 
-#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
-pub struct ServerInfo {
-    pub id: AgentId,
-    pub server_type: AgentKind,
-    pub server_class: AgentClass,
-    pub agent_order: AgentOrder,
-}
-
-impl AgentProperties for ServerInfo {
-    fn id(&self) -> AgentId {
-        self.id
-    }
-
-    fn kind(&self) -> &AgentKind {
-        &self.server_type
-    }
-
-    fn class(&self) -> &AgentClass {
-        &self.server_class
-    }
-}
-
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct ServerModels {
     pub power: PowerManager,
