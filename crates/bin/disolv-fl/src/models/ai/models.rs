@@ -1,12 +1,19 @@
+use std::fmt::Display;
+
+use burn::backend::{Autodiff, Wgpu};
+use burn::backend::wgpu::AutoGraphicsApi;
+use burn::data::dataset::vision::MnistItem;
 use burn::prelude::Backend;
-use burn::tensor::backend::AutodiffBackend;
 
 use disolv_core::agent::{Agent, AgentProperties};
 use disolv_core::bucket::Bucket;
 use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 
-use crate::models::ai::cifar::{CifarModel, CifarTrainer};
-use crate::models::ai::mnist::{MnistModel, MnistTrainer};
+use crate::models::ai::cifar::{CifarFlDataset, CifarModel};
+use crate::models::ai::mnist::{MnistFlDataset, MnistModel};
+
+type WgpuBackend = Wgpu<AutoGraphicsApi, f32, i32>;
+type WgpuAutodiffBackend = Autodiff<WgpuBackend>;
 
 /// A trait that represents the training state if the agent is participating in federated
 /// learning training process.
@@ -28,30 +35,32 @@ pub enum ServerState {
 }
 
 #[derive(Clone)]
-pub enum ModelType<A: AutodiffBackend, B: Backend> {
+pub enum ModelType<B: Backend> {
     Mnist(MnistModel<B>),
-    Cifar(CifarModel<A>),
+    Cifar(CifarModel<B>),
 }
 
-/// An enum enclosing different training setups.
-#[derive(Clone)]
-pub enum TrainerType<A: AutodiffBackend, B: Backend> {
-    Mnist(MnistTrainer<A>),
-    Cifar(CifarTrainer<B>),
+#[derive(Clone, Default)]
+pub enum DatasetType {
+    #[default]
+    Empty,
+    Mnist(MnistFlDataset),
+    Cifar(CifarFlDataset),
 }
 
-impl<A: AutodiffBackend, B: Backend> TrainerType<A, B> {
-    pub(crate) fn device(&self) -> &B::Device {
+impl DatasetType {
+    pub fn has_data(&self) -> bool {
         match self {
-            TrainerType::Mnist(mnist) => mnist.device.clone(),
-            TrainerType::Cifar(cifar) => cifar.device.clone(),
+            DatasetType::Mnist(mnist) => mnist.images.len() > 0,
+            DatasetType::Cifar(cifar) => false,
+            DatasetType::Empty => false,
         }
     }
 
-    pub(crate) fn no_of_weights(&self) -> u64 {
+    pub fn append_mnist(&mut self, new_item: MnistItem) {
         match self {
-            TrainerType::Mnist(mnist) => mnist.quantity,
-            TrainerType::Cifar(cifar) => cifar.quantity,
+            DatasetType::Mnist(mnist) => mnist.images.push(new_item),
+            _ => panic!("Trying to append wrong item to mnist data"),
         }
     }
 }
