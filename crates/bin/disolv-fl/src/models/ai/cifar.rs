@@ -13,3 +13,6 @@ pub struct CifarTrainer<B: Backend> {
 pub struct CifarModel<B: Backend> {
     pub conv1: Conv2d<B>,
 }
+
+#[derive(Clone)]
+pub struct CifarFlDataset {}

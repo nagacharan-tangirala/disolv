@@ -1,13 +1,13 @@
-use burn::tensor::backend::{AutodiffBackend, Backend};
-use log::{debug, error};
+use burn::tensor::backend::AutodiffBackend;
 use log::__private_api::loc;
+use log::debug;
 use typed_builder::TypedBuilder;
 
 use disolv_core::agent::{
     Activatable, Agent, AgentClass, AgentId, AgentKind, AgentOrder, AgentProperties, Movable,
     Orderable,
 };
-use disolv_core::bucket::{Bucket, TimeMS};
+use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
 use disolv_core::message::Payload;
 use disolv_core::radio::{Action, ActionType, Link, Receiver, Transmitter};
@@ -26,10 +26,10 @@ use crate::fl::bucket::FlBucket;
 use crate::fl::client::AgentInfo;
 use crate::models::ai::aggregate::Aggregator;
 use crate::models::ai::compose::{FlComposer, FlMessageToBuild};
-use crate::models::ai::distribute::DataDistributor;
 use crate::models::ai::mnist::MnistModel;
-use crate::models::ai::models::{FlAgent, ModelType, TrainerType};
+use crate::models::ai::models::{FlAgent, ModelType};
 use crate::models::ai::times::ServerTimes;
+use crate::models::ai::trainer::Trainer;
 use crate::models::device::compose::V2XComposer;
 use crate::models::device::energy::EnergyType;
 use crate::models::device::link::LinkSelector;
@@ -246,13 +246,13 @@ impl<B: AutodiffBackend> Server<B> {
         let message_to_build = FlMessageToBuild::builder()
             .message(Message::GlobalModel)
             .message_type(MessageType::F64Weights)
-            .quantity(self.fl_models.trainer.no_of_weights())
+            .quantity(self.fl_models.trainer.no_of_weights)
             .build();
         let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
         self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
-    fn handle_selection(&mut self, bucket: &mut FlBucket<A, B>) {
+    fn handle_selection(&mut self, bucket: &mut FlBucket<B>) {
         debug!("Changing from selection to training at {}", self.step);
         self.server_state = ServerState::TrainingRound;
 
