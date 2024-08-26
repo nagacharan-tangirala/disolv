@@ -3,7 +3,7 @@ use typed_builder::TypedBuilder;
 
 use disolv_core::message::Metadata;
 use disolv_core::metrics::{Bytes, Consumable, Feasibility, Measurable, MetricSettings, Resource};
-use disolv_core::metrics::Feasibility::Feasible;
+use disolv_core::metrics::Feasibility::{Feasible, Infeasible};
 use disolv_models::device::metrics::MegaHertz;
 use disolv_models::dist::{DistParams, RngSampler};
 use disolv_models::net::metrics::Bandwidth;
@@ -12,7 +12,8 @@ use crate::models::device::message::FlPayloadInfo;
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub(crate) struct Hardware {
-    pub(crate) cpu: CpuUsage,
+    pub(crate) cpu: Cpu,
+    pub(crate) gpu: Gpu,
     pub(crate) storage: Memory,
     pub(crate) bandwidth: BandwidthType,
 }
@@ -22,18 +23,7 @@ impl Hardware {
         self.cpu.consume(metadata);
         self.storage.consume(metadata);
         self.bandwidth.consume(metadata);
-    }
-
-    pub fn cpu_available(&self) -> MegaHertz {
-        self.cpu.available()
-    }
-
-    pub fn memory_available(&self) -> Bytes {
-        self.storage.available()
-    }
-
-    pub fn bandwidth_available(&self) -> Bandwidth {
-        self.bandwidth.available()
+        self.gpu.consume(metadata);
     }
 }
 
@@ -49,34 +39,38 @@ pub(crate) struct CpuSettings {
 impl MetricSettings for CpuSettings {}
 
 #[derive(Debug, Clone)]
-pub(crate) enum CpuUsage {
+pub(crate) enum Cpu {
     Random(RandomCpu),
     Constant(ConstantCpu),
     Simple(SimpleCpu),
 }
 
-impl Resource<MegaHertz, FlPayloadInfo> for CpuUsage {
+impl Resource<MegaHertz, FlPayloadInfo> for Cpu {
     type S = CpuSettings;
 
     fn with_settings(settings: &CpuSettings) -> Self {
         match settings.cpu_type.to_lowercase().as_str() {
-            "random" => CpuUsage::Random(RandomCpu::with_settings(settings)),
-            "constant" => CpuUsage::Constant(ConstantCpu::with_settings(settings)),
-            "simple" => CpuUsage::Simple(SimpleCpu::with_settings(settings)),
+            "random" => Cpu::Random(RandomCpu::with_settings(settings)),
+            "constant" => Cpu::Constant(ConstantCpu::with_settings(settings)),
+            "simple" => Cpu::Simple(SimpleCpu::with_settings(settings)),
             _ => panic!("Invalid cpu usage model. Supported models: random, constant, simple"),
         }
     }
 
     fn consume(&mut self, metadata: &FlPayloadInfo) -> Feasibility<MegaHertz> {
         match self {
-            CpuUsage::Random(random) => random.consume(metadata),
-            CpuUsage::Constant(constant) => constant.consume(metadata),
-            CpuUsage::Simple(simple) => simple.consume(metadata),
+            Cpu::Random(random) => random.consume(metadata),
+            Cpu::Constant(constant) => constant.consume(metadata),
+            Cpu::Simple(simple) => simple.consume(metadata),
         }
     }
 
     fn available(&self) -> MegaHertz {
-        todo!()
+        match self {
+            Cpu::Random(random) => random.available(),
+            Cpu::Constant(constant) => constant.available(),
+            Cpu::Simple(simple) => simple.available(),
+        }
     }
 }
 
@@ -437,7 +431,7 @@ impl Consumable<Bandwidth, FlPayloadInfo> for SimpleBandwidth {
 
     fn consume(&mut self, metadata: &FlPayloadInfo) -> Feasibility<Bandwidth> {
         self.bandwidth = self.bandwidth + Bandwidth::new(metadata.size().as_u64());
-        Feasibility::Feasible(self.bandwidth)
+        Feasible(self.bandwidth)
     }
 
     fn available(&self) -> Bandwidth {
