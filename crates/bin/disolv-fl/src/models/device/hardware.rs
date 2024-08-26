@@ -323,15 +323,22 @@ impl Resource<Bytes, FlPayloadInfo> for Memory {
     type S = MemorySettings;
 
     fn with_settings(settings: &Self::S) -> Self {
-        todo!()
+        match settings.variant.to_lowercase().as_str() {
+            "simple" => Memory::Simple(SimpleMemory::with_settings(settings)),
+            _ => panic!("Invalid memory model. Only simple is supported."),
+        }
     }
 
     fn consume(&mut self, metadata: &FlPayloadInfo) -> Feasibility<Bytes> {
-        todo!()
+        match self {
+            Memory::Simple(memory) => memory.consume(metadata),
+        }
     }
 
     fn available(&self) -> Bytes {
-        todo!()
+        match self {
+            Memory::Simple(memory) => memory.available(),
+        }
     }
 }
 
@@ -339,25 +346,31 @@ impl Resource<Bytes, FlPayloadInfo> for Memory {
 pub struct SimpleMemory {
     available: Bytes,
     consumed: Bytes,
+    limit: Bytes,
 }
 
-impl Consumable<Bytes, FlPayloadInfo> for SimpleMemory {
+impl Resource<Bytes, FlPayloadInfo> for SimpleMemory {
     type S = MemorySettings;
 
-    fn with_settings(settings: Self::S) -> Self {
-        todo!()
-    }
-
-    fn reset(&mut self) {
-        todo!()
+    fn with_settings(settings: &Self::S) -> Self {
+        Self {
+            available: settings.starting_memory,
+            limit: settings.limit,
+            consumed: Bytes::default(),
+        }
     }
 
     fn consume(&mut self, metadata: &FlPayloadInfo) -> Feasibility<Bytes> {
-        todo!()
+        let new_consumed = self.consumed + metadata.size();
+        if new_consumed < self.limit {
+            self.consumed = new_consumed;
+            return Feasible(self.consumed);
+        }
+        Infeasible(new_consumed)
     }
 
     fn available(&self) -> Bytes {
-        todo!()
+        self.available
     }
 }
 
