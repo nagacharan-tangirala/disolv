@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::path::PathBuf;
 
 use burn::config::Config;
@@ -18,7 +19,7 @@ use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, 
 use burn::train::metric::{AccuracyMetric, LossMetric};
 use typed_builder::TypedBuilder;
 
-use crate::models::ai::models::{BatchType, DatasetType, FlModel};
+use crate::models::ai::models::{BatchType, ModelType};
 use crate::simulation::render::CustomRenderer;
 
 #[derive(Default, Clone, Debug)]
@@ -138,7 +139,7 @@ impl<B: Backend> MnistModel<B> {
             .iter()
             .map(|model| model.linear2.weight.val())
             .collect();
-        avg_linear_tensor = self.get_average_tensor(linear_weights);
+        avg_linear_tensor = Self::get_average_tensor(linear_weights);
 
         let mut conv_weights = other_models
             .iter()
@@ -238,73 +239,41 @@ impl<B: Backend> ValidStep<MnistBatch<B>, ClassificationOutput<B>> for MnistMode
     }
 }
 
-#[derive(Clone, TypedBuilder)]
-pub struct MnistTrainer<B>
-where
-    B: AutodiffBackend,
-{
-    pub(crate) device: B::Device,
-    pub(crate) quantity: u64,
-    output_path: PathBuf,
+pub fn mnist_train<B: AutodiffBackend>(
+    output_path: &PathBuf,
     config: MnistTrainingConfig,
-}
+    test_data: MnistFlDataset,
+    train_data: MnistFlDataset,
+    current_model: MnistModel<B>,
+    device: B::Device,
+) -> ModelType<B> {
+    let batcher_train = MnistBatcher::<B>::new(device.clone());
+    let batcher_valid = MnistBatcher::<B::InnerBackend>::new(device.clone());
 
-impl<B: AutodiffBackend> MnistTrainer<B> {
-    pub fn train(
-        &mut self,
-        test_data: MnistFlDataset,
-        train_data: MnistFlDataset,
-        current_model: MnistModel<B>,
-    ) -> MnistModel<B> {
-        let batcher_train = MnistBatcher::<B>::new(self.device.clone());
-        let batcher_valid = MnistBatcher::<B::InnerBackend>::new(self.device.clone());
+    let dataloader_train = DataLoaderBuilder::new(batcher_train)
+        .batch_size(config.batch_size)
+        .shuffle(config.seed)
+        .num_workers(config.num_workers)
+        .build(train_data);
 
-        let dataloader_train = DataLoaderBuilder::new(batcher_train)
-            .batch_size(self.config.batch_size)
-            .shuffle(self.config.seed)
-            .num_workers(self.config.num_workers)
-            .build(train_data);
+    let dataloader_test = DataLoaderBuilder::new(batcher_valid)
+        .batch_size(config.batch_size)
+        .shuffle(config.seed)
+        .num_workers(config.num_workers)
+        .build(test_data);
 
-        let dataloader_test = DataLoaderBuilder::new(batcher_valid)
-            .batch_size(self.config.batch_size)
-            .shuffle(self.config.seed)
-            .num_workers(self.config.num_workers)
-            .build(test_data);
-
-        let learner = LearnerBuilder::new(
-            self.output_path
-                .clone()
-                .to_str()
-                .expect("invalid output path"),
-        )
+    let learner = LearnerBuilder::new(output_path.to_str().expect("invalid output path"))
         .metric_train_numeric(AccuracyMetric::new())
         .metric_valid_numeric(AccuracyMetric::new())
         .metric_train_numeric(LossMetric::new())
         .metric_valid_numeric(LossMetric::new())
         .with_file_checkpointer(CompactRecorder::new())
-        .devices(vec![self.device.clone()])
-        .num_epochs(self.config.num_epochs)
+        .devices(vec![device.clone()])
+        .num_epochs(config.num_epochs)
         .renderer(CustomRenderer {})
         .summary()
-        .build(
-            current_model,
-            self.config.optimizer.init(),
-            self.config.learning_rate,
-        );
+        .build(current_model, config.optimizer.init(), config.learning_rate);
 
-        let updated_model = learner.fit(dataloader_train, dataloader_test);
-
-        updated_model
-            .clone()
-            .save_file(
-                self.output_path
-                    .clone()
-                    .join("model")
-                    .to_str()
-                    .expect("invalid output path"),
-                &CompactRecorder::new(),
-            )
-            .expect("Trained model should be saved successfully");
-        updated_model
-    }
+    let updated_model = learner.fit(dataloader_train, dataloader_test);
+    ModelType::Mnist(updated_model)
 }
