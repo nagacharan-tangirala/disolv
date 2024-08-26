@@ -191,8 +191,125 @@ impl Resource<MegaHertz, FlPayloadInfo> for SimpleCpu {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub(crate) struct GpuSettings {
+    pub(crate) cpu_type: String,
+    pub(crate) capacity: MegaHertz,
+    pub(crate) dist_params: Option<DistParams>,
+    pub(crate) constant: Option<MegaHertz>,
+    pub(crate) gpu_factor: Option<f64>,
+}
+
+impl MetricSettings for GpuSettings {}
+
+#[derive(Debug, Clone)]
+pub(crate) enum Gpu {
+    Constant(ConstantGpu),
+    Simple(SimpleGpu),
+}
+
+impl Resource<MegaHertz, FlPayloadInfo> for Gpu {
+    type S = CpuSettings;
+
+    fn with_settings(settings: &CpuSettings) -> Self {
+        match settings.cpu_type.to_lowercase().as_str() {
+            "constant" => Gpu::Constant(ConstantGpu::with_settings(settings)),
+            "simple" => Gpu::Simple(SimpleGpu::with_settings(settings)),
+            _ => panic!("Invalid cpu usage model. Supported models: constant, simple"),
+        }
+    }
+
+    fn consume(&mut self, metadata: &FlPayloadInfo) -> Feasibility<MegaHertz> {
+        match self {
+            Gpu::Constant(constant) => constant.consume(metadata),
+            Gpu::Simple(simple) => simple.consume(metadata),
+        }
+    }
+
+    fn available(&self) -> MegaHertz {
+        match self {
+            Gpu::Constant(constant) => constant.available(),
+            Gpu::Simple(simple) => simple.available(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct ConstantGpu {
+    constant_cpu: MegaHertz,
+    usage: MegaHertz,
+    capacity: MegaHertz,
+}
+
+impl Resource<MegaHertz, FlPayloadInfo> for ConstantGpu {
+    type S = CpuSettings;
+
+    fn with_settings(settings: &Self::S) -> Self {
+        let constant_cpu = match &settings.constant {
+            Some(constant) => constant.clone(),
+            None => panic!("Constant missing for constant gpu usage model"),
+        };
+        Self {
+            constant_cpu,
+            usage: MegaHertz::default(),
+            capacity: settings.capacity,
+        }
+    }
+
+    fn consume(&mut self, _metadata: &FlPayloadInfo) -> Feasibility<MegaHertz> {
+        self.usage = self.constant_cpu;
+        Feasible(self.constant_cpu)
+    }
+
+    fn available(&self) -> MegaHertz {
+        self.capacity - self.usage
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct SimpleGpu {
+    previous_data: Bytes,
+    cpu_factor: f64,
+    pub(crate) usage: MegaHertz,
+    pub(crate) capacity: MegaHertz,
+}
+
+impl Resource<MegaHertz, FlPayloadInfo> for SimpleGpu {
+    type S = CpuSettings;
+
+    fn with_settings(settings: &Self::S) -> Self {
+        let cpu_factor: f64 = match settings.cpu_factor {
+            Some(factor) => factor,
+            None => panic!("Constant missing for simple gpu usage model"),
+        };
+        Self {
+            cpu_factor,
+            previous_data: Bytes::default(),
+            usage: MegaHertz::default(),
+            capacity: settings.capacity,
+        }
+    }
+
+    fn consume(&mut self, metadata: &FlPayloadInfo) -> Feasibility<MegaHertz> {
+        let new_load = (metadata.size() - self.previous_data).as_u64() as f64 * self.cpu_factor;
+        if new_load > 0.0 {
+            // cpu load should be increased
+            self.usage = self.usage + MegaHertz::new(new_load.round() as u64);
+        } else {
+            self.usage = self.usage - MegaHertz::new(new_load.round() as u64);
+        }
+        Feasible(self.usage)
+    }
+
+    fn available(&self) -> MegaHertz {
+        self.capacity - self.usage
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct MemorySettings {
+    variant: String,
     starting_memory: Bytes,
+    limit: Bytes,
 }
 
 impl MetricSettings for MemorySettings {}
