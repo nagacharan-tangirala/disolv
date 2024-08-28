@@ -2,29 +2,35 @@ use burn::prelude::Backend;
 use burn::tensor::backend::AutodiffBackend;
 use serde::Deserialize;
 
+use disolv_core::model::{Model, ModelSettings};
+
 use crate::models::ai::mnist::MnistModel;
 use crate::models::ai::models::ModelType;
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub(crate) struct AggregationSettings {
-    pub(crate) c: f64,
-    pub(crate) sample_size: f64,
     pub(crate) variant: String,
 }
+
+impl ModelSettings for AggregationSettings {}
 
 #[derive(Clone)]
 pub(crate) enum Aggregator<B: AutodiffBackend> {
     FedAvg(FedAvgAggregator<B>),
 }
 
-impl<B: AutodiffBackend> Aggregator<B> {
-    pub(crate) fn new(settings: &AggregationSettings) -> Self {
+impl<B: AutodiffBackend> Model for Aggregator<B> {
+    type Settings = AggregationSettings;
+
+    fn with_settings(settings: &Self::Settings) -> Self {
         match settings.variant.to_lowercase().as_str() {
             "fedavg" => Aggregator::FedAvg(FedAvgAggregator::new(settings)),
             _ => panic!("Invalid aggregator. Only FedAvg is supported!"),
         }
     }
+}
 
+impl<B: AutodiffBackend> Aggregator<B> {
     pub(crate) fn add_local_model(&mut self, local_model: ModelType<B>) {
         match self {
             Aggregator::FedAvg(aggregator) => aggregator.add_local_model(local_model),
