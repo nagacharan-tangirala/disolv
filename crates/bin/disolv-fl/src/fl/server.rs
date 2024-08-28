@@ -59,7 +59,7 @@ pub struct ServerModels {
 }
 
 #[derive(Clone, TypedBuilder)]
-pub(crate) struct FlModels<B: AutodiffBackend> {
+pub(crate) struct FlServerModels<B: AutodiffBackend> {
     pub(crate) client_classes: Vec<AgentClass>,
     pub(crate) trainer: Trainer<B>,
     pub(crate) composer: FlComposer,
@@ -73,7 +73,9 @@ pub(crate) struct Server<B: AutodiffBackend> {
     pub(crate) server_info: AgentInfo,
     pub(crate) server_state: ServerState,
     pub(crate) models: ServerModels,
-    pub(crate) fl_models: FlModels<B>,
+    pub(crate) fl_models: FlServerModels<B>,
+    #[builder(default)]
+    pub(crate) server_state: ServerState,
     #[builder(default)]
     pub(crate) step: TimeMS,
     #[builder(default)]
