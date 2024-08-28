@@ -4,11 +4,22 @@ use typed_builder::TypedBuilder;
 use disolv_core::message::Metadata;
 use disolv_core::metrics::{Bytes, Consumable, Feasibility, Measurable, MetricSettings, Resource};
 use disolv_core::metrics::Feasibility::{Feasible, Infeasible};
+use disolv_core::model::{Model, ModelSettings};
 use disolv_models::device::metrics::MegaHertz;
 use disolv_models::dist::{DistParams, RngSampler};
 use disolv_models::net::metrics::Bandwidth;
 
 use crate::models::device::message::FlPayloadInfo;
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct HardwareSettings {
+    pub cpu: CpuSettings,
+    pub gpu: GpuSettings,
+    pub memory: MemorySettings,
+    pub bandwidth: BandwidthSettings,
+}
+
+impl ModelSettings for HardwareSettings {}
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub(crate) struct Hardware {
@@ -16,6 +27,19 @@ pub(crate) struct Hardware {
     pub(crate) gpu: Gpu,
     pub(crate) storage: Memory,
     pub(crate) bandwidth: BandwidthType,
+}
+
+impl Model for Hardware {
+    type Settings = HardwareSettings;
+
+    fn with_settings(settings: &Self::Settings) -> Self {
+        Self {
+            cpu: Cpu::with_settings(&settings.cpu),
+            gpu: Gpu::with_settings(&settings.gpu),
+            storage: Memory::with_settings(&settings.memory),
+            bandwidth: BandwidthType::with_settings(settings.bandwidth.clone()),
+        }
+    }
 }
 
 impl Hardware {
@@ -202,9 +226,9 @@ pub(crate) enum Gpu {
 }
 
 impl Resource<MegaHertz, FlPayloadInfo> for Gpu {
-    type S = CpuSettings;
+    type S = GpuSettings;
 
-    fn with_settings(settings: &CpuSettings) -> Self {
+    fn with_settings(settings: &GpuSettings) -> Self {
         match settings.cpu_type.to_lowercase().as_str() {
             "constant" => Gpu::Constant(ConstantGpu::with_settings(settings)),
             "simple" => Gpu::Simple(SimpleGpu::with_settings(settings)),
@@ -370,11 +394,11 @@ impl Resource<Bytes, FlPayloadInfo> for SimpleMemory {
 
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
-pub struct BandwidthConfig {
+pub struct BandwidthSettings {
     pub variant: String,
 }
 
-impl MetricSettings for BandwidthConfig {}
+impl MetricSettings for BandwidthSettings {}
 
 #[derive(Debug, Clone)]
 pub enum BandwidthType {
@@ -382,7 +406,7 @@ pub enum BandwidthType {
 }
 
 impl Consumable<Bandwidth, FlPayloadInfo> for BandwidthType {
-    type S = BandwidthConfig;
+    type S = BandwidthSettings;
 
     fn with_settings(settings: Self::S) -> Self {
         match settings.variant.to_lowercase().as_str() {
@@ -417,7 +441,7 @@ pub struct SimpleBandwidth {
 }
 
 impl Consumable<Bandwidth, FlPayloadInfo> for SimpleBandwidth {
-    type S = BandwidthConfig;
+    type S = BandwidthSettings;
 
     fn with_settings(settings: Self::S) -> Self {
         Self {
