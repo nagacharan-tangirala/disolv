@@ -28,7 +28,7 @@ use crate::fl::bucket::FlBucket;
 use crate::models::ai::compose::{FlComposer, FlMessageToBuild};
 use crate::models::ai::data::DataHolder;
 use crate::models::ai::mnist::mnist_train;
-use crate::models::ai::models::{ClientState, FlAgent, ModelType};
+use crate::models::ai::models::{ClientState, DatasetType, FlAgent, ModelType};
 use crate::models::ai::times::ClientTimes;
 use crate::models::ai::trainer::Trainer;
 use crate::models::device::compose::{V2XComposer, V2XDataSource};
@@ -43,8 +43,11 @@ pub(crate) struct AgentInfo {
     pub(crate) agent_type: AgentKind,
     pub(crate) agent_class: AgentClass,
     pub(crate) agent_order: AgentOrder,
+    #[builder(default)]
     pub(crate) cpu: MegaHertz,
+    #[builder(default)]
     pub(crate) memory: Bytes,
+    #[builder(default)]
     pub(crate) bandwidth: Bandwidth,
 }
 
@@ -87,9 +90,10 @@ pub(crate) struct FlModels<B: AutodiffBackend> {
 #[derive(Clone, TypedBuilder)]
 pub(crate) struct Client<B: AutodiffBackend> {
     pub(crate) client_info: AgentInfo,
-    pub(crate) client_state: ClientState,
     pub(crate) models: ClientModels,
     pub(crate) fl_models: FlModels<B>,
+    #[builder(default)]
+    pub(crate) client_state: ClientState,
     #[builder(default)]
     pub(crate) step: TimeMS,
     #[builder(default)]
@@ -176,7 +180,7 @@ impl<B: AutodiffBackend> Client<B> {
     fn send_fl_message(
         &mut self,
         bucket: &mut FlBucket<B>,
-        message_to_build: FlMessageToBuild,
+        message_to_build: Option<FlMessageToBuild>,
         broadcast: Option<Vec<AgentId>>,
     ) {
         self.models
@@ -185,12 +189,12 @@ impl<B: AutodiffBackend> Client<B> {
             .target_classes
             .clone()
             .iter_mut()
-            .for_each(|target_class| match self.get_links(target_class, bucket) {
-                Some(links) => {
-                    self.fl_models
-                        .composer
-                        .set_message_to_build(message_to_build);
-                    let payload = self.fl_models.composer.compose_payload(self.client_info);
+            .for_each(|target_class| {
+                if let Some(links) = self.get_links(target_class, bucket) {
+                    if let Some(val) = message_to_build {
+                        self.fl_models.composer.set_message_to_build(val)
+                    }
+                    let payload = self.fl_models.composer.compose_payload(&self.client_info);
                     let mut actions = self.models.actor.actions_for(target_class).to_owned();
 
                     if let Some(agents) = broadcast.clone() {
@@ -203,7 +207,6 @@ impl<B: AutodiffBackend> Client<B> {
                     }
                     self.send_payload(links, target_class, payload, &None, bucket, actions);
                 }
-                None => {}
             });
     }
 
@@ -236,7 +239,10 @@ impl<B: AutodiffBackend> Client<B> {
 
     fn collect_global_model(&mut self, bucket: &mut FlBucket<B>) {
         debug!("Collecting global model and updating local model");
-        self.fl_models.local_model = bucket.models.model_lake.global_model.to_owned();
+        self.fl_models.local_model = match bucket.models.model_lake.global_model.to_owned() {
+            Some(val) => val,
+            None => panic!("Global model not present"),
+        }
     }
 
     fn initiate_training(&mut self) {
@@ -279,6 +285,12 @@ impl<B: AutodiffBackend> Activatable<FlBucket<B>> for Client<B> {
     fn activate(&mut self, bucket: &mut FlBucket<B>) {
         self.power_state = PowerState::On;
         bucket.update_agent_data_of(self.client_info.id, self.client_info);
+        self.fl_models.trainer.train_data = bucket
+            .training_data_for(self.client_info.id)
+            .unwrap_or_default();
+        self.fl_models.trainer.test_data = bucket
+            .testing_data_for(self.client_info.id)
+            .unwrap_or_default();
     }
 
     fn deactivate(&mut self) {
@@ -431,8 +443,8 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Client<B> {
             .target_classes
             .clone()
             .iter()
-            .for_each(|target_class| match self.get_links(target_class, bucket) {
-                Some(links) => {
+            .for_each(|target_class| {
+                if let Some(links) = self.get_links(target_class, bucket) {
                     let payload =
                         self.models
                             .composer
@@ -440,23 +452,19 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Client<B> {
                     let actions = self.models.actor.actions_for(target_class).to_owned();
                     self.send_payload(links, target_class, payload, &rx_payloads, bucket, actions);
                 }
-                None => {}
             });
 
         if !self.models.directions.stage_one.is_sidelink {
             return;
         }
         let target_class = self.client_info.agent_class.clone();
-        match self.get_links(&target_class, bucket) {
-            Some(links) => {
-                let payload =
-                    self.models
-                        .composer
-                        .compose(self.step, &target_class, &self.client_info);
-                let actions = self.models.actor.actions_for(&target_class).to_owned();
-                self.send_payload(links, &target_class, payload, &rx_payloads, bucket, actions);
-            }
-            None => {}
+        if let Some(links) = self.get_links(&target_class, bucket) {
+            let payload = self
+                .models
+                .composer
+                .compose(self.step, &target_class, &self.client_info);
+            let actions = self.models.actor.actions_for(&target_class).to_owned();
+            self.send_payload(links, &target_class, payload, &rx_payloads, bucket, actions);
         }
     }
 
@@ -482,8 +490,8 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Client<B> {
             .target_classes
             .clone()
             .iter()
-            .for_each(|target_class| match self.get_links(target_class, bucket) {
-                Some(links) => {
+            .for_each(|target_class| {
+                if let Some(links) = self.get_links(target_class, bucket) {
                     let payload =
                         self.models
                             .composer
@@ -491,7 +499,6 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Client<B> {
                     let actions = self.models.actor.actions_for(target_class).to_owned();
                     self.send_payload(links, target_class, payload, &rx_payloads, bucket, actions);
                 }
-                None => {}
             });
     }
 
@@ -537,6 +544,7 @@ impl<B: AutodiffBackend>
                 };
             });
         }
+        self.send_fl_message(bucket, None, None);
     }
 
     fn update_state(&mut self) {
