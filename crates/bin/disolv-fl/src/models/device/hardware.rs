@@ -49,10 +49,14 @@ impl Hardware {
         self.bandwidth.consume(metadata);
         self.gpu.consume(metadata);
     }
+
+    pub fn register_training(&mut self, data_size: usize) {
+        self.gpu.register_training(data_size);
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct CpuSettings {
+pub struct CpuSettings {
     pub(crate) cpu_type: String,
     pub(crate) capacity: MegaHertz,
     pub(crate) dist_params: Option<DistParams>,
@@ -182,7 +186,7 @@ impl Resource<MegaHertz, FlPayloadInfo> for SimpleCpu {
     fn with_settings(settings: &Self::S) -> Self {
         let cpu_factor: f64 = match settings.cpu_factor {
             Some(factor) => factor,
-            None => panic!("Constant missing for constant cpu usage model"),
+            None => panic!("Constant missing for simple cpu usage model"),
         };
         Self {
             cpu_factor,
@@ -209,8 +213,8 @@ impl Resource<MegaHertz, FlPayloadInfo> for SimpleCpu {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct GpuSettings {
-    pub(crate) cpu_type: String,
+pub struct GpuSettings {
+    pub(crate) gpu_type: String,
     pub(crate) capacity: MegaHertz,
     pub(crate) dist_params: Option<DistParams>,
     pub(crate) constant: Option<MegaHertz>,
@@ -229,7 +233,7 @@ impl Resource<MegaHertz, FlPayloadInfo> for Gpu {
     type S = GpuSettings;
 
     fn with_settings(settings: &GpuSettings) -> Self {
-        match settings.cpu_type.to_lowercase().as_str() {
+        match settings.gpu_type.to_lowercase().as_str() {
             "constant" => Gpu::Constant(ConstantGpu::with_settings(settings)),
             "simple" => Gpu::Simple(SimpleGpu::with_settings(settings)),
             _ => panic!("Invalid cpu usage model. Supported models: constant, simple"),
@@ -251,6 +255,15 @@ impl Resource<MegaHertz, FlPayloadInfo> for Gpu {
     }
 }
 
+impl Gpu {
+    fn register_training(&mut self, data_size: usize) {
+        match self {
+            Gpu::Simple(simple) => simple.register_training(data_size),
+            _ => panic!("unsupported"),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantGpu {
     constant_cpu: MegaHertz,
@@ -259,7 +272,7 @@ pub struct ConstantGpu {
 }
 
 impl Resource<MegaHertz, FlPayloadInfo> for ConstantGpu {
-    type S = CpuSettings;
+    type S = GpuSettings;
 
     fn with_settings(settings: &Self::S) -> Self {
         let constant_cpu = match &settings.constant {
@@ -286,21 +299,21 @@ impl Resource<MegaHertz, FlPayloadInfo> for ConstantGpu {
 #[derive(Copy, Clone, Debug)]
 pub struct SimpleGpu {
     previous_data: Bytes,
-    cpu_factor: f64,
+    gpu_factor: f64,
     pub(crate) usage: MegaHertz,
     pub(crate) capacity: MegaHertz,
 }
 
 impl Resource<MegaHertz, FlPayloadInfo> for SimpleGpu {
-    type S = CpuSettings;
+    type S = GpuSettings;
 
     fn with_settings(settings: &Self::S) -> Self {
-        let cpu_factor: f64 = match settings.cpu_factor {
+        let gpu_factor: f64 = match settings.gpu_factor {
             Some(factor) => factor,
             None => panic!("Constant missing for simple gpu usage model"),
         };
         Self {
-            cpu_factor,
+            gpu_factor,
             previous_data: Bytes::default(),
             usage: MegaHertz::default(),
             capacity: settings.capacity,
@@ -308,9 +321,9 @@ impl Resource<MegaHertz, FlPayloadInfo> for SimpleGpu {
     }
 
     fn consume(&mut self, metadata: &FlPayloadInfo) -> Feasibility<MegaHertz> {
-        let new_load = (metadata.size() - self.previous_data).as_u64() as f64 * self.cpu_factor;
+        let new_load = (metadata.size() - self.previous_data).as_u64() as f64 * self.gpu_factor;
         if new_load > 0.0 {
-            // cpu load should be increased
+            // gpu load should be increased
             self.usage = self.usage + MegaHertz::new(new_load.round() as u64);
         } else {
             self.usage = self.usage - MegaHertz::new(new_load.round() as u64);
@@ -320,6 +333,12 @@ impl Resource<MegaHertz, FlPayloadInfo> for SimpleGpu {
 
     fn available(&self) -> MegaHertz {
         self.capacity - self.usage
+    }
+}
+
+impl SimpleGpu {
+    fn register_training(&mut self, data_size: usize) {
+        self.usage = MegaHertz::new((data_size as f64 * self.gpu_factor).round() as u64);
     }
 }
 
