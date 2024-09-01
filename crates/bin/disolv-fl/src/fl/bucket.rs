@@ -141,35 +141,26 @@ impl<B: Backend> Bucket for FlBucket<B> {
         });
     }
 
-    fn after_stage_one(&mut self) {
-        todo!()
-    }
-
-    fn after_stage_two(&mut self) {
-        todo!()
-    }
-
-    fn after_stage_three(&mut self) {
-        todo!()
-    }
-
-    fn after_stage_four(&mut self) {
-        todo!()
-    }
-
     fn after_agents(&mut self) {
-        todo!()
+        info!("After agents in bucket at step {}", self.step);
     }
 
     fn stream_input(&mut self) {
-        todo!()
+        self.models.mapper_holder.iter_mut().for_each(|(_, space)| {
+            space.stream_data(self.step);
+        });
+        self.models.linker_holder.iter_mut().for_each(|linker| {
+            linker.stream_data(self.step);
+        });
     }
 
     fn stream_output(&mut self) {
-        todo!()
+        debug!("Writing output at {}", self.step);
+        self.models.output.write_to_file();
     }
 
-    fn terminate(self) {
-        todo!()
+    fn terminate(mut self) {
+        self.models.output.write_to_file();
+        self.models.output.close_output_files();
     }
 }
