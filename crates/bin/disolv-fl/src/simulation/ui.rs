@@ -81,11 +81,11 @@ pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
 
     frame.render_widget(
         Paragraph::new(format!(
-            " ===================== d i s o l v =====================\n\
+            " ===================== d i s o l v - FL =====================\n\
               \n\
               Scenario: {}\n\
               \n\
-              =============================================================
+              ===============================================================
             ",
             content.metadata.scenario
         ))
@@ -131,8 +131,14 @@ pub fn render_sim_ui(content: &mut SimContent, frame: &mut Frame) {
         "Input File: {}\n\
         Output Path: {}\n\
         Log Path: {}\n\
+        Active Agents: {}\n\
+        Total Agents: {}\n\
         ",
-        content.metadata.input_file, content.metadata.output_path, content.metadata.log_path,
+        content.metadata.input_file,
+        content.metadata.output_path,
+        content.metadata.log_path,
+        content.active_agents,
+        content.total_agents
     );
     frame.render_widget(
         Paragraph::new(simulation_details)
