@@ -7,20 +7,32 @@ use burn::prelude::Backend;
 use burn::record::CompactRecorder;
 use burn::tensor::backend::AutodiffBackend;
 use burn::tensor::ElementConversion;
+use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
-use crate::models::ai::mnist::{mnist_train, MnistBatcher, MnistModel, MnistTrainingConfig};
+use crate::models::ai::mnist::{
+    mnist_train, MnistBatcher, MnistModel, MnistTrainConfigSettings, MnistTrainingConfig,
+};
 use crate::models::ai::models::{DatasetType, ModelType};
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TrainerSettings {
+    pub(crate) model_type: String,
+    pub(crate) no_of_weights: u64,
+    pub(crate) mnist_config_settings: Option<MnistTrainConfigSettings>,
+}
 
 #[derive(Clone, TypedBuilder)]
 pub(crate) struct Trainer<B: Backend> {
     pub(crate) model: ModelType<B>,
     pub(crate) device: B::Device,
     pub(crate) no_of_weights: u64,
-    pub(crate) test_data: DatasetType,
-    pub(crate) train_data: DatasetType,
     pub(crate) output_path: PathBuf,
     pub(crate) config: MnistTrainingConfig,
+    #[builder(default)]
+    pub(crate) test_data: DatasetType,
+    #[builder(default)]
+    pub(crate) train_data: DatasetType,
 }
 
 impl<B: AutodiffBackend> Trainer<B> {
