@@ -243,15 +243,28 @@ impl<B: AutodiffBackend> Server<B> {
         self.fl_models
             .times
             .update_time(self.step, self.server_state);
-        self.server_state = ServerState::ClientSelection;
 
-        let message_to_build = FlMessageToBuild::builder()
-            .message(Message::GlobalModel)
-            .message_type(MessageType::F64Weights)
-            .quantity(self.fl_models.trainer.no_of_weights)
+        let mut selected_clients = None;
+        let mut message_to_build = FlMessageToBuild::builder()
+            .message(Message::StateInfo)
+            .message_type(MessageType::KiloByte)
+            .quantity(1)
             .build();
-        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
-        self.send_fl_message(bucket, message_to_build, Some(selected_clients));
+
+        if !self.fl_models.client_selector.has_clients() {
+            self.server_state = ServerState::ClientSelection;
+            self.fl_models.client_selector.do_selection();
+            message_to_build = FlMessageToBuild::builder()
+                .message(Message::GlobalModel)
+                .message_type(MessageType::F64Weights)
+                .quantity(self.fl_models.trainer.no_of_weights)
+                .build();
+            selected_clients = Some(self.fl_models.client_selector.selected_clients().to_owned());
+        } else {
+            self.server_state = ServerState::ClientAnalysis;
+        }
+
+        self.send_fl_message(bucket, message_to_build, selected_clients);
     }
 
     fn handle_selection(&mut self, bucket: &mut FlBucket<B>) {
