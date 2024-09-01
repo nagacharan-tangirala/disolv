@@ -85,6 +85,14 @@ impl<B: Backend> FlBucket<B> {
         self.models.agent_data.get(agent_id)
     }
 
+    pub fn training_data_for(&mut self, agent_id: AgentId) -> Option<DatasetType> {
+        self.models.data_distributor.training_data(agent_id)
+    }
+
+    pub fn testing_data_for(&mut self, agent_id: AgentId) -> Option<DatasetType> {
+        self.models.data_distributor.test_data(agent_id)
+    }
+
     fn linker_for(
         &mut self,
         source_type: &AgentKind,
