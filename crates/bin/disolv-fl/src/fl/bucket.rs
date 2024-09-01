@@ -1,7 +1,7 @@
 use burn::data::dataset::transform::Mapper;
 use burn::prelude::Backend;
 use burn::tensor::backend::AutodiffBackend;
-use log::info;
+use log::{debug, info};
 use typed_builder::TypedBuilder;
 
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
@@ -16,19 +16,21 @@ use disolv_models::net::radio::{CommStats, LinkProperties};
 use disolv_output::result::ResultWriter;
 
 use crate::fl::client::AgentInfo;
+use crate::models::ai::models::DatasetType;
 use crate::models::device::lake::ModelLake;
 use crate::models::device::linker::Linker;
 use crate::models::device::mapper::{GeoMap, GeoMapper};
 use crate::models::device::message::{FlPayloadInfo, Message, MessageType, MessageUnit, TxMetrics};
 use crate::models::device::network::{FlSlice, Slice};
 use crate::models::device::output::OutputWriter;
+use crate::simulation::distribute::DataDistributor;
 
 pub type FlDataLake = DataLake<MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>;
 pub type FlNetwork =
     Network<Slice, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message, FlSlice, TxMetrics>;
 
 #[derive(TypedBuilder)]
-pub(crate) struct FlModels<B: Backend> {
+pub(crate) struct FlBucketModels<B: Backend> {
     pub(crate) output: OutputWriter,
     pub(crate) network: FlNetwork,
     pub(crate) space: GeoMap,
@@ -38,11 +40,12 @@ pub(crate) struct FlModels<B: Backend> {
     pub(crate) agent_data: HashMap<AgentId, AgentInfo>,
     pub(crate) data_lake: FlDataLake,
     pub(crate) model_lake: ModelLake<B>,
+    pub(crate) data_distributor: DataDistributor,
 }
 
 #[derive(TypedBuilder)]
 pub(crate) struct FlBucket<B: Backend> {
-    pub(crate) models: FlModels<B>,
+    pub(crate) models: FlBucketModels<B>,
     pub class_to_type: HashMap<AgentClass, AgentKind>,
     #[builder(default)]
     pub(crate) step: TimeMS,
@@ -130,6 +133,7 @@ impl<B: Backend> Bucket for FlBucket<B> {
         self.models.linker_holder.iter_mut().for_each(|linker| {
             linker.init(self.step);
         });
+        self.models.data_distributor.init(self.step);
     }
 
     fn before_agents(&mut self, step: TimeMS) {
