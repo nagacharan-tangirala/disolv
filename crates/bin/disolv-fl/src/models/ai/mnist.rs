@@ -11,13 +11,16 @@ use burn::nn::conv::{Conv2d, Conv2dConfig};
 use burn::nn::loss::CrossEntropyLoss;
 use burn::nn::pool::{AdaptiveAvgPool2d, AdaptiveAvgPool2dConfig};
 use burn::optim::AdamConfig;
-use burn::prelude::{Backend, Tensor};
+use burn::prelude::{Backend, Tensor, TensorData};
 use burn::record::CompactRecorder;
-use burn::tensor::{Data, ElementConversion, Int};
+use burn::tensor::{ElementConversion, Int};
 use burn::tensor::backend::AutodiffBackend;
 use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, ValidStep};
 use burn::train::metric::{AccuracyMetric, LossMetric};
+use serde::Deserialize;
 use typed_builder::TypedBuilder;
+
+use disolv_core::model::{Model, ModelSettings};
 
 use crate::models::ai::models::{BatchType, ModelType};
 use crate::simulation::render::CustomRenderer;
@@ -72,8 +75,8 @@ impl<B: Backend> Batcher<MnistItem, MnistBatch<B>> for MnistBatcher<B> {
     fn batch(&self, items: Vec<MnistItem>) -> MnistBatch<B> {
         let images = items
             .iter()
-            .map(|item| Data::<f32, 2>::from(item.image))
-            .map(|data| Tensor::<B, 2>::from_data(data.convert(), &self.device))
+            .map(|item| TensorData::from(item.image).convert::<B::FloatElem>())
+            .map(|data| Tensor::<B, 2>::from_data(data, &self.device))
             .map(|tensor| tensor.reshape([1, 28, 28]))
             .map(|tensor| ((tensor / 255) - 0.1307) / 0.3081)
             .collect();
@@ -82,7 +85,7 @@ impl<B: Backend> Batcher<MnistItem, MnistBatch<B>> for MnistBatcher<B> {
             .iter()
             .map(|item| {
                 Tensor::<B, 1, Int>::from_data(
-                    Data::from([(item.label as i64).elem()]),
+                    [(item.label as i64).elem::<B::IntElem>()],
                     &self.device,
                 )
             })
@@ -94,6 +97,20 @@ impl<B: Backend> Batcher<MnistItem, MnistBatch<B>> for MnistBatcher<B> {
         MnistBatch { images, targets }
     }
 }
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct MnistTrainConfigSettings {
+    pub num_epochs: Option<usize>,
+    pub batch_size: Option<usize>,
+    pub num_workers: Option<usize>,
+    pub seed: Option<u64>,
+    pub learning_rate: Option<f64>,
+    pub num_classes: usize,
+    pub hidden_size: usize,
+    pub drop_out: Option<f64>,
+}
+
+impl ModelSettings for MnistTrainConfigSettings {}
 
 #[derive(Config, TypedBuilder)]
 pub struct MnistTrainingConfig {
@@ -109,6 +126,35 @@ pub struct MnistTrainingConfig {
     pub seed: u64,
     #[config(default = 1.0e-4)]
     pub learning_rate: f64,
+}
+
+impl Model for MnistTrainingConfig {
+    type Settings = MnistTrainConfigSettings;
+
+    fn with_settings(settings: &Self::Settings) -> Self {
+        let mut model = MnistConfig::new(settings.num_classes, settings.hidden_size);
+        if let Some(val) = settings.drop_out {
+            model.dropout = val;
+        }
+        let optimizer = AdamConfig::new();
+        let mut train_config = MnistTrainingConfig::new(model, optimizer);
+        if let Some(num_epochs) = settings.num_epochs {
+            train_config.num_epochs = num_epochs
+        }
+        if let Some(batch_size) = settings.batch_size {
+            train_config.batch_size = batch_size;
+        }
+        if let Some(num_workers) = settings.num_workers {
+            train_config.num_workers = num_workers;
+        }
+        if let Some(seed) = settings.seed {
+            train_config.seed = seed;
+        }
+        if let Some(learning_rate) = settings.learning_rate {
+            train_config.learning_rate = learning_rate;
+        }
+        train_config
+    }
 }
 
 #[derive(Module, Debug)]
