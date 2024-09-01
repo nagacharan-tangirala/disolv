@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use burn::backend::{Autodiff, Wgpu};
-use burn::backend::wgpu::AutoGraphicsApi;
 use burn::data::dataset::vision::MnistItem;
 use burn::prelude::Backend;
 
@@ -11,9 +9,6 @@ use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 
 use crate::models::ai::cifar::{CifarFlDataset, CifarModel};
 use crate::models::ai::mnist::{MnistFlDataset, MnistModel};
-
-type WgpuBackend = Wgpu<AutoGraphicsApi, f32, i32>;
-type WgpuAutodiffBackend = Autodiff<WgpuBackend>;
 
 /// A trait that represents the training state if the agent is participating in federated
 /// learning training process.
