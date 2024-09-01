@@ -10,14 +10,14 @@ use disolv_models::net::radio::{CommStats, LinkProperties};
 
 #[derive(Deserialize, Debug, Clone)]
 #[skip_serializing_none]
-pub struct LinkSelectorSettings {
+pub struct LinkSelectionSettings {
     pub target_class: AgentClass,
     pub name: String,
     pub link_count: Option<u32>,
     pub dist_threshold: Option<f32>,
 }
 
-impl ModelSettings for LinkSelectorSettings {}
+impl ModelSettings for LinkSelectionSettings {}
 
 #[derive(Debug, Clone)]
 pub(crate) enum LinkSelector {
@@ -26,9 +26,9 @@ pub(crate) enum LinkSelector {
 }
 
 impl Model for LinkSelector {
-    type Settings = LinkSelectorSettings;
+    type Settings = LinkSelectionSettings;
 
-    fn with_settings(settings: &LinkSelectorSettings) -> Self {
+    fn with_settings(settings: &LinkSelectionSettings) -> Self {
         match settings.name.to_lowercase().as_str() {
             "all" => LinkSelector::All,
             "nearest" => LinkSelector::Nearest(NearestLink::new(settings)),
@@ -60,7 +60,7 @@ impl LinkSelect<LinkProperties> for LinkSelector {
 pub struct NearestLink {}
 
 impl NearestLink {
-    fn new(_settings: &LinkSelectorSettings) -> Self {
+    fn new(_settings: &LinkSelectionSettings) -> Self {
         Self {}
     }
 

@@ -82,7 +82,7 @@ impl DataUnit<MessageType> for MessageUnit {
         self.action.to_agent = new_action.to_agent;
         self.action.to_class = new_action.to_class;
         self.action.to_kind = new_action.to_kind;
-        self.action.to_broadcast = new_action.to_broadcast;
+        self.action.to_broadcast = new_action.to_broadcast.to_owned();
     }
 }
 

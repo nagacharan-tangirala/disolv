@@ -28,7 +28,7 @@ pub enum FlComposer {
 }
 
 impl FlComposer {
-    pub(crate) fn compose_payload(&mut self, agent_state: AgentInfo) -> FlPayload {
+    pub(crate) fn compose_payload(&mut self, agent_state: &AgentInfo) -> FlPayload {
         match self {
             FlComposer::Simple(composer) => composer.compose_payload(agent_state),
         }
@@ -77,11 +77,11 @@ impl SimpleComposer {
         self.message_to_send = message;
     }
 
-    fn compose_payload(&self, agent_state: AgentInfo) -> FlPayload {
+    fn compose_payload(&self, agent_state: &AgentInfo) -> FlPayload {
         let message_unit = self.compose_data_unit();
         let payload_info = self.build_metadata(&message_unit);
         FlPayload::builder()
-            .agent_state(agent_state)
+            .agent_state(agent_state.clone())
             .data_units(vec![message_unit])
             .query_type(Message::StateInfo)
             .gathered_states(None)
