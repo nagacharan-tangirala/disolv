@@ -3,18 +3,33 @@ use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
 use disolv_core::hashbrown::HashMap;
+use disolv_core::model::{Model, ModelSettings};
 
 use crate::fl::client::AgentInfo;
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub(crate) struct ClientSelectionSettings {
     pub(crate) c: f64,
     pub(crate) sample_size: f64,
+    pub(crate) variant: String,
 }
+
+impl ModelSettings for ClientSelectionSettings {}
 
 #[derive(Debug, Clone)]
 pub(crate) enum ClientSelector {
     Random(RandomClients),
+}
+
+impl Model for ClientSelector {
+    type Settings = ClientSelectionSettings;
+
+    fn with_settings(settings: &Self::Settings) -> Self {
+        match settings.variant.to_lowercase().as_str() {
+            "random" => ClientSelector::Random(RandomClients::new(settings)),
+            _ => panic!("Invalid client selector. Only random supported."),
+        }
+    }
 }
 
 impl ClientSelector {
@@ -33,6 +48,12 @@ impl ClientSelector {
     pub(crate) fn register_client(&mut self, client_info: &AgentInfo) {
         match self {
             ClientSelector::Random(selector) => selector.register_client(client_info),
+        }
+    }
+
+    pub(crate) fn has_clients(&self) -> bool {
+        match self {
+            ClientSelector::Random(selector) => selector.all_clients.len() > 0,
         }
     }
 }
@@ -67,8 +88,7 @@ impl RandomClients {
         if self.all_clients.len() == 0 {
             panic!("No client registered, cannot select clients");
         }
-        let client_count =
-            (self.all_clients.len() as f64 * self.c * self.sample_size).round() as usize;
+        let client_count = (self.all_clients.len() as f64 * self.sample_size).round() as usize;
         self.selected_clients = self
             .all_clients
             .clone()
