@@ -2,6 +2,7 @@ use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
 use disolv_core::bucket::TimeMS;
+use disolv_core::model::{Model, ModelSettings};
 
 use crate::fl::server::ServerState;
 use crate::models::ai::models::ClientState;
@@ -15,20 +16,26 @@ pub(crate) struct ServerDurations {
     pub(crate) round_length: TimeMS,
 }
 
-#[derive(Debug, Clone, Copy, TypedBuilder)]
+impl ModelSettings for ServerDurations {}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct ServerTimes {
     pub(crate) durations: ServerDurations,
     pub(crate) next_change_at: TimeMS,
 }
 
-impl ServerTimes {
-    pub(crate) fn new(durations: ServerDurations) -> Self {
+impl Model for ServerTimes {
+    type Settings = ServerDurations;
+
+    fn with_settings(settings: &Self::Settings) -> Self {
         Self {
-            durations,
+            durations: settings.clone(),
             next_change_at: TimeMS::default(),
         }
     }
+}
 
+impl ServerTimes {
     pub(crate) fn update_time(&mut self, now: TimeMS, current_state: ServerState) {
         self.next_change_at = now
             + match current_state {
@@ -51,20 +58,26 @@ pub(crate) struct ClientDurations {
     pub(crate) sensing: TimeMS,
 }
 
+impl ModelSettings for ClientDurations {}
+
 #[derive(Debug, Clone, Copy, TypedBuilder)]
 pub(crate) struct ClientTimes {
     pub(crate) durations: ClientDurations,
     pub(crate) next_change_at: TimeMS,
 }
 
-impl ClientTimes {
-    pub(crate) fn new(durations: ClientDurations) -> Self {
+impl Model for ClientTimes {
+    type Settings = ClientDurations;
+
+    fn with_settings(settings: &Self::Settings) -> Self {
         Self {
-            durations,
+            durations: settings.clone(),
             next_change_at: TimeMS::default(),
         }
     }
+}
 
+impl ClientTimes {
     pub(crate) fn update_time(&mut self, now: TimeMS, current_state: ClientState) {
         self.next_change_at = now
             + match current_state {
