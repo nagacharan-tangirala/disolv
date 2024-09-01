@@ -28,13 +28,13 @@ use crate::models::ai::aggregate::Aggregator;
 use crate::models::ai::compose::{FlComposer, FlMessageToBuild};
 use crate::models::ai::mnist::MnistModel;
 use crate::models::ai::models::{FlAgent, ModelType};
+use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::Trainer;
 use crate::models::device::compose::V2XComposer;
 use crate::models::device::energy::EnergyType;
 use crate::models::device::link::LinkSelector;
 use crate::models::device::message::{FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit};
-use crate::models::device::select::ClientSelector;
 
 #[derive(Default, Copy, Clone, Debug)]
 pub(crate) enum ServerState {
@@ -71,7 +71,6 @@ pub(crate) struct FlServerModels<B: AutodiffBackend> {
 #[derive(Clone, TypedBuilder)]
 pub(crate) struct Server<B: AutodiffBackend> {
     pub(crate) server_info: AgentInfo,
-    pub(crate) server_state: ServerState,
     pub(crate) models: ServerModels,
     pub(crate) fl_models: FlServerModels<B>,
     #[builder(default)]
@@ -171,12 +170,12 @@ impl<B: AutodiffBackend> Server<B> {
             .target_classes
             .clone()
             .iter_mut()
-            .for_each(|target_class| match self.get_links(target_class, bucket) {
-                Some(links) => {
+            .for_each(|target_class| {
+                if let Some(links) = self.get_links(target_class, bucket) {
                     self.fl_models
                         .composer
                         .set_message_to_build(message_to_build);
-                    let payload = self.fl_models.composer.compose_payload(self.server_info);
+                    let payload = self.fl_models.composer.compose_payload(&self.server_info);
                     let mut actions = self.models.actor.actions_for(target_class).to_owned();
 
                     if let Some(agents) = broadcast.clone() {
@@ -189,7 +188,6 @@ impl<B: AutodiffBackend> Server<B> {
                     }
                     self.send_payload(links, target_class, payload, &None, bucket, actions);
                 }
-                None => {}
             });
     }
 
@@ -208,9 +206,15 @@ impl<B: AutodiffBackend> Server<B> {
     }
 
     fn register_client(&mut self, bucket: &mut FlBucket<B>, payload: &mut FlPayload) {
-        match bucket.agent_data_of(&payload.agent_state.id) {
-            Some(client_info) => self.fl_models.client_selector.register_client(client_info),
-            None => panic!("bucket does not know about this client"),
+        if self
+            .fl_models
+            .client_classes
+            .contains(&payload.agent_state.agent_class)
+        {
+            match bucket.agent_data_of(&payload.agent_state.id) {
+                Some(client_info) => self.fl_models.client_selector.register_client(client_info),
+                None => panic!("bucket does not know about this client"),
+            }
         }
     }
 
