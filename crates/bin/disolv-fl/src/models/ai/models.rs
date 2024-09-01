@@ -52,6 +52,13 @@ impl DatasetType {
         }
     }
 
+    pub fn length(&self) -> usize {
+        match self {
+            DatasetType::Mnist(mnist) => mnist.images.len(),
+            _ => 0,
+        }
+    }
+
     pub fn append_mnist(&mut self, new_item: MnistItem) {
         match self {
             DatasetType::Mnist(mnist) => mnist.images.push(new_item),

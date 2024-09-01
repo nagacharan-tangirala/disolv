@@ -1,6 +1,7 @@
 use clap::Parser;
 
 use crate::simulation::builder::SimulationBuilder;
+use crate::simulation::runner::run_simulation;
 
 mod fl;
 mod models;
