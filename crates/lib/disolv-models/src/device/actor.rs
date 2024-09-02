@@ -39,6 +39,6 @@ impl<C: ContentType> Actor<C> {
     pub fn actions_for(&self, target_class: &AgentClass) -> &HashMap<C, Action> {
         self.actions
             .get(target_class)
-            .expect("Missing actions for class")
+            .expect(format!("Missing actions for {}", target_class).as_str())
     }
 }
