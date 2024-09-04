@@ -17,14 +17,8 @@ use crate::fl::client::AgentInfo;
 #[derive(Deserialize, Default, Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum Message {
     #[default]
-    StateInfo,
     Sensor,
-    GlobalModel,
-    LocalModel,
-    Selected,
-    InitiateTraining,
-    CompleteTraining,
-    TrainingFailed,
+    FlMessage,
 }
 
 impl QueryType for Message {}
@@ -54,12 +48,39 @@ impl Display for MessageType {
 
 impl ContentType for MessageType {}
 
+#[derive(Deserialize, Default, Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub enum FlContent {
+    #[default]
+    StateInfo,
+    GlobalModel,
+    LocalModel,
+    Selected,
+    InitiateTraining,
+    CompleteTraining,
+    TrainingFailed,
+}
+
+impl Display for FlContent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FlContent::StateInfo => write!(f, "StateInfo"),
+            FlContent::GlobalModel => write!(f, "GlobalModel"),
+            FlContent::LocalModel => write!(f, "LocalModel"),
+            FlContent::Selected => write!(f, "Selected"),
+            FlContent::InitiateTraining => write!(f, "InitiateTraining"),
+            FlContent::CompleteTraining => write!(f, "CompleteTraining"),
+            FlContent::TrainingFailed => write!(f, "TrainingFailed"),
+        }
+    }
+}
+
 /// A single unit of a message, a collection of these messages can be sent by a single device.
 /// Hence, this is called a unit. It contains the instructions as to what to do with the message
 /// and some metadata.
-#[derive(Clone, Default, TypedBuilder)]
+#[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct MessageUnit {
     pub action: Action,
+    pub fl_content: FlContent,
     pub message_type: MessageType,
     pub message_size: Bytes,
 }
