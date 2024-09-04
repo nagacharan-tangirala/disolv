@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -13,7 +13,7 @@ pub trait QueryType: Copy + Clone + Default + PartialEq + Eq + Send + Sync {}
 
 /// A trait to represent a type of data that each query contains.
 pub trait ContentType:
-    Display + Copy + Clone + Default + Hash + PartialEq + Eq + Send + Sync
+    Display + Debug + Copy + Clone + Default + Hash + PartialEq + Eq + Send + Sync
 {
 }
 
@@ -58,7 +58,7 @@ where
     pub agent_state: P,
     pub metadata: M,
     pub data_units: Vec<D>,
-    pub gathered_states: Option<Vec<P>>,
+    pub gathered_states: Vec<P>,
     #[builder(default)]
     _phantom_data: PhantomData<fn() -> C>,
 }

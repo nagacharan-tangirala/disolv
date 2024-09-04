@@ -1,19 +1,19 @@
 use std::path::{Path, PathBuf};
 
-use burn::backend::{Autodiff, Wgpu};
 use burn::backend::wgpu::{AutoGraphicsApi, WgpuDevice};
+use burn::backend::{Autodiff, Wgpu};
 use indexmap::IndexMap;
 use log::info;
 
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
-use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::metrics::Resource;
+use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::model::Model;
 use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
 use disolv_input::links::LinkReader;
-use disolv_input::power::{PowerTimes, read_power_schedule};
+use disolv_input::power::{read_power_schedule, PowerTimes};
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
 use disolv_models::device::directions::Directions;
@@ -31,7 +31,7 @@ use crate::models::ai::aggregate::Aggregator;
 use crate::models::ai::compose::FlComposer;
 use crate::models::ai::data::{DataHolder, DataHolderSettings};
 use crate::models::ai::mnist::{MnistTrainConfigSettings, MnistTrainingConfig};
-use crate::models::ai::models::{FlAgent, ModelType};
+use crate::models::ai::models::ModelType;
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::{ClientTimes, ServerTimes};
 use crate::models::ai::trainer::{Trainer, TrainerSettings};

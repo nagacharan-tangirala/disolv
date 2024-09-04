@@ -5,7 +5,7 @@ use arrow::array::{ArrayRef, Float32Array, RecordBatch, UInt32Array, UInt64Array
 use arrow::datatypes::{DataType, Field, Schema};
 use typed_builder::TypedBuilder;
 
-use disolv_core::agent::AgentProperties;
+use disolv_core::agent::{AgentId, AgentProperties};
 use disolv_core::bucket::TimeMS;
 use disolv_core::radio::Link;
 use disolv_models::net::radio::LinkProperties;
