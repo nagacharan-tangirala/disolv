@@ -88,20 +88,3 @@ where
 {
     fn training_state(&self) -> ClientState;
 }
-
-pub trait FlAgent<B, C, D, M, P, Q>
-where
-    B: Bucket,
-    C: ContentType,
-    D: DataUnit<C>,
-    M: Metadata,
-    P: AgentProperties,
-    Q: QueryType,
-{
-    fn handle_fl_messages(
-        &mut self,
-        bucket: &mut B,
-        messages: &mut Option<Vec<Payload<C, D, M, P, Q>>>,
-    );
-    fn update_state(&mut self);
-}
