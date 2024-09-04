@@ -20,6 +20,7 @@ pub enum OutputType {
     TxData,
     AgentPos,
     NetStat,
+    FlState,
 }
 
 #[derive(Deserialize, Debug, Clone)]

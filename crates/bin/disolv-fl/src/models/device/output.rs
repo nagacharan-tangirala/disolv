@@ -18,26 +18,31 @@ use crate::models::device::message::{FlPayload, TxMetrics};
 pub struct OutputWriter {
     pub basic_results: BasicResults,
     pub tx_data_writer: Option<TxDataWriter>,
+    pub fl_state_writer: Option<FlStateTrace>,
 }
 
 impl OutputWriter {
     pub fn new(output_config: &OutputSettings) -> Self {
         let basic_results = BasicResults::new(&output_config);
         let output_path = PathBuf::from(&output_config.output_path);
-        let tx_data_writer = match output_config
+
+        let tx_data_writer = output_config
             .outputs
             .iter()
             .filter(|output| output.output_type == OutputType::TxData)
             .last()
-        {
-            Some(settings) => Some(TxDataWriter::new(
-                &output_path.join(&settings.output_filename),
-            )),
-            None => None,
-        };
+            .map(|settings| TxDataWriter::new(&output_path.join(&settings.output_filename)));
+        let fl_state_writer = output_config
+            .outputs
+            .iter()
+            .filter(|output| output.output_type == OutputType::FlState)
+            .last()
+            .map(|settings| FlStateTrace::new(&output_path.join(&settings.output_filename)));
+
         Self {
             basic_results,
             tx_data_writer,
+            fl_state_writer,
         }
     }
 
@@ -47,12 +52,18 @@ impl OutputWriter {
         if let Some(tx) = &mut self.tx_data_writer {
             tx.write_to_file();
         }
+        if let Some(fl) = &mut self.fl_state_writer {
+            fl.write_to_file();
+        }
     }
 
     pub fn close_output_files(mut self) {
         self.basic_results.close_files();
         if let Some(tx) = self.tx_data_writer {
             tx.close_file();
+        }
+        if let Some(fl) = self.fl_state_writer {
+            fl.close_file();
         }
     }
 }
@@ -102,6 +113,7 @@ impl TxDataWriter {
         self.payload_size.push(tx_metrics.payload_size.as_u64());
     }
 }
+
 impl ResultWriter for TxDataWriter {
     fn schema() -> Schema {
         let time_ms = Field::new("time_step", DataType::UInt64, false);
@@ -165,6 +177,73 @@ impl ResultWriter for TxDataWriter {
                         "payload_size",
                         Arc::new(UInt64Array::from(std::mem::take(&mut self.payload_size)))
                             as ArrayRef,
+                    ),
+                ])
+                .expect("Failed to convert results to record batch");
+                to_output
+                    .writer
+                    .write(&record_batch)
+                    .expect("Failed to write record batches to file");
+            }
+        }
+    }
+
+    fn close_file(self) {
+        match self.to_output {
+            DataOutput::Parquet(to_output) => to_output.close(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FlStateTrace {
+    time_step: Vec<u64>,
+    agent_id: Vec<u64>,
+    states: Vec<u64>,
+    to_output: DataOutput,
+}
+
+impl FlStateTrace {
+    pub fn new(output_file: &PathBuf) -> Self {
+        Self {
+            to_output: DataOutput::new(&output_file, Self::schema()),
+            time_step: Vec::new(),
+            agent_id: Vec::new(),
+            states: Vec::new(),
+        }
+    }
+
+    pub fn add_data(&mut self, time_step: TimeMS, agent_id: AgentId, state: u64) {
+        self.time_step.push(time_step.as_u64());
+        self.agent_id.push(agent_id.as_u64());
+        self.states.push(state);
+    }
+}
+
+impl ResultWriter for FlStateTrace {
+    fn schema() -> Schema {
+        let time_ms = Field::new("time_step", DataType::UInt64, false);
+        let agent_id = Field::new("agent_id", DataType::UInt64, false);
+        let states = Field::new("states", DataType::UInt64, false);
+        Schema::new(vec![time_ms, agent_id, states])
+    }
+
+    fn write_to_file(&mut self) {
+        match &mut self.to_output {
+            DataOutput::Parquet(to_output) => {
+                let record_batch = RecordBatch::try_from_iter(vec![
+                    (
+                        "time_step",
+                        Arc::new(UInt64Array::from(std::mem::take(&mut self.time_step)))
+                            as ArrayRef,
+                    ),
+                    (
+                        "agent_id",
+                        Arc::new(UInt64Array::from(std::mem::take(&mut self.agent_id))) as ArrayRef,
+                    ),
+                    (
+                        "states",
+                        Arc::new(UInt64Array::from(std::mem::take(&mut self.states))) as ArrayRef,
                     ),
                 ])
                 .expect("Failed to convert results to record batch");
