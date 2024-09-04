@@ -27,14 +27,16 @@ use crate::fl::client::AgentInfo;
 use crate::models::ai::aggregate::Aggregator;
 use crate::models::ai::compose::{FlComposer, FlMessageToBuild};
 use crate::models::ai::mnist::MnistModel;
-use crate::models::ai::models::{FlAgent, ModelType};
+use crate::models::ai::models::ModelType;
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::Trainer;
 use crate::models::device::compose::V2XComposer;
 use crate::models::device::energy::EnergyType;
 use crate::models::device::link::LinkSelector;
-use crate::models::device::message::{FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit};
+use crate::models::device::message::{
+    FlContent, FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit,
+};
 
 #[derive(Default, Copy, Clone, Debug)]
 pub(crate) enum ServerState {
@@ -44,6 +46,18 @@ pub(crate) enum ServerState {
     ClientSelection,
     TrainingRound,
     Aggregation,
+}
+
+impl ServerState {
+    pub const fn value(&self) -> u64 {
+        match self {
+            ServerState::Idle => 1000,
+            ServerState::ClientAnalysis => 2000,
+            ServerState::ClientSelection => 3000,
+            ServerState::TrainingRound => 4000,
+            ServerState::Aggregation => 5000,
+        }
+    }
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -191,38 +205,38 @@ impl<B: AutodiffBackend> Server<B> {
             });
     }
 
-    fn do_fl_actions(&mut self, bucket: &mut FlBucket<B>, payload: &mut FlPayload) {
-        match payload.query_type {
-            Message::StateInfo => self.register_client(bucket, payload),
-            Message::LocalModel => self.collect_local_model(bucket, payload),
-            _ => panic!("Server should not receive this message"),
+    fn do_fl_actions(&mut self, bucket: &mut FlBucket<B>, payloads: &mut Vec<FlPayload>) {
+        for payload in payloads.iter_mut() {
+            payload
+                .data_units
+                .iter_mut()
+                .zip(payload.gathered_states.iter_mut())
+                .for_each(|(data_unit, client_info)| match data_unit.fl_content {
+                    FlContent::StateInfo => self.register_client(client_info),
+                    FlContent::LocalModel => self.collect_local_model(bucket, client_info),
+                    FlContent::TrainingFailed => debug!("a client failed to train"),
+                    _ => panic!("Server should not receive this message"),
+                });
+            payload
+                .data_units
+                .iter_mut()
+                .for_each(|message| message.action.action_type = ActionType::Consume);
         }
-
-        // Mark the payload to be consumed.
-        payload
-            .data_units
-            .iter_mut()
-            .for_each(|message| message.action.action_type = ActionType::Consume);
     }
 
-    fn register_client(&mut self, bucket: &mut FlBucket<B>, payload: &mut FlPayload) {
+    fn register_client(&mut self, agent_info: &AgentInfo) {
+        debug!("Registering client from agent {}", agent_info.id);
         if self
             .fl_models
             .client_classes
-            .contains(&payload.agent_state.agent_class)
+            .contains(&agent_info.agent_class)
         {
-            match bucket.agent_data_of(&payload.agent_state.id) {
-                Some(client_info) => self.fl_models.client_selector.register_client(client_info),
-                None => panic!("bucket does not know about this client"),
-            }
+            self.fl_models.client_selector.register_client(agent_info);
         }
     }
 
-    fn collect_local_model(&mut self, bucket: &mut FlBucket<B>, payload: &mut FlPayload) {
-        let local_model = bucket
-            .models
-            .model_lake
-            .local_model_of(payload.agent_state.id);
+    fn collect_local_model(&mut self, bucket: &mut FlBucket<B>, client_info: &AgentInfo) {
+        let local_model = bucket.models.model_lake.local_model_of(client_info.id);
         self.fl_models.aggregator.add_local_model(local_model);
     }
 
@@ -234,40 +248,50 @@ impl<B: AutodiffBackend> Server<B> {
         self.server_state = ServerState::ClientAnalysis;
 
         let message_to_build = FlMessageToBuild::builder()
-            .message(Message::StateInfo)
+            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
+            .fl_content(FlContent::StateInfo)
             .build();
-        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
-        self.send_fl_message(bucket, message_to_build, Some(selected_clients));
+        self.send_fl_message(bucket, message_to_build, None);
     }
 
     fn handle_analysis(&mut self, bucket: &mut FlBucket<B>) {
-        debug!("Changing from analysis to selection at {}", self.step);
+        let mut selected_clients = None;
+        let mut message_to_build = FlMessageToBuild::builder()
+            .message(Message::FlMessage)
+            .message_type(MessageType::KiloByte)
+            .quantity(1)
+            .fl_content(FlContent::StateInfo)
+            .build();
+
+        if self.fl_models.client_selector.has_clients() {
+            self.fl_models.client_selector.do_selection();
+
+            if self.fl_models.client_selector.selected_clients().len() > 0 {
+                debug!("Changing from analysis to selection at {}", self.step);
+                self.fl_models
+                    .times
+                    .update_time(self.step, self.server_state);
+
+                self.server_state = ServerState::ClientSelection;
+
+                message_to_build = FlMessageToBuild::builder()
+                    .message(Message::FlMessage)
+                    .message_type(MessageType::F64Weights)
+                    .quantity(self.fl_models.trainer.no_of_weights)
+                    .fl_content(FlContent::GlobalModel)
+                    .build();
+                selected_clients =
+                    Some(self.fl_models.client_selector.selected_clients().to_owned());
+            }
+        } else {
+            debug!("Continuing with analysis at {}", self.step);
+        }
+
         self.fl_models
             .times
             .update_time(self.step, self.server_state);
-
-        let mut selected_clients = None;
-        let mut message_to_build = FlMessageToBuild::builder()
-            .message(Message::StateInfo)
-            .message_type(MessageType::KiloByte)
-            .quantity(1)
-            .build();
-
-        if !self.fl_models.client_selector.has_clients() {
-            self.server_state = ServerState::ClientSelection;
-            self.fl_models.client_selector.do_selection();
-            message_to_build = FlMessageToBuild::builder()
-                .message(Message::GlobalModel)
-                .message_type(MessageType::F64Weights)
-                .quantity(self.fl_models.trainer.no_of_weights)
-                .build();
-            selected_clients = Some(self.fl_models.client_selector.selected_clients().to_owned());
-        } else {
-            self.server_state = ServerState::ClientAnalysis;
-        }
-
         self.send_fl_message(bucket, message_to_build, selected_clients);
     }
 
@@ -276,11 +300,13 @@ impl<B: AutodiffBackend> Server<B> {
         self.server_state = ServerState::TrainingRound;
 
         let message_to_build = FlMessageToBuild::builder()
-            .message(Message::InitiateTraining)
+            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
+            .fl_content(FlContent::InitiateTraining)
             .build();
         let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
+        debug!("Selected clients are: {:?}", selected_clients);
         self.send_fl_message(bucket, message_to_build, Some(selected_clients));
     }
 
@@ -289,9 +315,10 @@ impl<B: AutodiffBackend> Server<B> {
         self.server_state = ServerState::Aggregation;
 
         let message_to_build = FlMessageToBuild::builder()
-            .message(Message::CompleteTraining)
+            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
+            .fl_content(FlContent::CompleteTraining)
             .build();
         let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
         self.send_fl_message(bucket, message_to_build, Some(selected_clients));
@@ -305,7 +332,13 @@ impl<B: AutodiffBackend> Server<B> {
             self.fl_models.trainer.model.clone(),
             &self.fl_models.trainer.device,
         );
+
         self.fl_models.trainer.save_model_to_file();
+        bucket
+            .models
+            .model_lake
+            .update_global_model(self.fl_models.trainer.model.clone());
+
         let model_accuracy = self.fl_models.trainer.test_model();
         debug!(
             "Global model accuracy is {} at {}",
@@ -313,9 +346,10 @@ impl<B: AutodiffBackend> Server<B> {
         );
 
         let message_to_build = FlMessageToBuild::builder()
-            .message(Message::CompleteTraining)
+            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
+            .fl_content(FlContent::StateInfo)
             .build();
         let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
         self.send_fl_message(bucket, message_to_build, Some(selected_clients));
@@ -326,7 +360,13 @@ impl<B: AutodiffBackend> Activatable<FlBucket<B>> for Server<B> {
     fn activate(&mut self, bucket: &mut FlBucket<B>) {
         debug!("Starting agent: {}", self.server_info.id);
         self.power_state = PowerState::On;
+
         bucket.update_agent_data_of(self.server_info.id, self.server_info);
+        self.fl_models
+            .times
+            .update_time(self.step, self.server_state);
+
+        bucket.models.model_lake.global_model = Some(self.fl_models.trainer.model.clone());
     }
 
     fn deactivate(&mut self) {
@@ -389,7 +429,7 @@ impl<B: AutodiffBackend>
         bucket: &mut FlBucket<B>,
     ) {
         debug!(
-            "Transmitting payload from agent {} to agent {} with blobs {}",
+            "Transmitting payload from agent {} to agent {} with units {}",
             payload.agent_state.id(),
             target.target,
             payload.data_units.len()
@@ -466,53 +506,54 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Server<B> {
         self.models.flow.reset();
 
         let mut rx_payloads = self.receive(bucket);
-        self.handle_fl_messages(bucket, &mut rx_payloads);
 
         if let Some(ref mut payloads) = rx_payloads {
+            self.do_fl_actions(bucket, payloads);
             self.models.flow.register_incoming(payloads);
             payloads.iter_mut().for_each(|payload| {
                 complete_actions(payload, &self.server_info);
             });
         }
+    }
 
+    fn stage_two_reverse(&mut self, bucket: &mut FlBucket<B>) {
+        debug!(
+            "Downlink stage for agent: {} id at step: {}",
+            self.server_info.id, self.step
+        );
         self.models
             .directions
             .stage_two
             .target_classes
             .clone()
             .iter()
-            .for_each(|target_class| match self.get_links(target_class, bucket) {
-                Some(links) => {
+            .for_each(|target_class| {
+                if let Some(links) = self.get_links(target_class, bucket) {
                     let payload =
                         self.models
                             .composer
                             .compose(self.step, target_class, &self.server_info);
                     let actions = self.models.actor.actions_for(target_class).to_owned();
-                    self.send_payload(links, target_class, payload, &rx_payloads, bucket, actions);
+                    self.send_payload(links, target_class, payload, &None, bucket, actions);
                 }
-                None => {}
             });
 
         // Talk to the agents in side link.
-        if self.models.directions.stage_one.is_sidelink {
+        if self.models.directions.stage_two.is_sidelink {
             let target_class = self.server_info.agent_class.clone();
-            match self.get_links(&target_class, bucket) {
-                Some(links) => {
-                    let payload =
-                        self.models
-                            .composer
-                            .compose(self.step, &target_class, &self.server_info);
-                    let actions = self.models.actor.actions_for(&target_class).to_owned();
-                    self.send_payload(links, &target_class, payload, &rx_payloads, bucket, actions);
-                }
-                None => {}
+            if let Some(links) = self.get_links(&target_class, bucket) {
+                let payload =
+                    self.models
+                        .composer
+                        .compose(self.step, &target_class, &self.server_info);
+                let actions = self.models.actor.actions_for(&target_class).to_owned();
+                self.send_payload(links, &target_class, payload, &None, bucket, actions);
             }
         }
-    }
 
-    fn stage_two_reverse(&mut self, bucket: &mut FlBucket<B>) {
         // Depending on the training state, send messages to clients.
         if self.fl_models.times.is_time_to_change(self.step) {
+            debug!("Changing server state at {}", self.step);
             match self.server_state {
                 ServerState::Idle => self.handle_initiation(bucket),
                 ServerState::ClientAnalysis => self.handle_analysis(bucket),
@@ -529,16 +570,18 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Server<B> {
     }
 
     fn stage_four_reverse(&mut self, bucket: &mut FlBucket<B>) {
-        debug!(
-            "Downlink stage for agent: {} id at step: {}",
-            self.server_info.id, self.step
-        );
-
         bucket.models.output.basic_results.rx_counts.add_data(
             self.step,
             self.server_info.id,
             &self.models.flow.comm_stats.outgoing_stats,
         );
+
+        match &mut bucket.models.output.fl_state_writer {
+            Some(writer) => {
+                writer.add_data(self.step, self.server_info.id, self.server_state.value())
+            }
+            None => {}
+        }
 
         if self.step == self.models.power.peek_time_to_off() {
             self.power_state = PowerState::Off;
@@ -547,29 +590,5 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Server<B> {
 
     fn stage_five(&mut self, _bucket: &mut FlBucket<B>) {
         self.stats = self.models.flow.comm_stats;
-    }
-}
-
-impl<B: AutodiffBackend>
-    FlAgent<FlBucket<B>, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>
-    for Server<B>
-{
-    fn handle_fl_messages(
-        &mut self,
-        bucket: &mut FlBucket<B>,
-        messages: &mut Option<Vec<FlPayload>>,
-    ) {
-        if let Some(payloads) = messages {
-            payloads.iter_mut().for_each(|payload| {
-                match payload.query_type {
-                    Message::Sensor => {}
-                    _ => self.do_fl_actions(bucket, payload),
-                };
-            });
-        }
-    }
-
-    fn update_state(&mut self) {
-        todo!()
     }
 }
