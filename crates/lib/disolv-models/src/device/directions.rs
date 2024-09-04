@@ -2,12 +2,9 @@ use serde::Deserialize;
 
 use disolv_core::agent::AgentClass;
 
-use crate::net::radio::LinkDirection;
-
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct CommDirections {
     pub stage_name: String,
-    pub direction: LinkDirection,
     pub is_sidelink: bool,
     pub target_classes: Vec<AgentClass>,
 }
@@ -20,30 +17,22 @@ pub struct Directions {
 }
 
 impl Directions {
-    pub fn new(directions: &Option<Vec<CommDirections>>) -> Self {
+    pub fn new(directions: &Vec<CommDirections>) -> Self {
         let mut stage_one = CommDirections::default();
         let mut stage_two = CommDirections::default();
         let mut stage_three = CommDirections::default();
-        if directions.is_none() {
-            Self {
-                stage_one,
-                stage_two,
-                stage_three,
+        directions.clone().iter().for_each(|dir| {
+            match dir.stage_name.to_lowercase().as_str() {
+                "stage_one" => stage_one = dir.to_owned(),
+                "stage_two" => stage_two = dir.to_owned(),
+                "stage_three" => stage_three = dir.to_owned(),
+                _ => panic!("Invalid stage name passed. Only valid values are: stage_one, stage_two, stage_three")
             }
-        } else {
-            directions.clone().unwrap().iter().for_each(|dir| {
-                match dir.stage_name.to_lowercase().as_str() {
-                    "stage_one" => stage_one = dir.to_owned(),
-                    "stage_two" => stage_two = dir.to_owned(),
-                    "stage_three" => stage_three = dir.to_owned(),
-                    _ => panic!("Invalid stage name passed. Only valid values are: stage_one, stage_two, stage_three")
-                }
-            });
-            Self {
-                stage_one,
-                stage_two,
-                stage_three,
-            }
+        });
+        Self {
+            stage_one,
+            stage_two,
+            stage_three,
         }
     }
 }
