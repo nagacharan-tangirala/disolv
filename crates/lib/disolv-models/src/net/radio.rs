@@ -18,13 +18,6 @@ pub struct LinkProperties {
 
 impl LinkFeatures for LinkProperties {}
 
-#[derive(Deserialize, Copy, Default, Debug, Clone, Eq, PartialEq, Hash)]
-pub enum LinkDirection {
-    #[default]
-    Uplink,
-    Downlink,
-}
-
 #[derive(Deserialize, Debug, Clone)]
 #[serde_with::skip_serializing_none]
 pub struct ActionSettings<C: ContentType> {
