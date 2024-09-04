@@ -88,7 +88,7 @@ impl RandomClients {
         if self.all_clients.len() == 0 {
             panic!("No client registered, cannot select clients");
         }
-        let client_count = (self.all_clients.len() as f64 * self.sample_size).round() as usize;
+        let client_count = (self.all_clients.len() as f64 * self.sample_size).ceil() as usize;
         self.selected_clients = self
             .all_clients
             .clone()
