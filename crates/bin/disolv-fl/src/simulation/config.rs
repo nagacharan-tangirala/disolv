@@ -85,7 +85,7 @@ pub struct AgentClassSettings {
     pub composer: ComposerSettings,
     pub link_selector: Vec<LinkSelectionSettings>,
     pub actions: Option<Vec<ActionSettings<MessageType>>>,
-    pub directions: Option<Vec<CommDirections>>,
+    pub directions: Vec<CommDirections>,
     pub energy: EnergySettings,
 }
 
