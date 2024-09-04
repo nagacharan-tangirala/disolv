@@ -8,7 +8,9 @@ use disolv_core::radio::{Action, Link};
 use disolv_models::device::models::Compose;
 
 use crate::fl::client::AgentInfo;
-use crate::models::device::message::{FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit};
+use crate::models::device::message::{
+    FlContent, FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit,
+};
 
 /// Define a struct that contains details about the data sensors that a device can hold.
 #[derive(Deserialize, Debug, Clone, Copy)]
@@ -88,6 +90,7 @@ impl SensorComposer {
                 .message_type(MessageType::SensorData)
                 .message_size(ds_settings.data_size)
                 .action(Action::default())
+                .fl_content(FlContent::StateInfo)
                 .build();
             message_units.push(data_blob);
         }
@@ -111,7 +114,7 @@ impl Compose<MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message> for Se
         FlPayload::builder()
             .metadata(payload_info)
             .agent_state(agent_state.clone())
-            .gathered_states(Some(Vec::new()))
+            .gathered_states(Vec::new())
             .data_units(data_units)
             .query_type(Message::Sensor)
             .build()
