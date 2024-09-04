@@ -7,11 +7,13 @@ use disolv_core::model::{Model, ModelSettings};
 use disolv_core::radio::{Action, Link};
 
 use crate::fl::client::AgentInfo;
-use crate::models::device::message::{FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit};
+use crate::models::device::message::{
+    FlContent, FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit,
+};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct FlDataSettings {
-    pub size_map: HashMap<Message, Bytes>,
+    pub size_map: HashMap<FlContent, Bytes>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -56,6 +58,7 @@ impl Model for FlComposer {
 pub struct FlMessageToBuild {
     pub message: Message,
     pub message_type: MessageType,
+    pub fl_content: FlContent,
     pub quantity: u64,
 }
 
@@ -83,8 +86,8 @@ impl SimpleComposer {
         FlPayload::builder()
             .agent_state(agent_state.clone())
             .data_units(vec![message_unit])
-            .query_type(Message::StateInfo)
-            .gathered_states(None)
+            .query_type(Message::FlMessage)
+            .gathered_states(Vec::new())
             .metadata(payload_info)
             .build()
     }
@@ -93,7 +96,7 @@ impl SimpleComposer {
         let mut message_size = self
             .settings
             .size_map
-            .get(&self.message_to_send.message)
+            .get(&self.message_to_send.fl_content)
             .expect("Invalid message")
             .to_owned();
 
@@ -102,6 +105,7 @@ impl SimpleComposer {
             .message_type(self.message_to_send.message_type.clone())
             .message_size(message_size)
             .action(Action::default())
+            .fl_content(self.message_to_send.fl_content)
             .build()
     }
 
