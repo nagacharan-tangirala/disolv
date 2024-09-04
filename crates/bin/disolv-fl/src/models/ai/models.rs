@@ -3,9 +3,8 @@ use std::fmt::Display;
 use burn::data::dataset::vision::MnistItem;
 use burn::prelude::Backend;
 
-use disolv_core::agent::{Agent, AgentProperties};
+use disolv_core::agent::Agent;
 use disolv_core::bucket::Bucket;
-use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 
 use crate::models::ai::cifar::{CifarFlDataset, CifarModel};
 use crate::models::ai::mnist::{MnistFlDataset, MnistModel};
@@ -17,6 +16,15 @@ pub enum ClientState {
     #[default]
     Sensing,
     Training,
+}
+
+impl ClientState {
+    pub const fn value(&self) -> u64 {
+        match self {
+            ClientState::Sensing => 10,
+            ClientState::Training => 20,
+        }
+    }
 }
 
 /// A trait that represents the server state while carrying a federated learning training session.
