@@ -18,7 +18,7 @@ fn main() {
     let args = CliArgs::parse();
     let start = std::time::Instant::now();
     let mut builder = SimulationBuilder::new(&args.config);
-    let scheduler = builder.build();
+    let scheduler = builder.build_with_map();
     run_simulation(scheduler, builder.metadata());
     let elapsed = start.elapsed();
     println!("Simulation finished in {} ms.", elapsed.as_millis());
