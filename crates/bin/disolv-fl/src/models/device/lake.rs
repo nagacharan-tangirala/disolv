@@ -7,7 +7,7 @@ use crate::models::ai::models::ModelType;
 
 pub(crate) struct ModelLake<B: Backend> {
     pub(crate) global_model: Option<ModelType<B>>,
-    pub(crate) model_map: HashMap<AgentId, ModelType<B>>,
+    model_map: HashMap<AgentId, ModelType<B>>,
 }
 
 impl<B: Backend> ModelLake<B> {
