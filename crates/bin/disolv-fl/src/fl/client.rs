@@ -221,20 +221,18 @@ impl<B: AutodiffBackend> Client<B> {
 
     fn do_fl_actions(&mut self, bucket: &mut FlBucket<B>, payloads: &mut Vec<FlPayload>) {
         for payload in payloads.iter_mut() {
-            payload
-                .data_units
-                .iter_mut()
-                .for_each(|data_unit| match data_unit.fl_content {
-                    FlContent::StateInfo => self.prepare_state_update(),
-                    FlContent::GlobalModel => self.collect_global_model(bucket),
-                    FlContent::InitiateTraining => self.initiate_training(),
-                    FlContent::CompleteTraining => self.complete_training(bucket),
-                    _ => panic!("Client should not receive this message"),
-                });
-            payload
-                .data_units
-                .iter_mut()
-                .for_each(|message| message.action.action_type = ActionType::Consume);
+            payload.data_units.iter_mut().for_each(|message_unit| {
+                if am_i_target(&message_unit.action, &self.client_info) {
+                    match message_unit.fl_content {
+                        FlContent::StateInfo => self.prepare_state_update(),
+                        FlContent::GlobalModel => self.collect_global_model(bucket),
+                        FlContent::InitiateTraining => self.initiate_training(),
+                        FlContent::CompleteTraining => self.complete_training(bucket),
+                        _ => panic!("Client should not receive this message"),
+                    }
+                    message_unit.action.action_type = ActionType::Consume;
+                }
+            });
         }
     }
 
