@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 disolv-core = { path = "../disolv-core" }
 serde = { version = "1.0.208", features = ["derive"] }
-typed-builder = "0.19.1"
+typed-builder = "0.20.0"
 rand_distr = "0.4.3"
 log = "0.4.22"
 rand = "0.8.5"
