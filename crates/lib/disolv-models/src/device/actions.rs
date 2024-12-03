@@ -25,14 +25,14 @@ pub fn filter_units_to_fwd<
 ) -> Vec<D> {
     let mut units_to_forward: Vec<D> = Vec::new();
     for payload in to_forward.iter() {
-        debug!(
-            "Checking to forward unit count {} from agent {} to agent {}",
-            payload.data_units.len(),
-            payload.agent_state.id(),
-            target_info.id()
-        );
         for unit in payload.data_units.iter() {
             if should_i_forward(unit, target_info) {
+                debug!(
+                    "Decided to forward unit of type {} from agent {} to agent {}",
+                    unit.content_type(),
+                    payload.agent_state.id(),
+                    target_info.id()
+                );
                 units_to_forward.push(unit.to_owned());
             }
         }
@@ -116,26 +116,18 @@ pub fn complete_actions<
 /// # Returns
 /// * `bool` - True if the current agent is the intended target, false otherwise
 pub fn am_i_target<P: AgentProperties>(action: &Action, agent_info: &P) -> bool {
-    // Order of precedence: Agent -> Class -> Kind
+    // Order of precedence: Agent -> Broadcast -> Class -> Kind
     if let Some(target_agent) = action.to_agent {
-        if target_agent == agent_info.id() {
-            return true;
-        }
-    }
-    if let Some(target_class) = action.to_class {
-        if target_class == *agent_info.class() {
-            return true;
-        }
-    }
-    if let Some(target_kind) = action.to_kind {
-        if target_kind == *agent_info.kind() {
-            return true;
-        }
+        return target_agent == agent_info.id();
     }
     if let Some(broadcast) = &action.to_broadcast {
-        if broadcast.contains(&agent_info.id()) {
-            return true;
-        }
+        return broadcast.contains(&agent_info.id());
+    }
+    if let Some(target_class) = action.to_class {
+        return target_class == *agent_info.class();
+    }
+    if let Some(target_kind) = action.to_kind {
+        return target_kind == *agent_info.kind();
     }
     false
 }
@@ -157,24 +149,16 @@ fn should_i_forward<C: ContentType, D: DataUnit<C>, P: AgentProperties>(
         panic!("This should have been consumed by now");
     }
     if let Some(id) = unit.action().to_agent {
-        if id == target_info.id() {
-            return true;
-        }
-    }
-    if let Some(class) = unit.action().to_class {
-        if class == *target_info.class() {
-            return true;
-        }
-    }
-    if let Some(kind) = unit.action().to_kind {
-        if kind == *target_info.kind() {
-            return true;
-        }
+        return id == target_info.id();
     }
     if let Some(broadcast) = &unit.action().to_broadcast {
-        if broadcast.contains(&target_info.id()) {
-            return true;
-        }
+        return broadcast.contains(&target_info.id());
+    }
+    if let Some(class) = unit.action().to_class {
+        return class == *target_info.class();
+    }
+    if let Some(kind) = unit.action().to_kind {
+        return kind == *target_info.kind();
     }
     false
 }
