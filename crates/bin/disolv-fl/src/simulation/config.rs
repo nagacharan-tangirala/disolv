@@ -9,12 +9,11 @@ use disolv_models::net::radio::ActionSettings;
 use disolv_output::result::OutputSettings;
 
 use crate::models::ai::aggregate::AggregationSettings;
-use crate::models::ai::compose::FlComposerSettings;
+use crate::models::ai::compose::ComposerSettings;
 use crate::models::ai::data::DataHolderSettings;
 use crate::models::ai::select::ClientSelectionSettings;
 use crate::models::ai::times::{ClientDurations, ServerDurations};
 use crate::models::ai::trainer::TrainerSettings;
-use crate::models::device::compose::ComposerSettings;
 use crate::models::device::energy::EnergySettings;
 use crate::models::device::hardware::HardwareSettings;
 use crate::models::device::link::LinkSelectionSettings;
@@ -23,18 +22,6 @@ use crate::models::device::mapper::{FieldSettings, MobilitySettings};
 use crate::models::device::message::MessageType;
 use crate::models::device::network::SliceSettings;
 use crate::simulation::distribute::DistributorSettings;
-
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct BaseConfig {
-    pub(crate) log_settings: LogSettings,
-    pub(crate) simulation_settings: SimSettings,
-    pub(crate) output_settings: OutputSettings,
-    pub(crate) field_settings: FieldSettings,
-    pub(crate) network_settings: NetworkSettings,
-    pub(crate) clients: Vec<ClientSettings>,
-    pub(crate) servers: Vec<ServerSettings>,
-    pub(crate) bucket_models: BucketSettings,
-}
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct LogSettings {
@@ -51,6 +38,44 @@ pub struct SimSettings {
     pub step_size: TimeMS,
     pub streaming_interval: TimeMS,
     pub seed: u64,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct NetworkSettings {
+    pub slice: Vec<SliceSettings>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct AgentClassSettings {
+    pub agent_share: f32,
+    pub agent_class: AgentClass,
+    pub agent_order: AgentOrder,
+    pub link_selector: Vec<LinkSelectionSettings>,
+    pub actions: Option<Vec<ActionSettings<MessageType>>>,
+    pub directions: Vec<CommDirections>,
+    pub energy: EnergySettings,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ClientClassSettings {
+    pub fl_composer: ComposerSettings,
+    pub durations: ClientDurations,
+    pub hardware: HardwareSettings,
+    pub data_holder: DataHolderSettings,
+    pub trainer_settings: TrainerSettings,
+    pub class_settings: AgentClassSettings,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ServerClassSettings {
+    pub client_classes: Vec<AgentClass>,
+    pub client_selector: ClientSelectionSettings,
+    pub fl_composer: ComposerSettings,
+    pub aggregation: AggregationSettings,
+    pub durations: ServerDurations,
+    pub data_holder: DataHolderSettings,
+    pub trainer_settings: TrainerSettings,
+    pub class_settings: AgentClassSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -72,44 +97,15 @@ pub struct ServerSettings {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct NetworkSettings {
-    pub slice: Vec<SliceSettings>,
-}
-
-#[serde_with::skip_serializing_none]
-#[derive(Deserialize, Debug, Clone)]
-pub struct AgentClassSettings {
-    pub agent_share: f32,
-    pub agent_class: AgentClass,
-    pub agent_order: AgentOrder,
-    pub composer: ComposerSettings,
-    pub link_selector: Vec<LinkSelectionSettings>,
-    pub actions: Option<Vec<ActionSettings<MessageType>>>,
-    pub directions: Vec<CommDirections>,
-    pub energy: EnergySettings,
-}
-
-#[serde_with::skip_serializing_none]
-#[derive(Deserialize, Debug, Clone)]
-pub struct ClientClassSettings {
-    pub fl_composer: FlComposerSettings,
-    pub durations: ClientDurations,
-    pub hardware: HardwareSettings,
-    pub data_holder: DataHolderSettings,
-    pub trainer_settings: TrainerSettings,
-    pub class_settings: AgentClassSettings,
-}
-
-#[serde_with::skip_serializing_none]
-#[derive(Deserialize, Debug, Clone)]
-pub struct ServerClassSettings {
-    pub class_settings: AgentClassSettings,
-    pub client_classes: Vec<AgentClass>,
-    pub client_selector: ClientSelectionSettings,
-    pub fl_composer: FlComposerSettings,
-    pub aggregation: AggregationSettings,
-    pub durations: ServerDurations,
-    pub trainer_settings: TrainerSettings,
+pub(crate) struct BaseConfig {
+    pub(crate) log_settings: LogSettings,
+    pub(crate) simulation_settings: SimSettings,
+    pub(crate) output_settings: OutputSettings,
+    pub(crate) field_settings: FieldSettings,
+    pub(crate) network_settings: NetworkSettings,
+    pub(crate) clients: Vec<ClientSettings>,
+    pub(crate) servers: Vec<ServerSettings>,
+    pub(crate) bucket_models: BucketSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
