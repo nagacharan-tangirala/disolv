@@ -51,11 +51,11 @@ impl ContentType for MessageType {}
 #[derive(Deserialize, Default, Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum FlContent {
     #[default]
+    None,
     StateInfo,
     GlobalModel,
     LocalModel,
-    Selected,
-    InitiateTraining,
+    ClientSelected,
     CompleteTraining,
     TrainingFailed,
 }
@@ -63,11 +63,11 @@ pub enum FlContent {
 impl Display for FlContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            FlContent::None => write!(f, "None"),
             FlContent::StateInfo => write!(f, "StateInfo"),
             FlContent::GlobalModel => write!(f, "GlobalModel"),
             FlContent::LocalModel => write!(f, "LocalModel"),
-            FlContent::Selected => write!(f, "Selected"),
-            FlContent::InitiateTraining => write!(f, "InitiateTraining"),
+            FlContent::ClientSelected => write!(f, "Selected"),
             FlContent::CompleteTraining => write!(f, "CompleteTraining"),
             FlContent::TrainingFailed => write!(f, "TrainingFailed"),
         }
