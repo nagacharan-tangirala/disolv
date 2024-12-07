@@ -1,3 +1,4 @@
+use log::debug;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
@@ -98,10 +99,11 @@ impl Model for UniformDistributor {
 
 impl BucketModel for UniformDistributor {
     fn init(&mut self, _step: TimeMS) {
+        debug!("Total clients are {}", self.total_clients);
         match self.dataset_type.to_lowercase().as_str() {
             "mnist" => {
                 let train_data = MnistFlDataset::new(BatchType::Train);
-                let partition_size = train_data.images.len() / self.total_clients as usize;
+                let mut partition_size = train_data.images.len() / self.total_clients as usize;
                 train_data
                     .images
                     .chunks(partition_size)
@@ -112,6 +114,7 @@ impl BucketModel for UniformDistributor {
                             )))
                     });
                 let test_data = MnistFlDataset::new(BatchType::Test);
+                partition_size = test_data.images.len() / self.total_clients as usize;
                 test_data
                     .images
                     .chunks(partition_size)
@@ -155,14 +158,8 @@ impl Model for NonIidDistributor {
     type Settings = DistributorSettings;
 
     fn with_settings(settings: &Self::Settings) -> Self {
-        let label_skew = match settings.label_skew.clone() {
-            Some(val) => Some(RngSampler::new(val)),
-            None => None,
-        };
-        let data_skew = match settings.data_skew.clone() {
-            Some(val) => Some(RngSampler::new(val)),
-            None => None,
-        };
+        let label_skew = settings.label_skew.clone().map(RngSampler::new);
+        let data_skew = settings.data_skew.clone().map(RngSampler::new);
         let mut train_data = DatasetType::Empty;
         let mut test_data = DatasetType::Empty;
         match settings.dataset_type.to_lowercase().as_str() {
