@@ -11,10 +11,11 @@ use crate::models::ai::mnist::{MnistFlDataset, MnistModel};
 
 /// A trait that represents the training state if the agent is participating in federated
 /// learning training process.
-#[derive(Default, Copy, Clone, Debug)]
+#[derive(Default, Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ClientState {
     #[default]
     Sensing,
+    Waiting,
     Training,
 }
 
@@ -22,7 +23,8 @@ impl ClientState {
     pub const fn value(&self) -> u64 {
         match self {
             ClientState::Sensing => 10,
-            ClientState::Training => 20,
+            ClientState::Waiting => 20,
+            ClientState::Training => 30,
         }
     }
 }
@@ -43,7 +45,7 @@ pub enum ModelType<B: Backend> {
     Cifar(CifarModel<B>),
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub enum DatasetType {
     #[default]
     Empty,
@@ -52,6 +54,21 @@ pub enum DatasetType {
 }
 
 impl DatasetType {
+    pub fn blank(dataset_type: &str) -> Self {
+        match dataset_type.to_lowercase().as_str() {
+            "mnist" => DatasetType::Mnist(MnistFlDataset::default()),
+            _ => unimplemented!("other datasets are not implemented"),
+        }
+    }
+
+    pub fn dataset_type(&self) -> &str {
+        match self {
+            DatasetType::Mnist(_) => "mnist",
+            DatasetType::Cifar(_) => "cifar",
+            DatasetType::Empty => "empty",
+        }
+    }
+
     pub fn has_data(&self) -> bool {
         match self {
             DatasetType::Mnist(mnist) => mnist.images.len() > 0,
@@ -70,7 +87,14 @@ impl DatasetType {
     pub fn append_mnist(&mut self, new_item: MnistItem) {
         match self {
             DatasetType::Mnist(mnist) => mnist.images.push(new_item),
-            _ => panic!("Trying to append wrong item to mnist data"),
+            _ => panic!("Trying to push mnist data to wrong dataset"),
+        }
+    }
+
+    pub fn clear(&mut self) {
+        match self {
+            DatasetType::Mnist(mnist) => mnist.images.clear(),
+            _ => unimplemented!("Unable to clear dataset"),
         }
     }
 }
