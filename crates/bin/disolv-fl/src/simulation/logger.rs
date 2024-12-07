@@ -19,8 +19,8 @@ pub fn setup_logging(log_level: &str, log_file_path: PathBuf) -> Result<Config, 
         .unwrap();
 
     Config::builder()
-        .appender(Appender::builder().build("x", Box::new(log_file)))
-        .build(Root::builder().appender("x").build(log_level))
+        .appender(Appender::builder().build("disolv", Box::new(log_file)))
+        .build(Root::builder().appender("disolv").build(log_level))
 }
 
 fn get_logging_level(log_level: &str) -> LevelFilter {
