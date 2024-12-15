@@ -10,14 +10,6 @@ use crate::links::linker::{DeviceCount, LinkType, Radius};
 use crate::links::reader::TraceType;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct Config {
-    pub log_settings: LogSettings,
-    pub settings: Settings,
-    pub link_settings: Vec<LinkSettings>,
-    pub position_files: Vec<PositionFiles>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
 pub struct LogSettings {
     pub log_path: String,
     pub log_level: String,
@@ -41,7 +33,6 @@ pub struct PositionFiles {
     pub position_file: String,
 }
 
-#[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct LinkSettings {
     pub source: AgentKind,
@@ -51,6 +42,14 @@ pub struct LinkSettings {
     pub link_model: String,
     pub link_type: LinkType,
     pub links_file: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Config {
+    pub log_settings: LogSettings,
+    pub settings: Settings,
+    pub link_settings: Vec<LinkSettings>,
+    pub position_files: Vec<PositionFiles>,
 }
 
 pub(crate) fn read_config(file_path: &PathBuf) -> Config {
