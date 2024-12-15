@@ -63,6 +63,13 @@ impl Action {
             to_broadcast: None,
         }
     }
+
+    pub fn update_broadcast(&mut self, agents: &Vec<AgentId>) {
+        match &mut self.to_broadcast {
+            Some(val) => val.extend(agents.iter()),
+            None => self.to_broadcast = Some(agents.to_owned()),
+        }
+    }
 }
 
 /// A trait that an entity must implement to transmit payloads. Transmission of payloads
