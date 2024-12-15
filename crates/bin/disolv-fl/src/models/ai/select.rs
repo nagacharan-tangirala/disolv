@@ -2,7 +2,7 @@ use rand::seq::IteratorRandom;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
-use disolv_core::hashbrown::HashMap;
+use disolv_core::hashbrown::{HashMap, HashSet};
 use disolv_core::model::{Model, ModelSettings};
 
 use crate::fl::client::AgentInfo;
@@ -64,6 +64,7 @@ pub(crate) struct RandomClients {
     pub(crate) sample_size: f64,
     all_clients: HashMap<AgentId, AgentInfo>,
     pub(crate) selected_clients: Vec<AgentId>,
+    pub(crate) used_clients: HashSet<AgentId>,
 }
 
 impl RandomClients {
@@ -73,6 +74,7 @@ impl RandomClients {
             sample_size: settings.sample_size,
             all_clients: HashMap::new(),
             selected_clients: Vec::new(),
+            used_clients: HashSet::new(),
         }
     }
 }
@@ -89,13 +91,25 @@ impl RandomClients {
             panic!("No client registered, cannot select clients");
         }
         let client_count = (self.all_clients.len() as f64 * self.sample_size).ceil() as usize;
-        self.selected_clients = self
-            .all_clients
-            .clone()
+
+        let mut feasible_clients = Vec::new();
+        self.all_clients.keys().clone().into_iter().for_each(|key| {
+            if !self.used_clients.contains(key) {
+                feasible_clients.push(*key);
+            }
+        });
+
+        self.selected_clients = feasible_clients
             .iter()
             .choose_multiple(&mut rng, client_count)
             .into_iter()
-            .map(|x| x.0.clone())
+            .map(|x| x.to_owned())
             .collect();
+
+        self.selected_clients.iter().for_each(|x| {
+            if !self.used_clients.contains(x) {
+                self.used_clients.insert(x.to_owned());
+            }
+        });
     }
 }
