@@ -14,5 +14,5 @@ pub struct CifarModel<B: Backend> {
     pub conv1: Conv2d<B>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CifarFlDataset {}
