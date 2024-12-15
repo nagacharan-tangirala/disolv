@@ -1,11 +1,14 @@
-use crate::columns::TIME_STEP;
+use std::fs::File;
+use std::path::PathBuf;
+
 use arrow_array::RecordBatch;
-use disolv_core::bucket::TimeMS;
 use log::{debug, error};
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::file::statistics::Statistics;
-use std::fs::File;
-use std::path::PathBuf;
+
+use disolv_core::bucket::TimeMS;
+
+use crate::columns::TIME_STEP;
 
 pub fn read_f64_column(col_name: &str, record_batch: &RecordBatch) -> Vec<f64> {
     let array_data = match record_batch.column_by_name(col_name) {
@@ -69,10 +72,10 @@ pub fn get_row_groups_for_time(
             if column.column_descr().name() == TIME_STEP {
                 match column.statistics() {
                     Some(Statistics::Int64(stats)) => {
-                        if start_time.as_i64() > *stats.max() {
+                        if start_time.as_i64() > *stats.max_opt().unwrap() {
                             continue 'row_group_loop;
                         }
-                        if end_time.as_i64() < *stats.min() {
+                        if end_time.as_i64() < *stats.min_opt().unwrap() {
                             break 'row_group_loop;
                         }
                         interested_groups.push(row_group);
