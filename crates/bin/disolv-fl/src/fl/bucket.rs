@@ -151,6 +151,7 @@ impl<B: Backend> Bucket for FlBucket<B> {
         self.models.linker_holder.iter_mut().for_each(|linker| {
             linker.before_agent_step(self.step);
         });
+        self.models.data_distributor.before_agent_step(self.step);
     }
 
     fn after_agents(&mut self) {
@@ -164,6 +165,7 @@ impl<B: Backend> Bucket for FlBucket<B> {
         self.models.linker_holder.iter_mut().for_each(|linker| {
             linker.stream_data(self.step);
         });
+        self.models.data_distributor.stream_data(self.step);
     }
 
     fn stream_output(&mut self) {
