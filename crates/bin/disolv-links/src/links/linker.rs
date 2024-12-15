@@ -10,6 +10,7 @@ use parquet::basic::Compression;
 use parquet::file::properties::WriterProperties;
 use serde::Deserialize;
 
+use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
 
@@ -44,11 +45,6 @@ impl DeviceCount {
     pub(crate) fn as_usize(&self) -> usize {
         self.0 as usize
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub(crate) enum LinkModel {
-    Circular,
 }
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -104,25 +100,33 @@ impl WriterCache {
     }
 }
 
-pub(crate) struct LinkerImpl {
-    writer: ArrowWriter<File>,
-    link_model: LinkModel,
-    linker_settings: LinkSettings,
-    writer_cache: WriterCache,
+pub(crate) enum LinkerImpl {
+    Circular(CircularLinker),
+    Unicast(UnicastLinker),
 }
 
 impl LinkerImpl {
-    pub(crate) fn new(output_path: &str, link_settings: &LinkSettings) -> Self {
+    pub(crate) fn new(output_path: &str, link_settings: &LinkSettings) -> LinkerImpl {
         let output_file = output_path.to_owned() + link_settings.links_file.as_str() + ".parquet";
-        let link_model = match link_settings.link_model.to_lowercase().as_str() {
-            "circular" => LinkModel::Circular,
+        let writer = Self::create_writer(&output_file);
+        match link_settings.link_model.to_lowercase().as_str() {
+            "circular" => LinkerImpl::Circular(CircularLinker::new(writer, link_settings)),
+            "unicast" => LinkerImpl::Unicast(UnicastLinker::new(writer, link_settings)),
             _ => panic!("Invalid linker model"),
-        };
-        Self {
-            link_model,
-            writer: Self::create_writer(output_file.as_str()),
-            linker_settings: link_settings.clone(),
-            writer_cache: WriterCache::new(125000),
+        }
+    }
+
+    pub(crate) fn write_links(
+        &mut self,
+        source_positions: &AgentIdPos,
+        target_tree: &KdTree<f64, 2>,
+        now: TimeMS,
+    ) {
+        match self {
+            LinkerImpl::Circular(circular) => {
+                circular.write_links(source_positions, target_tree, now)
+            }
+            LinkerImpl::Unicast(unicast) => unicast.write_links(source_positions, target_tree, now),
         }
     }
 
@@ -148,6 +152,29 @@ impl LinkerImpl {
         }
     }
 
+    pub(crate) fn flush(mut self) {
+        match self {
+            LinkerImpl::Circular(circular) => circular.flush(),
+            LinkerImpl::Unicast(unicast) => unicast.flush(),
+        }
+    }
+}
+
+pub(crate) struct CircularLinker {
+    writer: ArrowWriter<File>,
+    linker_settings: LinkSettings,
+    writer_cache: WriterCache,
+}
+
+impl CircularLinker {
+    fn new(writer: ArrowWriter<File>, link_settings: &LinkSettings) -> Self {
+        Self {
+            writer: writer,
+            linker_settings: link_settings.clone(),
+            writer_cache: WriterCache::new(125000),
+        }
+    }
+
     pub(crate) fn write_links(
         &mut self,
         source_positions: &AgentIdPos,
@@ -155,10 +182,12 @@ impl LinkerImpl {
         now: TimeMS,
     ) {
         debug!("Calculating links for {}", now);
+
         for agent_id_pos in source_positions.iter() {
             if let Some(radius) = self.linker_settings.link_radius {
                 let neighbours: Vec<NearestNeighbour<f64, u64>> = target_tree
                     .within::<SquaredEuclidean>(&agent_id_pos.1, radius.as_f64() * radius.as_f64());
+
                 neighbours.into_iter().for_each(|neigh_dist| {
                     if neigh_dist.distance > 0. {
                         self.writer_cache.times.push(now.as_u64());
@@ -169,9 +198,11 @@ impl LinkerImpl {
                 });
                 continue;
             }
+
             if let Some(count) = self.linker_settings.link_count {
                 let neighbours =
                     target_tree.nearest_n::<SquaredEuclidean>(&agent_id_pos.1, count.as_usize());
+
                 neighbours.into_iter().for_each(|neigh_dist| {
                     if neigh_dist.distance > 0. {
                         self.writer_cache.times.push(now.as_u64());
@@ -191,6 +222,77 @@ impl LinkerImpl {
     }
 
     pub(crate) fn flush(mut self) {
+        debug!(r"Link calculation done. Flushing the cache to file");
+        self.writer
+            .write(&self.writer_cache.as_record_batch())
+            .expect("Failed to flush link cache");
+        self.writer.close().expect("Failed to close the link file");
+    }
+}
+
+pub struct UnicastLinker {
+    writer: ArrowWriter<File>,
+    linker_settings: LinkSettings,
+    writer_cache: WriterCache,
+}
+
+impl UnicastLinker {
+    fn new(writer: ArrowWriter<File>, link_settings: &LinkSettings) -> Self {
+        Self {
+            writer: writer,
+            linker_settings: link_settings.clone(),
+            writer_cache: WriterCache::new(125000),
+        }
+    }
+
+    pub(crate) fn write_links(
+        &mut self,
+        source_positions: &AgentIdPos,
+        target_tree: &KdTree<f64, 2>,
+        now: TimeMS,
+    ) {
+        debug!("Calculating links for {}", now);
+
+        for agent_id_pos in source_positions.iter() {
+            if let Some(radius) = self.linker_settings.link_radius {
+                let neighbours: Vec<NearestNeighbour<f64, u64>> = target_tree
+                    .within::<SquaredEuclidean>(&agent_id_pos.1, radius.as_f64() * radius.as_f64());
+
+                neighbours.into_iter().for_each(|neigh_dist| {
+                    if neigh_dist.distance > 0. {
+                        self.writer_cache.times.push(now.as_u64());
+                        self.writer_cache.sources.push(agent_id_pos.0.as_u64());
+                        self.writer_cache.targets.push(neigh_dist.item);
+                        self.writer_cache.distances.push(neigh_dist.distance.sqrt());
+                    }
+                });
+                continue;
+            }
+
+            if let Some(count) = self.linker_settings.link_count {
+                let neighbours =
+                    target_tree.nearest_n::<SquaredEuclidean>(&agent_id_pos.1, count.as_usize());
+
+                neighbours.into_iter().for_each(|neigh_dist| {
+                    if neigh_dist.distance > 0. {
+                        self.writer_cache.times.push(now.as_u64());
+                        self.writer_cache.sources.push(neigh_dist.item);
+                        self.writer_cache.targets.push(agent_id_pos.0.as_u64());
+                        self.writer_cache.distances.push(neigh_dist.distance.sqrt());
+                    }
+                });
+            }
+        }
+
+        if self.writer_cache.is_full() {
+            debug!("Cache full. Writing to files");
+            self.writer
+                .write(&self.writer_cache.as_record_batch())
+                .expect("Failed to write record batches to file");
+        }
+    }
+
+    fn flush(mut self) {
         debug!(r"Link calculation done. Flushing the cache to file");
         self.writer
             .write(&self.writer_cache.as_record_batch())
