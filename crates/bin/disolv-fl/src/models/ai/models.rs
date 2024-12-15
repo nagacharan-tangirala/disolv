@@ -57,7 +57,7 @@ impl DatasetType {
     pub fn blank(dataset_type: &str) -> Self {
         match dataset_type.to_lowercase().as_str() {
             "mnist" => DatasetType::Mnist(MnistFlDataset::default()),
-            _ => unimplemented!("other datasets are not implemented"),
+            _ => unimplemented!("{} datasets are not implemented", dataset_type),
         }
     }
 
