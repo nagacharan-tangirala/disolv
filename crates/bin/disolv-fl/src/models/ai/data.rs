@@ -1,19 +1,21 @@
 use std::cmp::min;
 
 use log::debug;
-use serde::Deserialize;
+use ratatui::text::ToText;
+use serde::{Deserialize, Serialize};
 
 use disolv_core::agent::AgentId;
 use disolv_core::model::{Model, ModelSettings};
 
 use crate::models::ai::models::DatasetType;
 
-#[serde_with::skip_serializing_none]
 #[derive(Clone, Debug, Deserialize)]
 pub struct DataStrategySettings {
     pub variant: String,
+    #[serde(default)]
     pub units_per_step: Option<usize>,
     pub test_train_split: f64,
+    pub to_clone: bool,
 }
 
 impl ModelSettings for DataStrategySettings {}
@@ -51,12 +53,14 @@ impl DataStrategy {
 #[derive(Clone)]
 pub struct TimeStrategy {
     pub(crate) units_per_step: usize,
+    pub(crate) to_clone: bool,
 }
 
 impl TimeStrategy {
     pub fn new(settings: &DataStrategySettings) -> Self {
         Self {
             units_per_step: settings.units_per_step.expect("Units per step is missing"),
+            to_clone: settings.to_clone,
         }
     }
 
@@ -66,9 +70,18 @@ impl TimeStrategy {
                 let images_to_move = min(mnist.images.len(), self.units_per_step);
                 debug!("Moving images {}", images_to_move);
                 debug!("{:?}", allotted_data.dataset_type());
-                for i in 0..images_to_move {
-                    let mnist_image = mnist.images.pop().expect("failed to read image");
-                    allotted_data.append_mnist(mnist_image);
+
+                if self.to_clone {
+                    let mut dataset = mnist.clone();
+                    for _ in 0..images_to_move {
+                        let mnist_image = dataset.images.pop().expect("failed to read image");
+                        allotted_data.append_mnist(mnist_image);
+                    }
+                } else {
+                    for _ in 0..images_to_move {
+                        let mnist_image = mnist.images.pop().expect("failed to read image");
+                        allotted_data.append_mnist(mnist_image);
+                    }
                 }
             }
             _ => unimplemented!("only mnist is valid"),
@@ -77,11 +90,15 @@ impl TimeStrategy {
 }
 
 #[derive(Clone)]
-pub struct AllStrategy {}
+pub struct AllStrategy {
+    to_clone: bool,
+}
 
 impl AllStrategy {
     pub fn new(settings: &DataStrategySettings) -> Self {
-        Self {}
+        Self {
+            to_clone: settings.to_clone,
+        }
     }
 
     pub fn allot_data(&self, allotted_data: &mut DatasetType, total_data: &mut DatasetType) {
@@ -94,7 +111,9 @@ impl AllStrategy {
             }
             _ => unimplemented!("only mnist is valid"),
         }
-        total_data.clear();
+        if !self.to_clone {
+            total_data.clear();
+        }
     }
 }
 
