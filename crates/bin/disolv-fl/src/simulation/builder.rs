@@ -1,19 +1,19 @@
 use std::path::{Path, PathBuf};
 
-use burn::backend::wgpu::{AutoGraphicsApi, WgpuDevice};
 use burn::backend::{Autodiff, Wgpu};
+use burn::backend::wgpu::{AutoGraphicsApi, WgpuDevice};
 use indexmap::IndexMap;
 use log::info;
 
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
-use disolv_core::metrics::Resource;
 use disolv_core::metrics::{Consumable, Measurable};
+use disolv_core::metrics::Resource;
 use disolv_core::model::Model;
 use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
 use disolv_input::links::LinkReader;
-use disolv_input::power::{read_power_schedule, PowerTimes};
+use disolv_input::power::{PowerTimes, read_power_schedule};
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
 use disolv_models::device::directions::Directions;
@@ -35,7 +35,6 @@ use crate::models::ai::models::ModelType;
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::{ClientTimes, ServerTimes};
 use crate::models::ai::trainer::{Trainer, TrainerSettings};
-use crate::models::device::compose::V2XComposer;
 use crate::models::device::energy::EnergyType;
 use crate::models::device::hardware::{BandwidthType, Hardware};
 use crate::models::device::lake::ModelLake;
@@ -237,9 +236,6 @@ impl SimulationBuilder {
             .power(power_manager)
             .flow(FlowRegister::default())
             .sl_flow(FlowRegister::default())
-            .composer(V2XComposer::with_settings(
-                &client_settings.class_settings.composer,
-            ))
             .selector(selector_vec)
             .actor(Actor::new(&client_settings.class_settings.actions.clone()))
             .directions(Directions::new(&client_settings.class_settings.directions))
@@ -297,9 +293,6 @@ impl SimulationBuilder {
             .power(power_manager)
             .flow(FlowRegister::default())
             .sl_flow(FlowRegister::default())
-            .composer(V2XComposer::with_settings(
-                &server_settings.class_settings.composer,
-            ))
             .link_selector(selector_vec)
             .actor(Actor::new(&server_settings.class_settings.actions.clone()))
             .directions(Directions::new(&server_settings.class_settings.directions))
@@ -318,6 +311,7 @@ impl SimulationBuilder {
             .client_selector(ClientSelector::with_settings(
                 &server_settings.client_selector,
             ))
+            .holder(DataHolder::with_settings(&server_settings.data_holder))
             .build();
 
         FServer(
