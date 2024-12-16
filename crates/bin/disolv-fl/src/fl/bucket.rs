@@ -41,6 +41,7 @@ pub(crate) struct FlBucketModels<B: Backend> {
     pub(crate) data_lake: FlDataLake,
     pub(crate) model_lake: ModelLake<B>,
     pub(crate) data_distributor: DataDistributor,
+    pub(crate) device: B::Device,
 }
 
 #[derive(TypedBuilder)]

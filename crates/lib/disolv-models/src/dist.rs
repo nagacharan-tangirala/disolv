@@ -11,7 +11,6 @@ pub enum DistType {
     Gamma(Gamma<f64>),
 }
 
-#[serde_with::skip_serializing_none]
 #[derive(Debug, Clone, Deserialize)]
 pub struct DistParams {
     pub dist_name: String,

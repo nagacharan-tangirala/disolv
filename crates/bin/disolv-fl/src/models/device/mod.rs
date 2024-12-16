@@ -1,4 +1,3 @@
-pub(crate) mod compose;
 pub(crate) mod energy;
 pub(crate) mod hardware;
 pub(crate) mod lake;

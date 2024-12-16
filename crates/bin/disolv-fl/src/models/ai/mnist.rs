@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::path::PathBuf;
 
+use burn::backend::wgpu::WgpuDevice;
 use burn::config::Config;
 use burn::data::dataloader::{DataLoaderBuilder, Dataset};
 use burn::data::dataloader::batcher::Batcher;

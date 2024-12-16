@@ -339,7 +339,6 @@ impl SimulationBuilder {
                     .no_of_weights(trainer_settings.no_of_weights)
                     .output_path(output_path)
                     .model(ModelType::Mnist(train_config.model.init(&device)))
-                    .device(device)
                     .config(train_config)
                     .build()
             }
@@ -447,6 +446,7 @@ impl SimulationBuilder {
             .data_distributor(DataDistributor::with_settings(
                 &self.base_config.bucket_models.distributor,
             ))
+            .device(WgpuDevice::default())
             .build();
 
         FedBucket::builder()

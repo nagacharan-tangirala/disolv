@@ -1,5 +1,6 @@
 use burn::prelude::Backend;
 use burn::tensor::backend::AutodiffBackend;
+use log::debug;
 use serde::Deserialize;
 
 use disolv_core::model::{Model, ModelSettings};
@@ -61,6 +62,7 @@ impl<B: AutodiffBackend> FedAvgAggregator<B> {
     }
 
     pub(crate) fn aggregate(&self, global_model: ModelType<B>, device: &B::Device) -> ModelType<B> {
+        debug!("{} is the local model count.", self.local_models.len());
         match global_model {
             ModelType::Mnist(mnist_model) => {
                 let local_models = self
