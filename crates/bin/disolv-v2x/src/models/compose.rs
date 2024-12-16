@@ -50,12 +50,6 @@ impl Model for Composer {
 }
 
 impl Composer {
-    pub fn update_sources(&mut self, data_sources: &Vec<DataSource>) {
-        match self {
-            Composer::Basic(composer) => composer.update_sources(data_sources),
-        }
-    }
-
     pub fn append_blobs_to(&mut self, payload: &mut V2XPayload, units: &mut Vec<DataBlob>) {
         units.iter().for_each(|unit| {
             payload.metadata.total_size += unit.data_size;
@@ -66,9 +60,14 @@ impl Composer {
 }
 
 impl Compose<DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType> for Composer {
-    fn compose(&self, target_class: &AgentClass, agent_state: &DeviceInfo) -> V2XPayload {
+    fn compose(
+        &self,
+        at: TimeMS,
+        target_class: &AgentClass,
+        agent_state: &DeviceInfo,
+    ) -> V2XPayload {
         match self {
-            Composer::Basic(composer) => composer.compose_payload(target_class, agent_state),
+            Composer::Basic(composer) => composer.compose(at, target_class, agent_state),
         }
     }
 }
@@ -76,44 +75,22 @@ impl Compose<DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType> for Compo
 #[derive(Clone, Debug, Default)]
 pub struct BasicComposer {
     pub data_sources: Vec<DataSource>,
-    pub step: TimeMS,
 }
 
 impl BasicComposer {
-    pub fn new(composer_settings: &ComposerSettings) -> Self {
+    fn new(composer_settings: &ComposerSettings) -> Self {
         Self {
             data_sources: composer_settings.source_settings.to_owned(),
-            step: TimeMS::default(),
         }
     }
 
-    pub fn update_sources(&mut self, data_sources: &Vec<DataSource>) {
-        self.data_sources = data_sources.to_owned();
-    }
-
-    pub fn update_step(&mut self, step: TimeMS) {
-        self.step = step;
-    }
-
-    fn compose_payload(&self, target_class: &AgentClass, content: &DeviceInfo) -> V2XPayload {
-        let data_units = self.compose_data_units(target_class);
-        let payload_info = self.build_metadata(&data_units);
-        V2XPayload::builder()
-            .metadata(payload_info)
-            .agent_state(content.clone())
-            .gathered_states(Some(Vec::new()))
-            .data_units(data_units)
-            .query_type(MessageType::Sensor)
-            .build()
-    }
-
-    fn compose_data_units(&self, target_class: &AgentClass) -> Vec<DataBlob> {
+    fn compose_data_units(&self, step: TimeMS, target_class: &AgentClass) -> Vec<DataBlob> {
         let mut data_blobs = Vec::with_capacity(self.data_sources.len());
         for ds_settings in self.data_sources.iter() {
             if ds_settings.agent_class != *target_class {
                 continue;
             }
-            if self.step.as_u64() % ds_settings.source_step.as_u64() != TimeMS::default().as_u64() {
+            if step.as_u64() % ds_settings.source_step.as_u64() != TimeMS::default().as_u64() {
                 continue;
             }
 
@@ -135,6 +112,25 @@ impl BasicComposer {
             .selected_link(Link::default())
             .build();
         payload_info
+    }
+}
+
+impl Compose<DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType> for BasicComposer {
+    fn compose(
+        &self,
+        at: TimeMS,
+        target_class: &AgentClass,
+        agent_state: &DeviceInfo,
+    ) -> V2XPayload {
+        let data_units = self.compose_data_units(at, target_class);
+        let payload_info = self.build_metadata(&data_units);
+        V2XPayload::builder()
+            .metadata(payload_info)
+            .agent_state(agent_state.clone())
+            .gathered_states(Vec::new())
+            .data_units(data_units)
+            .query_type(MessageType::Sensor)
+            .build()
     }
 }
 

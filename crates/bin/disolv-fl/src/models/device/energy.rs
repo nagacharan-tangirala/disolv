@@ -1,13 +1,12 @@
 use serde::Deserialize;
 
+use disolv_core::message::Metadata;
 use disolv_core::metrics::Feasibility;
 use disolv_core::metrics::Measurable;
 use disolv_core::metrics::MetricSettings;
+use disolv_models::device::metrics::Energy;
 
-use crate::net::message::PayloadInfo;
-use crate::net::message::TxMetrics;
-
-use super::metrics::Energy;
+use crate::models::device::message::FlPayloadInfo;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct EnergySettings {
@@ -24,10 +23,8 @@ pub enum EnergyType {
     TrainingLength(TrainingLengthEnergy),
 }
 
-impl Measurable<Energy> for EnergyType {
-    type P = PayloadInfo;
+impl Measurable<Energy, FlPayloadInfo> for EnergyType {
     type S = EnergySettings;
-    type T = TxMetrics;
 
     fn with_settings(settings: &Self::S) -> Self {
         match settings.name.to_lowercase().as_str() {
@@ -36,10 +33,10 @@ impl Measurable<Energy> for EnergyType {
         }
     }
 
-    fn measure(&mut self, tx_report: &TxMetrics, metadata: &PayloadInfo) -> Feasibility<Energy> {
+    fn measure(&mut self, metadata: &FlPayloadInfo) -> Feasibility<Energy> {
         match self {
-            EnergyType::Proportional(energy) => energy.measure(tx_report, metadata),
-            EnergyType::TrainingLength(energy) => energy.measure(tx_report, metadata),
+            EnergyType::Proportional(energy) => energy.measure(metadata),
+            EnergyType::TrainingLength(energy) => energy.measure(metadata),
         }
     }
 }
@@ -50,10 +47,8 @@ pub struct ProportionalEnergy {
     pub static_energy: Energy,
 }
 
-impl Measurable<Energy> for ProportionalEnergy {
-    type P = PayloadInfo;
+impl Measurable<Energy, FlPayloadInfo> for ProportionalEnergy {
     type S = EnergySettings;
-    type T = TxMetrics;
 
     fn with_settings(settings: &Self::S) -> Self {
         Self {
@@ -62,9 +57,8 @@ impl Measurable<Energy> for ProportionalEnergy {
         }
     }
 
-    fn measure(&mut self, tx_report: &TxMetrics, metadata: &PayloadInfo) -> Feasibility<Energy> {
-        let energy =
-            self.static_energy + Energy::new(tx_report.payload_size.as_u64() * self.factor);
+    fn measure(&mut self, metadata: &FlPayloadInfo) -> Feasibility<Energy> {
+        let energy = self.static_energy + Energy::new(metadata.size().as_u64() * self.factor);
         Feasibility::Feasible(self.static_energy)
     }
 }
@@ -74,10 +68,8 @@ pub struct TrainingLengthEnergy {
     pub factor: u64,
 }
 
-impl Measurable<Energy> for TrainingLengthEnergy {
-    type P = PayloadInfo;
+impl<P: Metadata> Measurable<Energy, P> for TrainingLengthEnergy {
     type S = EnergySettings;
-    type T = TxMetrics;
 
     fn with_settings(settings: &Self::S) -> Self {
         Self {
@@ -85,8 +77,8 @@ impl Measurable<Energy> for TrainingLengthEnergy {
         }
     }
 
-    fn measure(&mut self, tx_report: &TxMetrics, metadata: &PayloadInfo) -> Feasibility<Energy> {
-        let energy = Energy::new(tx_report.payload_size.as_u64() * self.factor);
+    fn measure(&mut self, metadata: &P) -> Feasibility<Energy> {
+        let energy = Energy::new(metadata.size().as_u64() * self.factor);
         Feasibility::Feasible(energy)
     }
 }

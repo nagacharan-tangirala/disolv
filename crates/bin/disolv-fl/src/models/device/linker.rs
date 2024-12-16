@@ -1,16 +1,17 @@
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
-use disolv_core::model::BucketModel;
-use disolv_input::links::{LinkMap, LinkReader};
-use disolv_models::device::types::DeviceType;
-use disolv_models::net::radio::DLink;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
+use disolv_core::agent::{AgentId, AgentKind};
+use disolv_core::bucket::TimeMS;
+use disolv_core::hashbrown::HashMap;
+use disolv_core::model::BucketModel;
+use disolv_core::radio::Link;
+use disolv_input::links::{LinkMap, LinkReader};
+use disolv_models::net::radio::LinkProperties;
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct LinkerSettings {
-    pub target_type: DeviceType,
+    pub target_type: AgentKind,
     pub links_file: String,
     pub range: f32,
     pub is_streaming: bool,
@@ -18,18 +19,18 @@ pub struct LinkerSettings {
 
 #[derive(Clone, TypedBuilder)]
 pub struct Linker {
-    pub source_type: DeviceType,
-    pub target_type: DeviceType,
+    pub source_type: AgentKind,
+    pub target_type: AgentKind,
     pub reader: LinkReader,
     pub is_static: bool,
     #[builder(default)]
     pub links: LinkMap,
     #[builder(default)]
-    pub link_cache: HashMap<AgentId, Vec<DLink>>,
+    pub link_cache: HashMap<AgentId, Vec<Link<LinkProperties>>>,
 }
 
 impl Linker {
-    pub fn links_of(&mut self, agent_id: AgentId) -> Option<Vec<DLink>> {
+    pub fn links_of(&mut self, agent_id: AgentId) -> Option<Vec<Link<LinkProperties>>> {
         if self.is_static {
             return self.link_cache.get(&agent_id).cloned();
         }

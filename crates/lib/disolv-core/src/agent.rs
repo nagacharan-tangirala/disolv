@@ -176,12 +176,10 @@ where
 /// A trait that represents an agent. Extend this to a custom device type (e.g. struct) that
 /// you want to simulate. Only types with this trait can be added to a bucket and hence
 /// scheduled for simulation.
-///
-pub trait Agent<B>: Activatable<B> + Orderable + Movable<B> + Clone + Send + Sync
+pub trait Agent<B>: Activatable<B> + Orderable + Movable<B> + Clone + Send
 where
     B: Bucket,
 {
-    type P: AgentProperties;
     fn id(&self) -> AgentId;
     fn stage_one(&mut self, bucket: &mut B);
     fn stage_two_reverse(&mut self, bucket: &mut B);

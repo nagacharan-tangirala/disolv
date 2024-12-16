@@ -10,7 +10,7 @@ license = "MIT"
 [dependencies]
 disolv-core = { path = "../disolv-core" }
 disolv-models = { path = "../disolv-models" }
-typed-builder = "0.18.2"
+typed-builder = "0.20.0"
 log = "0.4.22"
-parquet = "52.1.0"
-arrow-array = "52.1.0"
+parquet = "53.3.0"
+arrow-array = "53.3.0"

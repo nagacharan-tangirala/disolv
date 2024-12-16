@@ -15,9 +15,10 @@ use disolv_models::device::actions::{
     complete_actions, filter_units_to_fwd, set_actions_before_tx,
 };
 use disolv_models::device::actor::Actor;
+use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::mobility::MapState;
-use disolv_models::device::models::{Compose, LinkSelector};
+use disolv_models::device::models::{Compose, LinkSelect};
 use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::net::network::NetworkSlice;
 use disolv_models::net::radio::{CommStats, LinkProperties};
@@ -57,23 +58,8 @@ pub struct DeviceModel {
     pub sl_flow: FlowRegister,
     pub composer: Composer,
     pub actor: Actor<DataType>,
+    pub directions: Directions,
     pub selector: Vec<(AgentClass, Selector)>,
-}
-
-impl DeviceModel {
-    fn select_links(
-        &self,
-        link_options: Vec<Link<LinkProperties>>,
-        target_class: &AgentClass,
-        stats: &Vec<&CommStats>,
-    ) -> Option<Vec<Link<LinkProperties>>> {
-        for selectors in self.selector.iter() {
-            if selectors.0 == *target_class {
-                return Some(selectors.1.select_link(link_options, stats));
-            }
-        }
-        None
-    }
 }
 
 #[derive(Clone, Debug, TypedBuilder)]
@@ -91,6 +77,20 @@ pub struct Device {
 }
 
 impl Device {
+    fn select_links(
+        &self,
+        link_options: Vec<Link<LinkProperties>>,
+        target_class: &AgentClass,
+        stats: &Vec<&CommStats>,
+    ) -> Option<Vec<Link<LinkProperties>>> {
+        for selectors in self.models.selector.iter() {
+            if selectors.0 == *target_class {
+                return Some(selectors.1.select_link(link_options, stats));
+            }
+        }
+        None
+    }
+
     fn talk_to_class(
         &mut self,
         target_class: &AgentClass,
@@ -114,7 +114,7 @@ impl Device {
             }
         });
 
-        let targets = match self.models.select_links(link_options, target_class, &stats) {
+        let targets = match self.select_links(link_options, target_class, &stats) {
             Some(links) => links,
             None => return,
         };
@@ -122,7 +122,7 @@ impl Device {
         let payload = self
             .models
             .composer
-            .compose(target_class, &self.device_info);
+            .compose(self.step, target_class, &self.device_info);
 
         targets.into_iter().for_each(|target_link| {
             let mut this_payload = payload.clone();
@@ -271,10 +271,7 @@ impl
     }
 }
 
-impl
-    Receiver<DeviceBucket, DataType, DataBlob, LinkProperties, PayloadInfo, DeviceInfo, MessageType>
-    for Device
-{
+impl Receiver<DeviceBucket, DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType> for Device {
     fn receive(&mut self, bucket: &mut DeviceBucket) -> Option<Vec<V2XPayload>> {
         bucket.models.data_lake.payloads_for(self.device_info.id)
     }
@@ -285,8 +282,6 @@ impl
 }
 
 impl Agent<DeviceBucket> for Device {
-    type P = DeviceInfo;
-
     fn id(&self) -> AgentId {
         self.device_info.id
     }
@@ -310,9 +305,15 @@ impl Agent<DeviceBucket> for Device {
             });
         }
 
-        for target_class in self.models.actor.target_classes.clone().iter() {
-            self.talk_to_class(target_class, &rx_payloads, bucket);
-        }
+        self.models
+            .directions
+            .stage_one
+            .target_classes
+            .clone()
+            .iter()
+            .for_each(|target_class| {
+                self.talk_to_class(target_class, &rx_payloads, bucket);
+            });
         self.talk_to_class(&self.device_info.device_class.clone(), &rx_payloads, bucket);
     }
 

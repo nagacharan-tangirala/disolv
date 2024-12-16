@@ -55,7 +55,7 @@ impl Display for DataType {
 impl ContentType for DataType {}
 
 /// Define a struct that contains the metadata about the sensor data.
-#[derive(Clone, Copy, Debug, Default, TypedBuilder)]
+#[derive(Clone, Debug, Default, TypedBuilder)]
 pub struct DataBlob {
     pub action: Action,
     pub data_type: DataType,

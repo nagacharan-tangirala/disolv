@@ -4,26 +4,25 @@ use serde::Deserialize;
 
 #[derive(Debug, Clone, Copy)]
 pub enum DistType {
-    Uniform(Uniform<f32>),
-    Normal(Normal<f32>),
-    LogNormal(LogNormal<f32>),
-    Exponential(Exp<f32>),
-    Gamma(Gamma<f32>),
+    Uniform(Uniform<f64>),
+    Normal(Normal<f64>),
+    LogNormal(LogNormal<f64>),
+    Exponential(Exp<f64>),
+    Gamma(Gamma<f64>),
 }
 
-#[serde_with::skip_serializing_none]
 #[derive(Debug, Clone, Deserialize)]
 pub struct DistParams {
     pub dist_name: String,
     pub seed: Option<u64>,
-    pub mean: Option<f32>,
-    pub std_dev: Option<f32>,
-    pub location: Option<f32>,
-    pub scale: Option<f32>,
-    pub shape: Option<f32>,
-    pub rate: Option<f32>,
-    pub min: Option<f32>,
-    pub max: Option<f32>,
+    pub mean: Option<f64>,
+    pub std_dev: Option<f64>,
+    pub location: Option<f64>,
+    pub scale: Option<f64>,
+    pub shape: Option<f64>,
+    pub rate: Option<f64>,
+    pub min: Option<f64>,
+    pub max: Option<f64>,
 }
 
 impl DistType {
@@ -49,7 +48,10 @@ impl DistType {
                 Ok(dist) => dist,
                 Err(_) => panic!("Invalid distribution parameters"),
             },
-            _ => panic!("Invalid distribution name"),
+            _ => panic!(
+                "Invalid distribution name. Supported values are:\
+                     uniform, normal, lognormal, exponential, gamma"
+            ),
         }
     }
 
@@ -99,7 +101,7 @@ impl RngSampler {
         }
     }
 
-    pub fn sample(&mut self) -> f32 {
+    pub fn sample(&mut self) -> f64 {
         match self.dist {
             DistType::Uniform(ref mut dist) => dist.sample(&mut self.rng),
             DistType::Normal(ref mut dist) => dist.sample(&mut self.rng),

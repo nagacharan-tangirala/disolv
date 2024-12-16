@@ -44,12 +44,13 @@ pub enum ActionType {
 
 /// A generic action struct that can be used to contain the information about action to perform
 /// on a given message.
-#[derive(Clone, Default, Debug, Copy, TypedBuilder)]
+#[derive(Clone, Default, Debug, TypedBuilder)]
 pub struct Action {
     pub action_type: ActionType,
     pub to_class: Option<AgentClass>,
     pub to_agent: Option<AgentId>,
     pub to_kind: Option<AgentKind>,
+    pub to_broadcast: Option<Vec<AgentId>>,
 }
 
 impl Action {
@@ -59,6 +60,14 @@ impl Action {
             to_class: None,
             to_agent: None,
             to_kind: None,
+            to_broadcast: None,
+        }
+    }
+
+    pub fn update_broadcast(&mut self, agents: &Vec<AgentId>) {
+        match &mut self.to_broadcast {
+            Some(val) => val.extend(agents.iter()),
+            None => self.to_broadcast = Some(agents.to_owned()),
         }
     }
 }
@@ -82,12 +91,11 @@ where
 
 /// A trait that an entity must implement to receive messages from other entities in the
 /// simulation. The messages can be from the same class or from up/downstream.
-pub trait Receiver<B, C, D, F, M, P, Q>
+pub trait Receiver<B, C, D, M, P, Q>
 where
     B: Bucket,
     C: ContentType,
     D: DataUnit<C>,
-    F: LinkFeatures,
     M: Metadata,
     P: AgentProperties,
     Q: QueryType,
