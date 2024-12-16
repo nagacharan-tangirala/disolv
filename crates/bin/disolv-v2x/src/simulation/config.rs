@@ -15,7 +15,6 @@ use crate::models::select::SelectorSettings;
 use crate::v2x::linker::LinkerSettings;
 use crate::v2x::space::{FieldSettings, MobilitySettings};
 
-#[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct BaseConfig {
     pub simulation_settings: SimSettings,
@@ -57,7 +56,6 @@ pub struct NetworkSettings {
     pub slice: Vec<SliceSettings>,
 }
 
-#[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct AgentClassSettings {
     pub agent_share: f32,
@@ -66,7 +64,7 @@ pub struct AgentClassSettings {
     pub composer: ComposerSettings,
     pub selector: Vec<SelectorSettings>,
     pub actions: Option<Vec<ActionSettings<DataType>>>,
-    pub directions: Option<Vec<CommDirections>>,
+    pub directions: Vec<CommDirections>,
 }
 
 pub struct BaseConfigReader {

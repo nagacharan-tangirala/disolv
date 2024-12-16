@@ -127,7 +127,7 @@ impl Compose<DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType> for Basic
         V2XPayload::builder()
             .metadata(payload_info)
             .agent_state(agent_state.clone())
-            .gathered_states(Some(Vec::new()))
+            .gathered_states(Vec::new())
             .data_units(data_units)
             .query_type(MessageType::Sensor)
             .build()
