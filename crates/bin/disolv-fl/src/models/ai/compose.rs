@@ -1,9 +1,3 @@
-use std::arch::aarch64::float32x2_t;
-
-use parquet::column::writer::ColumnWriter::FloatColumnWriter;
-use serde::Deserialize;
-use typed_builder::TypedBuilder;
-
 use disolv_core::agent::{AgentClass, AgentId};
 use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
@@ -11,6 +5,9 @@ use disolv_core::metrics::Bytes;
 use disolv_core::model::{Model, ModelSettings};
 use disolv_core::radio::{Action, Link};
 use disolv_models::device::models::Compose;
+use parquet::column::writer::ColumnWriter::FloatColumnWriter;
+use serde::Deserialize;
+use typed_builder::TypedBuilder;
 
 use crate::fl::client::AgentInfo;
 use crate::models::ai::data::DataStrategy::Time;
