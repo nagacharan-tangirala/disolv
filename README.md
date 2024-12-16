@@ -2,7 +2,7 @@
 
 <p align="center">
   <picture>
-    <img style="max-width: 40%; height: auto;" src="resources/logo/disolv_logo.svg" alt="">
+    <img style="max-width: 70%; height: auto;" src="resources/logo/disolv.png" alt="">
   </picture>
 </p>
 
