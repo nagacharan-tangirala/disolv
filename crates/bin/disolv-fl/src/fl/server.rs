@@ -1,9 +1,5 @@
 use arrow::compute::take_arrays;
 use burn::tensor::backend::AutodiffBackend;
-use log::__private_api::loc;
-use log::debug;
-use typed_builder::TypedBuilder;
-
 use disolv_core::agent::{
     Activatable, Agent, AgentClass, AgentId, AgentKind, AgentOrder, AgentProperties, Movable,
     Orderable,
@@ -22,6 +18,8 @@ use disolv_models::device::mobility::MapState;
 use disolv_models::device::models::{Compose, LinkSelect};
 use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::net::radio::{CommStats, LinkProperties};
+use log::debug;
+use typed_builder::TypedBuilder;
 
 use crate::fl::bucket::FlBucket;
 use crate::fl::client::AgentInfo;
@@ -355,7 +353,7 @@ impl<B: AutodiffBackend> Server<B> {
             .update_global_model(self.fl_models.trainer.model.clone(), self.step);
 
         let model_accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
-        debug!(
+        info!(
             "Global model accuracy is {} at {}",
             model_accuracy, self.step
         );
