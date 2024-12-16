@@ -1,95 +1,23 @@
 # Disolv
 
+<p align="center">
+  <picture>
+    <img style="max-width: 40%; height: auto;" src="resources/logo/disolv_logo.svg" alt="">
+  </picture>
+</p>
+
 Disolv stands for **D**ataflow-centric **I**ntegrated **S**imulation **O**f **L**arge scale **V**ANETs.
-For a more conceptual overview and the architecture design decisions, refer to the documentation at [Disolv-Documentation](https://nagacharan-tangirala.github.io/disolv-docs/).
 
 ### What is Disolv?
 
-Disolv is a VANET simulator capable of studying futuristic Intelligent Transportation System (ITS) applications. 
+Disolv is a VANET simulator capable of studying futuristic Intelligent Transportation System (ITS) applications.
 Disolv is designed with the primary goal of supporting large-scale simulations of various ITS scenarios.
+For a more conceptual overview and the architecture design decisions, refer to the documentation
+at [Disolv-Documentation](https://nagacharan-tangirala.github.io/disolv-docs/).
 
----
-<details>
-    <summary>
-        <b>Introduction</b>
-    </summary>
+### Collaboration
 
-#### What is a VANET?
-
-**V**ehicular **A**d-hoc **NET**work (VANET) is a system of vehicles equipped with communication devices.
-Using the communication equipment, vehicles exchange information among themselves and with the traffic infrastructure.
-This enables an entire ecosystem of traffic safety and comfort applications called Intelligent Transporation System (ITS) applications.
-
-
----
-
-#### What is a VANET simulator?
-
-Initial validation of ITS applications is carried out through VANET simulations.
-Due to the scale, cost and the safety concerns involved in live testing, VANET simulations are extensively used as a playground before validating the application in field trials.
-[Veins](https://veins.car2x.org/) and [Eclipse MOSAIC](https://eclipse.dev/mosaic/) are some of the popular open-source VANET simulators.
-
-</details>
-
----
-
-### Why Disolv?
-
-Disolv emerged as a combination of several ideas in my initial phase of PhD.
-The architectural design of the simulator is validated by the research community.
-The resulting performance benefits of Disolv will be exploited to evaluate large-scale VANET studies.
-The integration of AI is an ongoing development task.
-The goal is to establish Disolv as a preferred choice to evaluate large-scale AI + VANET scenarios.
-
---- 
-
-### Crates
-
-Disolv is modularized to support easier extension development.
-The functionality is arranged in a hierarchial onion-style architecture.
-
----
-
-<details>
-    <summary>
-        <b>Crates</b>
-    </summary>
-
-#### Core
-
-Core contains the agent scheduler and the terminal UI implementation.
-Using newtype pattern of rust, several primitives are defined for the rest of the simulator to use.
-All the essential traits are also declared here.
-
-#### Models
-
-A definite implementation for some of the basic traits are provided in this crate.
-Further, the device behavior models are designed here to be independent of the device type.
-Model parameterization is supported.
-If a new requirement arises, users can define their own models in this crate.
-By following the traits for the models, it is easy to make the model be compatible with the simulator.
-
-
-#### Input
-
-Parquet files are used to read the simulation input from the disk. 
-Expansion of support to read other file formats is in the pipeline.
-
-
-#### Output
-
-All the output data is written in the form of parquet files, which can be further processed by user's preferred tools.
-Expansion of support to write other file formats is in the pipeline.
-
-</details>
-
----
-
-### Installation
-
-_coming soon_
-
---- 
+Reach out to me at **nagacharan.tangirala@tum.de** if you want to collaborate on research with Disolv.
 
 ### Sample Scenarios
 
@@ -117,11 +45,10 @@ Please cite the following article if you used Disolv in your research.
 --- 
 
 ### Acknowledgements
----
 
-This project is not possible without the following communities and members -
+This project is not possible without the following communities -
 
 [krABMaga](https://krabmaga.github.io/) \
-[KD-tree](https://github.com/sdd/kiddo)
-
+[KD-tree](https://github.com/sdd/kiddo) \
+[burn](https://github.com/tracel-ai/burn)
 
