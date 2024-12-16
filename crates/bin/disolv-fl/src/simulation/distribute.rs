@@ -74,6 +74,13 @@ impl DataDistributor {
             DataDistributor::NonIid(non_iid) => non_iid.test_data(agent_id),
         }
     }
+
+    pub fn get_server_test_data(&mut self) -> DatasetType {
+        match self {
+            DataDistributor::Uniform(uniform) => uniform.server_test_data("mnist"),
+            _ => unimplemented!("only mnist supported"),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -141,6 +148,13 @@ impl UniformDistributor {
 
     fn test_data(&mut self, _agent_id: AgentId) -> Option<DatasetType> {
         self.test_data.pop()
+    }
+
+    fn server_test_data(&mut self, dataset_type: &str) -> DatasetType {
+        match dataset_type {
+            "mnist" => DatasetType::Mnist(MnistFlDataset::new(BatchType::Test)),
+            _ => panic!("Invalid dataset type"),
+        }
     }
 }
 
