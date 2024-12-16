@@ -341,20 +341,20 @@ impl<B: AutodiffBackend> Server<B> {
         self.server_state = ServerState::Idle;
 
         debug!("Aggregating local models to global model");
-        self.fl_models.trainer.model = self.fl_models.aggregator.aggregate(
-            self.fl_models.trainer.model.clone(),
-            &self.fl_models.trainer.device,
-        );
+        let current_global_model = self.fl_models.trainer.model.clone();
+        self.fl_models.trainer.model = self
+            .fl_models
+            .aggregator
+            .aggregate(current_global_model, &bucket.models.device);
 
         debug!("Writing model to file ");
-        self.fl_models.trainer.save_model_to_file();
-        debug!("Updating global model with new local model");
+        self.fl_models.trainer.save_model_to_file(self.step);
         bucket
             .models
             .model_lake
-            .update_global_model(self.fl_models.trainer.model.clone());
+            .update_global_model(self.fl_models.trainer.model.clone(), self.step);
 
-        let model_accuracy = self.fl_models.trainer.test_model();
+        let model_accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
         debug!(
             "Global model accuracy is {} at {}",
             model_accuracy, self.step
@@ -386,24 +386,13 @@ impl<B: AutodiffBackend> Activatable<FlBucket<B>> for Server<B> {
             .times
             .update_time(self.step, self.server_state);
 
-        self.fl_models.trainer.train_data = bucket
-            .training_data_for(self.server_info.id)
-            .unwrap_or_default();
-        self.fl_models.trainer.test_data = bucket
-            .testing_data_for(self.server_info.id)
-            .unwrap_or_default();
+        self.fl_models.trainer.test_data = bucket.models.data_distributor.get_server_test_data();
 
         debug!(
-            "Train data server {:?}",
-            self.fl_models.trainer.train_data.dataset_type()
+            "Test data server length {:?}",
+            self.fl_models.trainer.test_data.length()
         );
-        debug!(
-            "Test data server {:?}",
-            self.fl_models.trainer.test_data.dataset_type()
-        );
-        self.fl_models
-            .holder
-            .set_train_data(self.fl_models.trainer.train_data.to_owned());
+
         self.fl_models
             .holder
             .set_test_data(self.fl_models.trainer.test_data.to_owned());
