@@ -19,6 +19,7 @@ use disolv_models::device::models::{Compose, LinkSelect};
 use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::net::radio::{CommStats, LinkProperties};
 use log::debug;
+use log::info;
 use typed_builder::TypedBuilder;
 
 use crate::fl::bucket::FlBucket;
