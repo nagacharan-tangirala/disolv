@@ -1,3 +1,4 @@
+use burn::backend::wgpu::WgpuDevice;
 use burn::prelude::Backend;
 use burn::tensor::backend::AutodiffBackend;
 use log::debug;
@@ -227,7 +228,7 @@ impl<B: AutodiffBackend> Client<B> {
                         FlContent::None => {}
                         FlContent::StateInfo => self.prepare_state_update(),
                         FlContent::GlobalModel => self.collect_global_model(bucket),
-                        FlContent::ClientSelected => self.initiate_training(),
+                        FlContent::ClientSelected => self.initiate_training(bucket),
                         FlContent::CompleteTraining => self.complete_training(bucket),
                         _ => panic!("Client should not receive this message"),
                     }
@@ -268,17 +269,17 @@ impl<B: AutodiffBackend> Client<B> {
             "1. Agent {} state at {} is {:?}",
             self.client_info.id, self.step, self.client_state
         );
-        debug!(
-            "Updating global model in agent {} at {}",
-            self.client_info.id, self.step
-        );
         self.fl_models.local_model = match bucket.models.model_lake.global_model.to_owned() {
             Some(val) => val,
             None => panic!("Global model not present"),
-        }
+        };
+        debug!(
+            "Updating local model with built model at {}",
+            bucket.models.model_lake.update_time()
+        );
     }
 
-    fn initiate_training(&mut self) {
+    fn initiate_training(&mut self, bucket: &mut FlBucket<B>) {
         debug!(
             "2. Agent {} state at {} is {:?}",
             self.client_info.id, self.step, self.client_state
@@ -302,8 +303,8 @@ impl<B: AutodiffBackend> Client<B> {
             self.fl_models.trainer.train_data.length()
         );
 
-        self.fl_models.trainer.train();
-        self.fl_models.trainer.save_model_to_file();
+        self.fl_models.trainer.train(&bucket.models.device);
+        self.fl_models.trainer.save_model_to_file(self.step);
         self.fl_models.local_model = self.fl_models.trainer.model.to_owned();
     }
 
@@ -360,18 +361,18 @@ impl<B: AutodiffBackend> Activatable<FlBucket<B>> for Client<B> {
 
         self.fl_models.trainer.train_data = bucket
             .training_data_for(self.client_info.id)
-            .unwrap_or_default();
+            .expect("no training data set for this agent");
         self.fl_models.trainer.test_data = bucket
             .testing_data_for(self.client_info.id)
-            .unwrap_or_default();
+            .expect("no test data set for this agent");
 
         debug!(
-            "Train data server {:?} in agent {}",
+            "Train data {:?} in agent {}",
             self.fl_models.trainer.train_data.length(),
             self.client_info.id,
         );
         debug!(
-            "Test data server {:?} in agent {}",
+            "Test data {:?} in agent {}",
             self.fl_models.trainer.test_data.length(),
             self.client_info.id,
         );
