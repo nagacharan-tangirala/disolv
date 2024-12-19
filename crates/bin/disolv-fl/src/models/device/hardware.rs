@@ -411,7 +411,6 @@ impl Resource<Bytes, FlPayloadInfo> for SimpleMemory {
     }
 }
 
-#[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct BandwidthSettings {
     pub variant: String,
