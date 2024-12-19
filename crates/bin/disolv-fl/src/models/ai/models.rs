@@ -3,9 +3,6 @@ use std::fmt::Display;
 use burn::data::dataset::vision::MnistItem;
 use burn::prelude::Backend;
 
-use disolv_core::agent::Agent;
-use disolv_core::bucket::Bucket;
-
 use crate::models::ai::cifar::{CifarFlDataset, CifarModel};
 use crate::models::ai::mnist::{MnistFlDataset, MnistModel};
 
@@ -104,11 +101,4 @@ impl DatasetType {
 pub enum BatchType {
     Test,
     Train,
-}
-
-pub trait FlClient<B>: Agent<B>
-where
-    B: Bucket,
-{
-    fn training_state(&self) -> ClientState;
 }
