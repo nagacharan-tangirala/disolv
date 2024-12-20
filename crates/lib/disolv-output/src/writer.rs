@@ -1,7 +1,9 @@
 use std::fs::File;
 use std::path::PathBuf;
 
+use arrow::csv::Writer;
 use arrow::datatypes::{Schema, SchemaRef};
+use arrow::record_batch::RecordBatchWriter;
 use parquet::arrow::ArrowWriter;
 use parquet::basic::Compression;
 use parquet::file::properties::WriterProperties;
@@ -9,6 +11,7 @@ use parquet::file::properties::WriterProperties;
 #[derive(Debug)]
 pub enum DataOutput {
     Parquet(WriterParquet),
+    Csv(WriterCsv),
 }
 
 impl DataOutput {
@@ -22,6 +25,7 @@ impl DataOutput {
         match file_name.extension() {
             Some(ext) => match ext.to_str() {
                 Some("parquet") => DataOutput::Parquet(WriterParquet::new(file_name, schema)),
+                Some("csv") => DataOutput::Csv(WriterCsv::new(file_name)),
                 _ => panic!("Invalid file extension"),
             },
             None => panic!("Invalid file extension"),
@@ -51,6 +55,22 @@ impl WriterParquet {
     }
 
     pub fn close(self) {
-        self.writer.close().expect("Failed to close output file");
+        self.writer.close().expect("Failed to close parquet file");
+    }
+}
+
+#[derive(Debug)]
+pub struct WriterCsv {
+    pub writer: Writer<File>,
+}
+
+impl WriterCsv {
+    fn new(file_name: &PathBuf) -> Self {
+        let writer = Writer::new(File::create(file_name).expect("failed to create file"));
+        Self { writer }
+    }
+
+    pub fn close(self) {
+        self.writer.close().expect("failed to close csv file");
     }
 }
