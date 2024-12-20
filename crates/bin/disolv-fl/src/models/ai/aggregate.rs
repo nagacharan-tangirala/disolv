@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
 use burn::prelude::Backend;
 use burn::tensor::backend::AutodiffBackend;
 use log::debug;
 use serde::Deserialize;
 
+use disolv_core::agent::AgentId;
 use disolv_core::model::{Model, ModelSettings};
 
 use crate::models::ai::mnist::MnistModel;
@@ -32,9 +35,9 @@ impl<B: AutodiffBackend> Model for Aggregator<B> {
 }
 
 impl<B: AutodiffBackend> Aggregator<B> {
-    pub(crate) fn add_local_model(&mut self, local_model: ModelType<B>) {
+    pub(crate) fn add_local_model(&mut self, local_model: ModelType<B>, agent_id: AgentId) {
         match self {
-            Aggregator::FedAvg(aggregator) => aggregator.add_local_model(local_model),
+            Aggregator::FedAvg(aggregator) => aggregator.add_local_model(local_model, agent_id),
         }
     }
 
@@ -43,32 +46,48 @@ impl<B: AutodiffBackend> Aggregator<B> {
             Aggregator::FedAvg(aggregator) => aggregator.aggregate(global_model, device),
         }
     }
+
+    pub(crate) fn is_model_collected(&self, agent_id: AgentId) -> bool {
+        match self {
+            Aggregator::FedAvg(aggregator) => aggregator.is_model_collected(agent_id),
+        }
+    }
+
+    pub(crate) fn clear_local_models(&mut self) {
+        match self {
+            Aggregator::FedAvg(aggregator) => aggregator.clear_local_models(),
+        }
+    }
 }
 
 #[derive(Clone)]
 pub(crate) struct FedAvgAggregator<B: AutodiffBackend> {
-    local_models: Vec<ModelType<B>>,
+    local_models: HashMap<AgentId, ModelType<B>>,
 }
 
 impl<B: AutodiffBackend> FedAvgAggregator<B> {
     fn new(settings: &AggregationSettings) -> Self {
         Self {
-            local_models: Vec::new(),
+            local_models: HashMap::new(),
         }
     }
 
-    pub(crate) fn add_local_model(&mut self, local_model: ModelType<B>) {
-        self.local_models.push(local_model)
+    fn add_local_model(&mut self, local_model: ModelType<B>, agent_id: AgentId) {
+        self.local_models.insert(agent_id, local_model);
     }
 
-    pub(crate) fn aggregate(&self, global_model: ModelType<B>, device: &B::Device) -> ModelType<B> {
+    fn is_model_collected(&self, agent_id: AgentId) -> bool {
+        self.local_models.contains_key(&agent_id)
+    }
+
+    fn aggregate(&self, global_model: ModelType<B>, device: &B::Device) -> ModelType<B> {
         debug!("{} is the local model count.", self.local_models.len());
         match global_model {
             ModelType::Mnist(mnist_model) => {
                 let local_models = self
                     .local_models
                     .clone()
-                    .into_iter()
+                    .into_values()
                     .map(|model| match model {
                         ModelType::Mnist(mnist) => mnist,
                         _ => panic!("wrong local model sent to aggregate"),
@@ -79,5 +98,9 @@ impl<B: AutodiffBackend> FedAvgAggregator<B> {
             }
             _ => unimplemented!("cifar not implemented"),
         }
+    }
+
+    fn clear_local_models(&mut self) {
+        self.local_models.clear()
     }
 }
