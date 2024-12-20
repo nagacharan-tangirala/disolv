@@ -1,6 +1,6 @@
 use log::{debug, error};
 
-use disolv_core::agent::AgentProperties;
+use disolv_core::agent::{AgentId, AgentProperties};
 use disolv_core::hashbrown::HashMap;
 use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 use disolv_core::radio::{Action, ActionType};
@@ -12,7 +12,7 @@ use disolv_core::radio::{Action, ActionType};
 /// * `to_forward` - Payloads that requested to be forwarded
 ///
 /// # Returns
-/// * `Vec<Dataunit>` - List of data units that need to be forwarded
+/// * `Vec<DataUnit>` - List of data units that need to be forwarded
 pub fn filter_units_to_fwd<
     C: ContentType,
     D: DataUnit<C>,
@@ -21,7 +21,7 @@ pub fn filter_units_to_fwd<
     Q: QueryType,
 >(
     target_info: &P,
-    to_forward: &Vec<Payload<C, D, M, P, Q>>,
+    to_forward: &[Payload<C, D, M, P, Q>],
 ) -> Vec<D> {
     let mut units_to_forward: Vec<D> = Vec::new();
     for payload in to_forward.iter() {
@@ -57,17 +57,24 @@ pub fn set_actions_before_tx<
     Q: QueryType,
 >(
     mut payload: Payload<C, D, M, P, Q>,
+    target_id: AgentId,
     actions: &HashMap<C, Action>,
 ) -> Payload<C, D, M, P, Q> {
     payload.data_units.iter_mut().for_each(|unit| {
-        let new_action = match actions.get(unit.content_type()) {
-            Some(action) => action,
+        match actions.get(unit.content_type()) {
+            Some(action) => {
+                if action.clone().action_type == ActionType::Consume {
+                    let mut new_action = Action::with_action_type(ActionType::Consume);
+                    new_action.to_agent = Some(target_id);
+                    unit.update_action(&new_action);
+                }
+                unit.update_action(action);
+            }
             None => {
                 error!("No action found for data type {}", unit.content_type());
                 panic!("Action missing for data type {}", unit.content_type());
             }
         };
-        unit.update_action(new_action);
     });
     payload
 }
