@@ -2,7 +2,7 @@
 
 <p align="center">
   <picture>
-    <img style="max-width: 70%; height: auto;" src="resources/logo/disolv.png" alt="">
+    <img style="max-width: 90%; height: auto;" src="resources/logo/disolv_banner.png" alt="">
   </picture>
 </p>
 
@@ -27,7 +27,7 @@ _coming soon_
 
 ### Publication
 
-Please cite the following article if you used Disolv in your research.
+Disolv is used in generating the results of the following publications:
 
 ```
 @inproceedings{tangirala2024simulation,
