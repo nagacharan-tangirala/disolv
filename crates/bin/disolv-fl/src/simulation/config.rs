@@ -73,6 +73,7 @@ pub struct ServerClassSettings {
     pub fl_composer: ComposerSettings,
     pub aggregation: AggregationSettings,
     pub durations: ServerDurations,
+    pub hardware: HardwareSettings,
     pub data_holder: DataHolderSettings,
     pub trainer_settings: TrainerSettings,
     pub class_settings: AgentClassSettings,
