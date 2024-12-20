@@ -126,7 +126,7 @@ impl Compose<DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType> for Basic
         let payload_info = self.build_metadata(&data_units);
         V2XPayload::builder()
             .metadata(payload_info)
-            .agent_state(agent_state.clone())
+            .agent_state(*agent_state)
             .gathered_states(Vec::new())
             .data_units(data_units)
             .query_type(MessageType::Sensor)

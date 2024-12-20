@@ -75,7 +75,7 @@ impl DataDistributor {
         }
     }
 
-    pub fn get_server_test_data(&mut self) -> DatasetType {
+    pub fn server_test_data(&mut self) -> DatasetType {
         match self {
             DataDistributor::Uniform(uniform) => uniform.server_test_data("mnist"),
             _ => unimplemented!("only mnist supported"),

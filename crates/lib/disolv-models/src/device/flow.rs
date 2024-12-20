@@ -60,7 +60,7 @@ impl FlowRegister {
         Q: QueryType,
     >(
         &mut self,
-        payloads: &Vec<Payload<C, D, M, P, Q>>,
+        payloads: &[Payload<C, D, M, P, Q>],
     ) {
         payloads.iter().for_each(|payload| {
             self.comm_stats.incoming_stats.update(&payload.metadata);
