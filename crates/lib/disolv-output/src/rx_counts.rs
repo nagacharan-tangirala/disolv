@@ -93,65 +93,69 @@ impl ResultWriter for RxCountWriter {
     }
 
     fn write_to_file(&mut self) {
+        let record_batch = RecordBatch::try_from_iter(vec![
+            (
+                "time_step",
+                Arc::new(UInt64Array::from(std::mem::take(&mut self.time_step))) as ArrayRef,
+            ),
+            (
+                "agent_id",
+                Arc::new(UInt64Array::from(std::mem::take(&mut self.agent_id))) as ArrayRef,
+            ),
+            (
+                "attempted_in_agent_count",
+                Arc::new(UInt32Array::from(std::mem::take(
+                    &mut self.attempted_in_agent_count,
+                ))) as ArrayRef,
+            ),
+            (
+                "attempted_in_data_size",
+                Arc::new(UInt64Array::from(std::mem::take(
+                    &mut self.attempted_in_data_size,
+                ))) as ArrayRef,
+            ),
+            (
+                "attempted_in_data_count",
+                Arc::new(UInt32Array::from(std::mem::take(
+                    &mut self.attempted_in_data_count,
+                ))) as ArrayRef,
+            ),
+            (
+                "feasible_in_agent_count",
+                Arc::new(UInt32Array::from(std::mem::take(
+                    &mut self.feasible_in_agent_count,
+                ))) as ArrayRef,
+            ),
+            (
+                "feasible_in_data_size",
+                Arc::new(UInt64Array::from(std::mem::take(
+                    &mut self.feasible_in_data_size,
+                ))) as ArrayRef,
+            ),
+            (
+                "feasible_in_data_count",
+                Arc::new(UInt32Array::from(std::mem::take(
+                    &mut self.feasible_in_data_count,
+                ))) as ArrayRef,
+            ),
+            (
+                "success_rate",
+                Arc::new(Float32Array::from(std::mem::take(&mut self.success_rate))) as ArrayRef,
+            ),
+        ])
+        .expect("Failed to convert results to record batch");
         match &mut self.to_output {
             DataOutput::Parquet(to_output) => {
-                let record_batch = RecordBatch::try_from_iter(vec![
-                    (
-                        "time_step",
-                        Arc::new(UInt64Array::from(std::mem::take(&mut self.time_step)))
-                            as ArrayRef,
-                    ),
-                    (
-                        "agent_id",
-                        Arc::new(UInt64Array::from(std::mem::take(&mut self.agent_id))) as ArrayRef,
-                    ),
-                    (
-                        "attempted_in_agent_count",
-                        Arc::new(UInt32Array::from(std::mem::take(
-                            &mut self.attempted_in_agent_count,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "attempted_in_data_size",
-                        Arc::new(UInt64Array::from(std::mem::take(
-                            &mut self.attempted_in_data_size,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "attempted_in_data_count",
-                        Arc::new(UInt32Array::from(std::mem::take(
-                            &mut self.attempted_in_data_count,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "feasible_in_agent_count",
-                        Arc::new(UInt32Array::from(std::mem::take(
-                            &mut self.feasible_in_agent_count,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "feasible_in_data_size",
-                        Arc::new(UInt64Array::from(std::mem::take(
-                            &mut self.feasible_in_data_size,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "feasible_in_data_count",
-                        Arc::new(UInt32Array::from(std::mem::take(
-                            &mut self.feasible_in_data_count,
-                        ))) as ArrayRef,
-                    ),
-                    (
-                        "success_rate",
-                        Arc::new(Float32Array::from(std::mem::take(&mut self.success_rate)))
-                            as ArrayRef,
-                    ),
-                ])
-                .expect("Failed to convert results to record batch");
                 to_output
                     .writer
                     .write(&record_batch)
-                    .expect("Failed to write record batches to file");
+                    .expect("Failed to write parquet");
+            }
+            DataOutput::Csv(to_output) => {
+                to_output
+                    .writer
+                    .write(&record_batch)
+                    .expect("Failed to write csv");
             }
         }
     }
@@ -159,6 +163,7 @@ impl ResultWriter for RxCountWriter {
     fn close_file(self) {
         match self.to_output {
             DataOutput::Parquet(to_output) => to_output.close(),
+            DataOutput::Csv(to_output) => to_output.close(),
         }
     }
 }

@@ -49,32 +49,37 @@ impl ResultWriter for PosWriter {
     }
 
     fn write_to_file(&mut self) {
+        let record_batch = RecordBatch::try_from_iter(vec![
+            (
+                "time_step",
+                Arc::new(UInt64Array::from(std::mem::take(&mut self.time_step))) as ArrayRef,
+            ),
+            (
+                "agent_id",
+                Arc::new(UInt64Array::from(std::mem::take(&mut self.agent_id))) as ArrayRef,
+            ),
+            (
+                "x",
+                Arc::new(Float64Array::from(std::mem::take(&mut self.x))) as ArrayRef,
+            ),
+            (
+                "y",
+                Arc::new(Float64Array::from(std::mem::take(&mut self.y))) as ArrayRef,
+            ),
+        ])
+        .expect("Failed to convert results to record batch");
         match &mut self.to_output {
             DataOutput::Parquet(to_output) => {
-                let record_batch = RecordBatch::try_from_iter(vec![
-                    (
-                        "time_step",
-                        Arc::new(UInt64Array::from(std::mem::take(&mut self.time_step)))
-                            as ArrayRef,
-                    ),
-                    (
-                        "agent_id",
-                        Arc::new(UInt64Array::from(std::mem::take(&mut self.agent_id))) as ArrayRef,
-                    ),
-                    (
-                        "x",
-                        Arc::new(Float64Array::from(std::mem::take(&mut self.x))) as ArrayRef,
-                    ),
-                    (
-                        "y",
-                        Arc::new(Float64Array::from(std::mem::take(&mut self.y))) as ArrayRef,
-                    ),
-                ])
-                .expect("Failed to convert results to record batch");
                 to_output
                     .writer
                     .write(&record_batch)
-                    .expect("Failed to write record batches to file");
+                    .expect("Failed to write parquet");
+            }
+            DataOutput::Csv(to_output) => {
+                to_output
+                    .writer
+                    .write(&record_batch)
+                    .expect("Failed to write csv");
             }
         }
     }
@@ -82,6 +87,7 @@ impl ResultWriter for PosWriter {
     fn close_file(self) {
         match self.to_output {
             DataOutput::Parquet(to_output) => to_output.close(),
+            DataOutput::Csv(to_output) => to_output.close(),
         }
     }
 }
