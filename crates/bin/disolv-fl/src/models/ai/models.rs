@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 
 use burn::data::dataset::vision::MnistItem;
 use burn::prelude::Backend;
@@ -12,16 +12,16 @@ use crate::models::ai::mnist::{MnistFlDataset, MnistModel};
 pub enum ClientState {
     #[default]
     Sensing,
-    Waiting,
+    Preparing,
     Training,
 }
 
-impl ClientState {
-    pub const fn value(&self) -> u64 {
+impl Display for ClientState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ClientState::Sensing => 10,
-            ClientState::Waiting => 20,
-            ClientState::Training => 30,
+            ClientState::Sensing => write!(f, "Sensing"),
+            ClientState::Preparing => write!(f, "Waiting"),
+            ClientState::Training => write!(f, "Training"),
         }
     }
 }
@@ -101,4 +101,53 @@ impl DatasetType {
 pub enum BatchType {
     Test,
     Train,
+}
+
+#[derive(Clone, Copy)]
+pub enum ModelDirection {
+    NA,
+    Sent,
+    Received,
+}
+
+impl Display for ModelDirection {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ModelDirection::NA => write!(f, "NA"),
+            ModelDirection::Received => write!(f, "Received"),
+            ModelDirection::Sent => write!(f, "Sent"),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum ModelLevel {
+    Local,
+    Global,
+}
+
+impl Display for ModelLevel {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ModelLevel::Local => write!(f, "Local"),
+            ModelLevel::Global => write!(f, "Global"),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum TrainingStatus {
+    NA,
+    Success,
+    Failure,
+}
+
+impl Display for TrainingStatus {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TrainingStatus::NA => write!(f, "NA"),
+            TrainingStatus::Failure => write!(f, "Failure"),
+            TrainingStatus::Success => write!(f, "Success"),
+        }
+    }
 }
