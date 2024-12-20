@@ -8,8 +8,6 @@ use disolv_core::agent::{
 };
 use disolv_core::agent::{AgentId, AgentOrder};
 use disolv_core::bucket::TimeMS;
-use disolv_core::metrics::Measurable;
-use disolv_core::metrics::Resource;
 use disolv_core::radio::{Link, Receiver, Transmitter};
 use disolv_models::device::actions::{
     complete_actions, filter_units_to_fwd, set_actions_before_tx,
@@ -20,12 +18,10 @@ use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::mobility::MapState;
 use disolv_models::device::models::{Compose, LinkSelect};
 use disolv_models::device::power::{PowerManager, PowerState};
-use disolv_models::net::network::NetworkSlice;
 use disolv_models::net::radio::{CommStats, LinkProperties};
 
 use crate::models::compose::Composer;
 use crate::models::message::{DataBlob, DataType, MessageType, PayloadInfo, TxStatus, V2XPayload};
-use crate::models::network::V2XSlice;
 use crate::models::select::Selector;
 use crate::v2x::bucket::DeviceBucket;
 
@@ -108,9 +104,8 @@ impl Device {
 
         let mut stats: Vec<&CommStats> = Vec::with_capacity(link_options.len());
         link_options.iter().for_each(|link| {
-            let link_stats = bucket.stats_for(&link.target);
-            if link_stats.is_some() {
-                stats.push(link_stats.unwrap());
+            if let Some(link_stats) = bucket.stats_for(&link.target) {
+                stats.push(link_stats);
             }
         });
 
@@ -129,19 +124,16 @@ impl Device {
 
             // If we know about the target agent, take payload forwarding decisions.
             if let Some(target_state) = bucket.device_info_of(&target_link.target) {
-                match rx_payloads {
-                    Some(ref payloads) => {
-                        let mut blobs = filter_units_to_fwd(target_state, payloads);
-                        self.models
-                            .composer
-                            .append_blobs_to(&mut this_payload, &mut blobs);
-                    }
-                    None => (),
+                if let Some(ref payloads) = rx_payloads {
+                    let mut blobs = filter_units_to_fwd(target_state, payloads);
+                    self.models
+                        .composer
+                        .append_blobs_to(&mut this_payload, &mut blobs);
                 }
             }
 
             let actions = self.models.actor.actions_for(target_class);
-            let prepared_payload = set_actions_before_tx(this_payload, actions);
+            let prepared_payload = set_actions_before_tx(this_payload, target_link.target, actions);
             if target_class == &self.device_info.device_class {
                 self.transmit_sl(prepared_payload, target_link, bucket);
             } else {
@@ -227,9 +219,8 @@ impl
 
         self.models.flow.register_outgoing_attempt(&payload);
         let tx_metrics = bucket.models.network.transfer(&payload);
-        match &mut bucket.models.output.tx_data_writer {
-            Some(tx) => tx.add_data(self.step, &target_link, &payload, tx_metrics),
-            None => {}
+        if let Some(tx) = &mut bucket.models.output.tx_data_writer {
+            tx.add_data(self.step, &target_link, &payload, tx_metrics)
         }
 
         if tx_metrics.tx_status == TxStatus::Ok {
@@ -256,9 +247,8 @@ impl
         self.models.sl_flow.register_outgoing_attempt(&payload);
         let sl_metrics = bucket.models.network.transfer(&payload);
 
-        match &mut bucket.models.output.tx_data_writer {
-            Some(tx) => tx.add_data(self.step, &target_link, &payload, sl_metrics),
-            None => {}
+        if let Some(tx) = &mut bucket.models.output.tx_data_writer {
+            tx.add_data(self.step, &target_link, &payload, sl_metrics)
         }
 
         if sl_metrics.tx_status == TxStatus::Ok {
