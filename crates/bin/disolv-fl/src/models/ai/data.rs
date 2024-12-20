@@ -168,28 +168,24 @@ impl DataHolder {
         self.usable_test = dataset;
     }
 
-    pub fn allot_data(&mut self, agent_id: AgentId) {
+    pub fn allot_data(&mut self) {
         if self.usable_train.has_data() {
             self.strategy
                 .allot_data(&mut self.allotted_train, &mut self.usable_train);
-        } else {
-            debug!("There is no usable training data in {}", agent_id);
         }
         if self.usable_test.has_data() {
             self.strategy
                 .allot_data(&mut self.allotted_test, &mut self.usable_test);
-        } else {
-            debug!("There is no usable testing data in {}", agent_id);
         }
     }
 
-    pub fn allotted_training_data(&mut self) -> DatasetType {
+    pub fn allotted_train_data(&mut self) -> DatasetType {
         let dataset = self.allotted_train.clone();
         self.allotted_train.clear();
         dataset
     }
 
-    pub fn allotted_testing_data(&mut self) -> DatasetType {
+    pub fn allotted_test_data(&mut self) -> DatasetType {
         let dataset = self.allotted_test.clone();
         self.allotted_test.clear();
         dataset

@@ -42,6 +42,9 @@ impl<B: Backend> ModelLake<B> {
     }
 
     pub(crate) fn local_model_of(&mut self, agent_id: AgentId) -> ModelType<B> {
+        if !self.model_map.contains_key(&agent_id) {
+            debug!("Local model of {} is not found", agent_id);
+        }
         self.model_map
             .remove(&agent_id)
             .expect("failed to find local model")

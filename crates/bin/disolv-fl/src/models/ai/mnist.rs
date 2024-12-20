@@ -1,7 +1,6 @@
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use burn::backend::wgpu::WgpuDevice;
 use burn::config::Config;
 use burn::data::dataloader::{DataLoaderBuilder, Dataset};
 use burn::data::dataloader::batcher::Batcher;
@@ -115,7 +114,7 @@ impl ModelSettings for MnistTrainConfigSettings {}
 
 #[derive(Config, TypedBuilder)]
 pub struct MnistTrainingConfig {
-    pub model: MnistConfig,
+    pub model: MnistModelConfig,
     pub optimizer: AdamConfig,
     #[config(default = 1)]
     pub num_epochs: usize,
@@ -133,7 +132,7 @@ impl Model for MnistTrainingConfig {
     type Settings = MnistTrainConfigSettings;
 
     fn with_settings(settings: &Self::Settings) -> Self {
-        let mut model = MnistConfig::new(settings.num_classes, settings.hidden_size);
+        let mut model = MnistModelConfig::new(settings.num_classes, settings.hidden_size);
         if let Some(val) = settings.drop_out {
             model.dropout = val;
         }
@@ -187,6 +186,7 @@ impl<B: Backend> MnistModel<B> {
             .map(|model| model.linear2.weight.val())
             .collect();
         avg_linear_tensor = Self::get_average_tensor(linear_weights);
+        global_model.linear2.weight = Param::from_data(avg_linear_tensor.into_data(), device);
 
         let mut conv_weights = other_models
             .iter()
@@ -216,14 +216,14 @@ impl<B: Backend> MnistModel<B> {
 }
 
 #[derive(Config, Debug)]
-pub struct MnistConfig {
+pub struct MnistModelConfig {
     num_classes: usize,
     hidden_size: usize,
     #[config(default = "0.5")]
     dropout: f64,
 }
 
-impl MnistConfig {
+impl MnistModelConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> MnistModel<B> {
         MnistModel {
             conv1: Conv2dConfig::new([1, 8], [3, 3]).init(device),
