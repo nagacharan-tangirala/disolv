@@ -1,3 +1,7 @@
+use parquet::column::writer::ColumnWriter::FloatColumnWriter;
+use serde::Deserialize;
+use typed_builder::TypedBuilder;
+
 use disolv_core::agent::{AgentClass, AgentId};
 use disolv_core::bucket::TimeMS;
 use disolv_core::hashbrown::HashMap;
@@ -5,11 +9,8 @@ use disolv_core::metrics::Bytes;
 use disolv_core::model::{Model, ModelSettings};
 use disolv_core::radio::{Action, Link};
 use disolv_models::device::models::Compose;
-use parquet::column::writer::ColumnWriter::FloatColumnWriter;
-use serde::Deserialize;
-use typed_builder::TypedBuilder;
 
-use crate::fl::client::AgentInfo;
+use crate::fl::device::DeviceInfo;
 use crate::models::ai::data::DataStrategy::Time;
 use crate::models::device::message::{
     FlContent, FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit,
@@ -38,25 +39,36 @@ pub enum FlComposer {
 }
 
 impl FlComposer {
-    pub fn append_units_to(&mut self, payload: &mut FlPayload, units: &mut Vec<MessageUnit>) {
+    pub fn update_metadata(&mut self, payload: &mut FlPayload, units: &[MessageUnit]) {
         units.iter().for_each(|unit| {
             payload.metadata.total_size += unit.message_size;
             payload.metadata.total_count += 1;
         });
-        payload.data_units.append(units);
     }
 
-    pub(crate) fn set_message_to_build(&mut self, message: FlMessageToBuild) {
+    pub(crate) fn update_draft(&mut self, message: FlMessageDraft) {
         match self {
-            FlComposer::Simple(composer) => composer.set_message_to_build(message),
+            FlComposer::Simple(composer) => composer.update_draft(message),
+        }
+    }
+
+    pub(crate) fn reset_draft(&mut self) {
+        match self {
+            FlComposer::Simple(composer) => composer.reset_draft(),
+        }
+    }
+
+    pub(crate) fn peek_draft(&self) -> &Option<FlMessageDraft> {
+        match self {
+            FlComposer::Simple(composer) => &composer.message_to_send,
         }
     }
 
     pub(crate) fn compose(
-        &mut self,
+        &self,
         at: TimeMS,
         target_class: &AgentClass,
-        agent_state: &AgentInfo,
+        agent_state: &DeviceInfo,
     ) -> FlPayload {
         match self {
             FlComposer::Simple(composer) => composer.compose(at, target_class, agent_state),
@@ -75,11 +87,12 @@ impl Model for FlComposer {
     }
 }
 
-#[derive(Clone, Default, Copy, Debug, TypedBuilder)]
-pub struct FlMessageToBuild {
+#[derive(Clone, Default, Debug, TypedBuilder)]
+pub struct FlMessageDraft {
     pub message: Message,
     pub message_type: MessageType,
     pub fl_content: FlContent,
+    pub selected_clients: Option<Vec<AgentId>>,
     pub quantity: u64,
 }
 
@@ -87,7 +100,7 @@ pub struct FlMessageToBuild {
 pub struct SimpleComposer {
     pub data_sources: Vec<V2XDataSource>,
     pub size_map: HashMap<FlContent, Bytes>,
-    pub message_to_send: Option<FlMessageToBuild>,
+    pub message_to_send: Option<FlMessageDraft>,
     pub step: TimeMS,
 }
 
@@ -101,12 +114,16 @@ impl SimpleComposer {
         }
     }
 
-    fn set_message_to_build(&mut self, message: FlMessageToBuild) {
+    fn update_draft(&mut self, message: FlMessageDraft) {
         self.message_to_send = Some(message);
     }
 
+    fn reset_draft(&mut self) {
+        self.message_to_send = None;
+    }
+
     fn compose_message_units(&self, target_class: &AgentClass) -> Vec<MessageUnit> {
-        let mut message_units = Vec::new();
+        let message_units = Vec::new();
         for ds_settings in self.data_sources.iter() {
             if ds_settings.agent_class != *target_class {
                 continue;
@@ -118,23 +135,28 @@ impl SimpleComposer {
         message_units
     }
 
-    fn compose_fl_message(&self, message_to_build: FlMessageToBuild) -> MessageUnit {
+    fn compose_fl_message(
+        &self,
+        message_draft: FlMessageDraft,
+        agent_state: &DeviceInfo,
+    ) -> MessageUnit {
         let mut message_size = self
             .size_map
-            .get(&message_to_build.fl_content)
+            .get(&message_draft.fl_content)
             .expect("Invalid message")
             .to_owned();
 
-        message_size = Bytes::new(message_size.as_u64() * message_to_build.quantity);
+        message_size = Bytes::new(message_size.as_u64() * message_draft.quantity);
         MessageUnit::builder()
-            .message_type(message_to_build.message_type.clone())
+            .message_type(message_draft.message_type)
             .message_size(message_size)
             .action(Action::default())
-            .fl_content(message_to_build.fl_content)
+            .fl_content(message_draft.fl_content)
+            .device_info(*agent_state)
             .build()
     }
 
-    fn build_metadata(&self, data_units: &Vec<MessageUnit>) -> FlPayloadInfo {
+    fn build_metadata(&self, data_units: &[MessageUnit]) -> FlPayloadInfo {
         let payload_info = FlPayloadInfo::builder()
             .total_size(data_units.iter().map(|x| x.message_size).sum())
             .total_count(data_units.len() as u32)
@@ -144,13 +166,13 @@ impl SimpleComposer {
     }
 
     fn compose(
-        &mut self,
+        &self,
         _at: TimeMS,
         target_class: &AgentClass,
-        agent_state: &AgentInfo,
+        agent_state: &DeviceInfo,
     ) -> FlPayload {
         let mut message_units = Vec::new();
-        if self.data_sources.len() > 0 {
+        if !self.data_sources.is_empty() {
             message_units = self.compose_message_units(target_class);
         }
 
@@ -159,18 +181,18 @@ impl SimpleComposer {
             .message_size(*self.size_map.get(&FlContent::None).unwrap())
             .action(Action::default())
             .fl_content(FlContent::None)
+            .device_info(*agent_state)
             .build();
 
-        if let Some(message) = self.message_to_send {
-            fl_message = self.compose_fl_message(message);
-            self.message_to_send = None;
+        if let Some(message) = &self.message_to_send {
+            fl_message = self.compose_fl_message(message.to_owned(), agent_state)
         }
         message_units.push(fl_message);
 
         let payload_info = self.build_metadata(&message_units);
         FlPayload::builder()
             .metadata(payload_info)
-            .agent_state(agent_state.clone())
+            .agent_state(*agent_state)
             .gathered_states(Vec::new())
             .data_units(message_units)
             .query_type(Message::Sensor)
