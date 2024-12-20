@@ -21,6 +21,7 @@ pub enum OutputType {
     AgentPos,
     NetStat,
     FlState,
+    FlModel,
 }
 
 #[derive(Deserialize, Debug, Clone)]
