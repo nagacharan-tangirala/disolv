@@ -1,7 +1,7 @@
 use disolv_core::agent::AgentClass;
-use disolv_core::hashbrown::HashMap;
 use disolv_core::message::ContentType;
 use disolv_core::radio::Action;
+use hashbrown::HashMap;
 
 use crate::net::radio::ActionSettings;
 
@@ -39,6 +39,6 @@ impl<C: ContentType> Actor<C> {
     pub fn actions_for(&self, target_class: &AgentClass) -> &HashMap<C, Action> {
         self.actions
             .get(target_class)
-            .expect(format!("Missing actions for {}", target_class).as_str())
+            .unwrap_or_else(|| panic!("Missing actions for {}", target_class))
     }
 }

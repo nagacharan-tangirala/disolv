@@ -6,15 +6,18 @@ use std::time::Duration;
 use clap::Parser;
 use crossterm::event::{self, Event as CrosstermEvent};
 use log::{debug, info};
+use ratatui::{Frame, Terminal};
 use ratatui::backend::CrosstermBackend;
-use ratatui::Terminal;
+
+use disolv_output::terminal::{handle_sim_key_events, TerminalUI};
+use disolv_output::ui::{Message, Renderer, SimContent};
 
 use crate::simulation::builder::LinkBuilder;
 use crate::simulation::config::{Config, read_config};
-use crate::simulation::tui::{handle_link_key_events, Tui};
-use crate::simulation::ui::{Content, Message};
+use crate::simulation::ui::SimRenderer;
 
 mod links;
+mod positions;
 mod simulation;
 
 #[derive(Parser, Debug)]
@@ -43,11 +46,11 @@ fn generate_links(mut builder: LinkBuilder) {
     let ui_metadata = builder.build_link_metadata();
     thread::scope(|s| {
         s.spawn(move || {
-            let mut ui_content = Content::new(duration, ui_metadata);
+            let mut ui_content = SimContent::new(duration, ui_metadata);
 
             let backend = CrosstermBackend::new(io::stderr());
             let terminal = Terminal::new(backend).expect("failed to create terminal");
-            let mut tui = Tui::new(terminal);
+            let mut tui = TerminalUI::new(terminal, SimRenderer::new());
             tui.init().expect("failed to initialize the terminal");
 
             while ui_content.running {
@@ -57,7 +60,7 @@ fn generate_links(mut builder: LinkBuilder) {
                         Message::CurrentTime(now) => ui_content.update_now(now),
                         Message::Quit => ui_content.quit(),
                         Message::Key(key_event) => {
-                            handle_link_key_events(key_event, &mut ui_content)
+                            handle_sim_key_events(key_event, &mut ui_content)
                         }
                         Message::Mouse(_) => {}
                         Message::Resize(_, _) => {}

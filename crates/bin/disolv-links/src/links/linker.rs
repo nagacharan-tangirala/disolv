@@ -1,18 +1,17 @@
 use std::fs::File;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use kiddo::{KdTree, NearestNeighbour, SquaredEuclidean};
 use log::debug;
+use serde::Deserialize;
+
+use arrow::array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
+use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use disolv_core::bucket::TimeMS;
+use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
 use parquet::arrow::ArrowWriter;
 use parquet::basic::Compression;
 use parquet::file::properties::WriterProperties;
-use serde::Deserialize;
-
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
 
 use crate::links::reader::AgentIdPos;
 use crate::simulation::config::LinkSettings;

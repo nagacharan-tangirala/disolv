@@ -4,7 +4,7 @@ use typed_builder::TypedBuilder;
 use disolv_core::bucket::TimeMS;
 use disolv_models::net::network::{NetworkSlice, SliceType};
 
-use crate::fl::client::AgentInfo;
+use crate::fl::device::DeviceInfo;
 use crate::models::device::message::{
     FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit, TxMetrics,
 };
@@ -39,7 +39,7 @@ pub struct Slice {
     pub tx_order: u32,
 }
 
-impl NetworkSlice<MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message, TxMetrics>
+impl NetworkSlice<MessageType, MessageUnit, FlPayloadInfo, DeviceInfo, Message, TxMetrics>
     for Slice
 {
     fn reset(&mut self) {

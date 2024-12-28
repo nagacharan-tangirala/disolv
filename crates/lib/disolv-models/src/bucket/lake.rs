@@ -1,6 +1,6 @@
 use disolv_core::agent::{AgentId, AgentProperties};
-use disolv_core::hashbrown::HashMap;
 use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
+use hashbrown::HashMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct DataLake<C, D, M, P, Q>

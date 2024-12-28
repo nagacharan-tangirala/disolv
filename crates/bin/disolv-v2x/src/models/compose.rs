@@ -7,7 +7,6 @@ use disolv_core::message::Payload;
 use disolv_core::metrics::Bytes;
 use disolv_core::model::{Model, ModelSettings};
 use disolv_core::radio::{Action, Link};
-use disolv_core::uuid;
 use disolv_models::device::models::Compose;
 
 use crate::models::message::{DataBlob, DataType, MessageType, PayloadInfo, V2XPayload};
@@ -126,7 +125,7 @@ impl Compose<DataType, DataBlob, PayloadInfo, DeviceInfo, MessageType> for Basic
         let payload_info = self.build_metadata(&data_units);
         V2XPayload::builder()
             .metadata(payload_info)
-            .agent_state(agent_state.clone())
+            .agent_state(*agent_state)
             .gathered_states(Vec::new())
             .data_units(data_units)
             .query_type(MessageType::Sensor)

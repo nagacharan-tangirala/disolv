@@ -5,17 +5,10 @@ use toml;
 
 use disolv_core::agent::AgentKind;
 use disolv_core::bucket::TimeMS;
+use disolv_output::logger::LogSettings;
 
 use crate::links::linker::{DeviceCount, LinkType, Radius};
 use crate::links::reader::TraceType;
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct LogSettings {
-    pub log_path: String,
-    pub log_level: String,
-    pub log_file_name: String,
-    pub log_overwrite: bool,
-}
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Settings {
@@ -61,5 +54,5 @@ pub(crate) fn read_config(file_path: &PathBuf) -> Config {
         Ok(config) => config,
         Err(_) => panic!("Invalid toml file given"),
     };
-    return config;
+    config
 }

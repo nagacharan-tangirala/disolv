@@ -1,6 +1,6 @@
 use disolv_core::agent::{AgentClass, AgentId, AgentProperties};
-use disolv_core::hashbrown::HashMap;
 use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
+use hashbrown::HashMap;
 
 use crate::net::radio::CommStats;
 
@@ -60,7 +60,7 @@ impl FlowRegister {
         Q: QueryType,
     >(
         &mut self,
-        payloads: &Vec<Payload<C, D, M, P, Q>>,
+        payloads: &[Payload<C, D, M, P, Q>],
     ) {
         payloads.iter().for_each(|payload| {
             self.comm_stats.incoming_stats.update(&payload.metadata);

@@ -1,13 +1,13 @@
 use clap::Parser;
 
+use disolv_runner::runner::run_simulation;
+
 use crate::simulation::builder::SimulationBuilder;
-use crate::simulation::runner::run_simulation;
 
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 pub(crate) mod models;
-pub(crate) mod out;
 pub(crate) mod simulation;
 pub(crate) mod v2x;
 
@@ -23,7 +23,7 @@ fn main() {
     let start = std::time::Instant::now();
     let mut builder = SimulationBuilder::new(&args.config);
     let scheduler = builder.build();
-    run_simulation(scheduler, builder.metadata());
+    run_simulation(scheduler, builder.metadata(), builder.renderer());
     let elapsed = start.elapsed();
     println!("Simulation finished in {} ms.", elapsed.as_millis());
 }

@@ -1,65 +1,65 @@
 use std::path::{Path, PathBuf};
 
 use burn::backend::{Autodiff, Wgpu};
-use burn::backend::wgpu::{AutoGraphicsApi, WgpuDevice};
+use burn::backend::wgpu::WgpuDevice;
+use hashbrown::HashMap;
 use indexmap::IndexMap;
 use log::info;
 
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
-use disolv_core::metrics::{Consumable, Measurable};
-use disolv_core::metrics::Resource;
+use disolv_core::metrics::Measurable;
 use disolv_core::model::Model;
 use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
 use disolv_input::links::LinkReader;
 use disolv_input::power::{PowerTimes, read_power_schedule};
-use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::actor::Actor;
 use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::power::PowerManager;
 use disolv_models::net::network::Network;
-use disolv_output::result::ResultWriter;
+use disolv_output::logger::initiate_logger;
+use disolv_output::result::Results;
+use disolv_output::ui::SimUIMetadata;
 
 use crate::fl::agent::FAgent;
 use crate::fl::agent::FAgent::{FClient, FServer};
 use crate::fl::bucket::{FlBucket, FlBucketModels, FlDataLake, FlNetwork};
-use crate::fl::client::{AgentInfo, Client, ClientModels, FlModels};
-use crate::fl::server::{FlServerModels, Server, ServerModels};
+use crate::fl::client::{Client, ClientModels};
+use crate::fl::device::{Device, DeviceInfo, DeviceModels};
+use crate::fl::server::{FlServerModels, Server};
 use crate::models::ai::aggregate::Aggregator;
 use crate::models::ai::compose::FlComposer;
-use crate::models::ai::data::{DataHolder, DataHolderSettings};
-use crate::models::ai::mnist::{MnistTrainConfigSettings, MnistTrainingConfig};
+use crate::models::ai::data::DataHolder;
+use crate::models::ai::mnist::MnistTrainingConfig;
 use crate::models::ai::models::ModelType;
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::{ClientTimes, ServerTimes};
 use crate::models::ai::trainer::{Trainer, TrainerSettings};
 use crate::models::device::energy::EnergyType;
-use crate::models::device::hardware::{BandwidthType, Hardware};
+use crate::models::device::hardware::Hardware;
 use crate::models::device::lake::ModelLake;
 use crate::models::device::link::LinkSelector;
 use crate::models::device::linker::{Linker, LinkerSettings};
 use crate::models::device::mapper::{GeoMap, GeoMapper};
-use crate::models::device::network::{FlSlice, RadioMetrics, RadioResources, Slice, SliceSettings};
-use crate::models::device::output::OutputWriter;
+use crate::models::device::network::{RadioMetrics, RadioResources, Slice, SliceSettings};
 use crate::simulation::config::{
     AgentClassSettings, BaseConfig, BaseConfigReader, ClientClassSettings, ServerClassSettings,
 };
 use crate::simulation::distribute::DataDistributor;
-use crate::simulation::logger;
-use crate::simulation::ui::SimUIMetadata;
+use crate::simulation::ui::SimRenderer;
 
 pub type WgpuBackend = Wgpu<f32, i32>;
 pub type WgpuAdBackend = Autodiff<WgpuBackend>;
 
 pub type FedAgent = FAgent<WgpuAdBackend>;
+pub type FedDevice = Device<WgpuAdBackend>;
 pub type FedBucket = FlBucket<WgpuAdBackend>;
 pub type FedClient = Client<WgpuAdBackend>;
 pub type FedServer = Server<WgpuAdBackend>;
 
-pub type DScheduler = DefaultScheduler<FedAgent, FedBucket>;
-pub type MScheduler = MapScheduler<FedAgent, FedBucket>;
+pub type DScheduler = DefaultScheduler<FedDevice, FedBucket>;
+pub type MScheduler = MapScheduler<FedDevice, FedBucket>;
 
 pub struct SimulationBuilder {
     base_config: BaseConfig,
@@ -105,7 +105,11 @@ impl SimulationBuilder {
     }
 
     pub(crate) fn build(&mut self) -> DScheduler {
-        logger::initiate_logger(&self.config_path, &self.base_config.log_settings);
+        initiate_logger(
+            &self.config_path,
+            &self.base_config.log_settings,
+            Some(self.base_config.output_settings.scenario_id),
+        );
 
         info!("Building devices and device pools...");
         let device_bucket = self.build_fl_bucket();
@@ -114,7 +118,11 @@ impl SimulationBuilder {
     }
 
     pub(crate) fn build_with_map(&mut self) -> MScheduler {
-        logger::initiate_logger(&self.config_path, &self.base_config.log_settings);
+        initiate_logger(
+            &self.config_path,
+            &self.base_config.log_settings,
+            Some(self.base_config.output_settings.scenario_id),
+        );
 
         info!("Building devices and device pools...");
         let device_bucket = self.build_fl_bucket();
@@ -122,15 +130,15 @@ impl SimulationBuilder {
         self.build_map_scheduler(agent_map, device_bucket)
     }
 
-    fn build_agents(&mut self) -> HashMap<AgentId, FedAgent> {
+    fn build_agents(&mut self) -> HashMap<AgentId, FedDevice> {
         info!("Building clients...");
-        let mut fed_agents = self.build_clients();
+        let mut fed_agents = self.build_devices();
         info!("Building servers...");
         fed_agents.extend(self.build_servers());
         fed_agents
     }
 
-    fn build_clients(&mut self) -> HashMap<AgentId, FedAgent> {
+    fn build_devices(&mut self) -> HashMap<AgentId, FedDevice> {
         let mut client_map = HashMap::new();
 
         for client_setting in self.base_config.clients.clone().iter() {
@@ -168,7 +176,7 @@ impl SimulationBuilder {
         client_map
     }
 
-    fn build_servers(&mut self) -> HashMap<AgentId, FedAgent> {
+    fn build_servers(&mut self) -> HashMap<AgentId, FedDevice> {
         let mut server_map = HashMap::new();
 
         for server_setting in self.base_config.servers.clone().iter() {
@@ -212,7 +220,7 @@ impl SimulationBuilder {
         device_type: &AgentKind,
         client_settings: &ClientClassSettings,
         power_times: PowerTimes,
-    ) -> FedAgent {
+    ) -> FedDevice {
         let client_info =
             Self::build_agent_info(device_id, device_type, &client_settings.class_settings);
 
@@ -232,35 +240,40 @@ impl SimulationBuilder {
                 selector_vec.push((settings.target_class, selector));
             });
 
-        let client_models = ClientModels::builder()
-            .power(power_manager)
-            .flow(FlowRegister::default())
-            .sl_flow(FlowRegister::default())
-            .selector(selector_vec)
-            .actor(Actor::new(&client_settings.class_settings.actions.clone()))
-            .directions(Directions::new(&client_settings.class_settings.directions))
-            .energy(EnergyType::with_settings(
-                &client_settings.class_settings.energy,
-            ))
-            .hardware(Hardware::with_settings(&client_settings.hardware))
-            .build();
-
         let trainer = self.build_trainer(&client_settings.trainer_settings);
-        let fl_models = FlModels::builder()
+        let client_models = ClientModels::builder()
             .holder(DataHolder::with_settings(&client_settings.data_holder))
-            .composer(FlComposer::with_settings(&client_settings.fl_composer))
             .times(ClientTimes::with_settings(&client_settings.durations))
             .local_model(trainer.model.clone())
             .trainer(trainer)
             .build();
 
-        FClient(
+        let fed_client = FClient(
             FedClient::builder()
                 .client_info(client_info)
-                .models(client_models)
-                .fl_models(fl_models)
+                .fl_models(client_models)
                 .build(),
-        )
+        );
+
+        let device_models = DeviceModels::builder()
+            .power(power_manager)
+            .flow(FlowRegister::default())
+            .sl_flow(FlowRegister::default())
+            .composer(FlComposer::with_settings(&client_settings.fl_composer))
+            .actor(Actor::new(&client_settings.class_settings.actions.clone()))
+            .directions(Directions::new(&client_settings.class_settings.directions))
+            .hardware(Hardware::with_settings(&client_settings.hardware))
+            .energy(EnergyType::with_settings(
+                &client_settings.class_settings.energy,
+            ))
+            .link_selector(selector_vec)
+            .build();
+
+        FedDevice::builder()
+            .fl_agent(fed_client)
+            .device_info(client_info)
+            .models(device_models)
+            .build()
     }
 
     fn build_server(
@@ -269,7 +282,7 @@ impl SimulationBuilder {
         device_type: &AgentKind,
         server_settings: &ServerClassSettings,
         power_times: PowerTimes,
-    ) -> FedAgent {
+    ) -> FedDevice {
         let server_info =
             Self::build_agent_info(device_id, device_type, &server_settings.class_settings);
 
@@ -289,23 +302,11 @@ impl SimulationBuilder {
                 selector_vec.push((settings.target_class, selector));
             });
 
-        let server_models = ServerModels::builder()
-            .power(power_manager)
-            .flow(FlowRegister::default())
-            .sl_flow(FlowRegister::default())
-            .link_selector(selector_vec)
-            .actor(Actor::new(&server_settings.class_settings.actions.clone()))
-            .directions(Directions::new(&server_settings.class_settings.directions))
-            .energy(EnergyType::with_settings(
-                &server_settings.class_settings.energy,
-            ))
-            .build();
-
         let trainer = self.build_trainer(&server_settings.trainer_settings);
+
         let fl_models = FlServerModels::builder()
             .client_classes(server_settings.client_classes.clone())
             .trainer(trainer)
-            .composer(FlComposer::with_settings(&server_settings.fl_composer))
             .times(ServerTimes::with_settings(&server_settings.durations))
             .aggregator(Aggregator::with_settings(&server_settings.aggregation))
             .client_selector(ClientSelector::with_settings(
@@ -314,13 +315,32 @@ impl SimulationBuilder {
             .holder(DataHolder::with_settings(&server_settings.data_holder))
             .build();
 
-        FServer(
+        let fed_server = FServer(
             FedServer::builder()
                 .server_info(server_info)
-                .models(server_models)
                 .fl_models(fl_models)
                 .build(),
-        )
+        );
+
+        let server_models = DeviceModels::builder()
+            .power(power_manager)
+            .flow(FlowRegister::default())
+            .sl_flow(FlowRegister::default())
+            .composer(FlComposer::with_settings(&server_settings.fl_composer))
+            .actor(Actor::new(&server_settings.class_settings.actions.clone()))
+            .directions(Directions::new(&server_settings.class_settings.directions))
+            .hardware(Hardware::with_settings(&server_settings.hardware))
+            .energy(EnergyType::with_settings(
+                &server_settings.class_settings.energy,
+            ))
+            .link_selector(selector_vec)
+            .build();
+
+        FedDevice::builder()
+            .fl_agent(fed_server)
+            .device_info(server_info)
+            .models(server_models)
+            .build()
     }
 
     fn build_trainer(&self, trainer_settings: &TrainerSettings) -> Trainer<WgpuAdBackend> {
@@ -388,8 +408,8 @@ impl SimulationBuilder {
         device_id: AgentId,
         device_type: &AgentKind,
         class_settings: &AgentClassSettings,
-    ) -> AgentInfo {
-        AgentInfo::builder()
+    ) -> DeviceInfo {
+        DeviceInfo::builder()
             .id(device_id)
             .agent_type(device_type.to_owned())
             .agent_class(class_settings.agent_class)
@@ -399,7 +419,7 @@ impl SimulationBuilder {
 
     fn build_scheduler(
         &mut self,
-        agent_map: HashMap<AgentId, FedAgent>,
+        agent_map: HashMap<AgentId, FedDevice>,
         fl_bucket: FedBucket,
     ) -> DScheduler {
         info!("Building scheduler...");
@@ -415,7 +435,7 @@ impl SimulationBuilder {
 
     fn build_map_scheduler(
         &mut self,
-        agent_map: HashMap<AgentId, FedAgent>,
+        agent_map: HashMap<AgentId, FedDevice>,
         fl_bucket: FedBucket,
     ) -> MScheduler {
         info!("Building scheduler...");
@@ -434,7 +454,7 @@ impl SimulationBuilder {
     fn build_fl_bucket(&mut self) -> FedBucket {
         info!("Building FL bucket...");
         let bucket_models = FlBucketModels::builder()
-            .output(OutputWriter::new(&self.base_config.output_settings))
+            .results(Results::new(&self.base_config.output_settings))
             .network(self.build_network())
             .space(self.build_space())
             .mapper_holder(self.build_mapper_vec())
@@ -596,5 +616,9 @@ impl SimulationBuilder {
 
     pub(crate) fn metadata(&self) -> SimUIMetadata {
         self.metadata.clone()
+    }
+
+    pub(crate) fn renderer(&self) -> SimRenderer {
+        SimRenderer::new()
     }
 }

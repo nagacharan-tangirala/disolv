@@ -3,20 +3,18 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use crossterm::event::{self, Event as CrosstermEvent};
-use log::info;
+use disolv_core::bucket::Bucket;
+use disolv_core::scheduler::Scheduler;
+use disolv_output::terminal::{handle_sim_key_events, TerminalUI};
+use disolv_output::ui::{Message, Renderer, SimContent, SimUIMetadata};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 
-use disolv_core::bucket::Bucket;
-use disolv_core::scheduler::Scheduler;
-
-use crate::simulation::tui::{handle_sim_key_events, Tui};
-use crate::simulation::ui::{Message, SimContent, SimUIMetadata};
-
-pub fn run_simulation<B, S>(mut scheduler: S, metadata: SimUIMetadata)
+pub fn run_simulation<B, S, R>(mut scheduler: S, metadata: SimUIMetadata, renderer: R)
 where
     S: Scheduler<B>,
     B: Bucket,
+    R: Renderer,
 {
     let (sender_ui, receiver_ui) = mpsc::sync_channel(0);
     let sender = sender_ui.clone();
@@ -28,11 +26,11 @@ where
             let mut ui_content = SimContent::new(duration, metadata);
             let backend = CrosstermBackend::new(io::stderr());
             let terminal = Terminal::new(backend).expect("failed to create terminal");
-            let mut tui = Tui::new(terminal);
+            let mut tui = TerminalUI::new(terminal, renderer);
             tui.init().expect("failed to initialize the terminal");
 
             while ui_content.running {
-                tui.draw_sim_ui(&mut ui_content).expect("failed to draw");
+                tui.draw_ui(&mut ui_content).expect("failed to draw");
                 match receiver_ui.recv() {
                     Ok(message) => match message {
                         Message::CurrentTime(now) => ui_content.update_now(now),
@@ -79,7 +77,6 @@ where
                 match terminal_sender.send(Message::CurrentTime(now)) {
                     Ok(_) => {}
                     Err(_) => {
-                        info!("User must have requested to quit, terminating at {}", now);
                         scheduler.terminate();
                         return;
                     }

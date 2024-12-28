@@ -1,12 +1,15 @@
-use crate::batch::read_u64_column;
-use crate::columns::{AGENT_ID, OFF_TIMES, ON_TIMES};
-use arrow_array::RecordBatch;
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
-use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use std::fs::File;
 use std::path::PathBuf;
+
+use arrow::record_batch::RecordBatch;
+use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
+
+use disolv_core::agent::AgentId;
+use disolv_core::bucket::TimeMS;
+use hashbrown::HashMap;
+
+use crate::batch::read_u64_column;
+use crate::columns::{AGENT_ID, OFF_TIMES, ON_TIMES};
 
 pub type PowerTimes = (Vec<TimeMS>, Vec<TimeMS>);
 

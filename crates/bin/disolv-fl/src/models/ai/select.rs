@@ -2,10 +2,10 @@ use rand::seq::IteratorRandom;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
-use disolv_core::hashbrown::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use disolv_core::model::{Model, ModelSettings};
 
-use crate::fl::client::AgentInfo;
+use crate::fl::device::DeviceInfo;
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct ClientSelectionSettings {
@@ -45,7 +45,7 @@ impl ClientSelector {
         }
     }
 
-    pub(crate) fn register_client(&mut self, client_info: &AgentInfo) {
+    pub(crate) fn register_client(&mut self, client_info: &DeviceInfo) {
         match self {
             ClientSelector::Random(selector) => selector.register_client(client_info),
         }
@@ -62,7 +62,7 @@ impl ClientSelector {
 pub(crate) struct RandomClients {
     pub(crate) c: f64,
     pub(crate) sample_size: f64,
-    all_clients: HashMap<AgentId, AgentInfo>,
+    all_clients: HashMap<AgentId, DeviceInfo>,
     pub(crate) selected_clients: Vec<AgentId>,
     pub(crate) used_clients: HashSet<AgentId>,
 }
@@ -80,7 +80,7 @@ impl RandomClients {
 }
 
 impl RandomClients {
-    fn register_client(&mut self, client_info: &AgentInfo) {
+    fn register_client(&mut self, client_info: &DeviceInfo) {
         self.all_clients
             .insert(client_info.id, client_info.to_owned());
     }

@@ -1,43 +1,48 @@
-use burn::data::dataset::transform::Mapper;
 use burn::prelude::Backend;
-use burn::tensor::backend::AutodiffBackend;
+use hashbrown::HashMap;
 use log::{debug, info};
 use typed_builder::TypedBuilder;
 
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::{Bucket, TimeMS};
-use disolv_core::hashbrown::HashMap;
 use disolv_core::model::BucketModel;
 use disolv_core::radio::Link;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::mobility::MapState;
 use disolv_models::net::network::Network;
 use disolv_models::net::radio::{CommStats, LinkProperties};
-use disolv_output::result::ResultWriter;
+use disolv_output::result::Results;
 
-use crate::fl::client::AgentInfo;
+use crate::fl::device::DeviceInfo;
 use crate::models::ai::models::DatasetType;
 use crate::models::device::lake::ModelLake;
 use crate::models::device::linker::Linker;
 use crate::models::device::mapper::{GeoMap, GeoMapper};
 use crate::models::device::message::{FlPayloadInfo, Message, MessageType, MessageUnit, TxMetrics};
 use crate::models::device::network::{FlSlice, Slice};
-use crate::models::device::output::OutputWriter;
 use crate::simulation::distribute::DataDistributor;
 
-pub type FlDataLake = DataLake<MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>;
-pub type FlNetwork =
-    Network<Slice, MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message, FlSlice, TxMetrics>;
+pub type FlDataLake = DataLake<MessageType, MessageUnit, FlPayloadInfo, DeviceInfo, Message>;
+pub type FlNetwork = Network<
+    Slice,
+    MessageType,
+    MessageUnit,
+    FlPayloadInfo,
+    DeviceInfo,
+    Message,
+    FlSlice,
+    TxMetrics,
+>;
 
 #[derive(TypedBuilder)]
 pub(crate) struct FlBucketModels<B: Backend> {
-    pub(crate) output: OutputWriter,
+    pub(crate) results: Results,
     pub(crate) network: FlNetwork,
     pub(crate) space: GeoMap,
     pub(crate) mapper_holder: Vec<(AgentKind, GeoMapper)>,
     pub(crate) linker_holder: Vec<Linker>,
     pub(crate) stats_holder: HashMap<AgentId, CommStats>,
-    pub(crate) agent_data: HashMap<AgentId, AgentInfo>,
+    pub(crate) agent_data: HashMap<AgentId, DeviceInfo>,
     pub(crate) data_lake: FlDataLake,
     pub(crate) model_lake: ModelLake<B>,
     pub(crate) data_distributor: DataDistributor,
@@ -81,11 +86,11 @@ impl<B: Backend> FlBucket<B> {
         self.models.stats_holder.get(agent_id)
     }
 
-    pub fn update_agent_data_of(&mut self, agent_id: AgentId, a_info: AgentInfo) {
-        self.models.agent_data.insert(agent_id, a_info);
+    pub fn update_agent_data_of(&mut self, agent_id: AgentId, d_info: DeviceInfo) {
+        self.models.agent_data.insert(agent_id, d_info);
     }
 
-    pub fn agent_data_of(&self, agent_id: &AgentId) -> Option<&AgentInfo> {
+    pub fn agent_data_of(&self, agent_id: &AgentId) -> Option<&DeviceInfo> {
         self.models.agent_data.get(agent_id)
     }
 
@@ -171,11 +176,11 @@ impl<B: Backend> Bucket for FlBucket<B> {
 
     fn stream_output(&mut self) {
         debug!("Writing output at {}", self.step);
-        self.models.output.write_to_file();
+        self.models.results.write_to_file();
     }
 
     fn terminate(mut self) {
-        self.models.output.write_to_file();
-        self.models.output.close_output_files();
+        self.models.results.write_to_file();
+        self.models.results.close_files();
     }
 }

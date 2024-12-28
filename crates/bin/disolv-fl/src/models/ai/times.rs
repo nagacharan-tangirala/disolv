@@ -12,6 +12,7 @@ pub(crate) struct ServerDurations {
     pub(crate) initiation: TimeMS,
     pub(crate) analysis: TimeMS,
     pub(crate) selection: TimeMS,
+    pub(crate) preparation: TimeMS,
     pub(crate) aggregation: TimeMS,
     pub(crate) round_length: TimeMS,
 }
@@ -29,7 +30,7 @@ impl Model for ServerTimes {
 
     fn with_settings(settings: &Self::Settings) -> Self {
         Self {
-            durations: settings.clone(),
+            durations: *settings,
             next_change_at: TimeMS::default(),
         }
     }
@@ -42,6 +43,7 @@ impl ServerTimes {
                 ServerState::Idle => self.durations.initiation,
                 ServerState::ClientAnalysis => self.durations.analysis,
                 ServerState::ClientSelection => self.durations.selection,
+                ServerState::ClientPreparation => self.durations.preparation,
                 ServerState::TrainingRound => self.durations.round_length,
                 ServerState::Aggregation => self.durations.aggregation,
             }

@@ -1,4 +1,5 @@
 use burn::train::renderer::{MetricsRenderer, MetricState, TrainingProgress};
+use log::debug;
 
 pub(crate) struct CustomRenderer {}
 
@@ -8,7 +9,7 @@ impl MetricsRenderer for CustomRenderer {
     fn update_valid(&mut self, _state: MetricState) {}
 
     fn render_train(&mut self, item: TrainingProgress) {
-        //println!("Epoch - {}, iteration - {}", item.epoch, item.iteration);
+        debug!("Epoch - {}, iteration - {}", item.epoch, item.iteration);
     }
 
     fn render_valid(&mut self, item: TrainingProgress) {}

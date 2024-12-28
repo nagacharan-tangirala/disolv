@@ -6,7 +6,6 @@ use disolv_models::net::metrics::Bandwidth;
 
 use crate::models::message::PayloadInfo;
 
-#[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct BandwidthConfig {
     pub variant: String,

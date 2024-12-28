@@ -19,7 +19,6 @@ pub struct LinkProperties {
 impl LinkFeatures for LinkProperties {}
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde_with::skip_serializing_none]
 pub struct ActionSettings<C: ContentType> {
     pub target: AgentClass,
     pub data_type: C,

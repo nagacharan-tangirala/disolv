@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
@@ -40,6 +40,15 @@ pub enum ActionType {
     #[default]
     Consume,
     Forward,
+}
+
+impl Display for ActionType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ActionType::Consume => write!(f, "Consume"),
+            ActionType::Forward => write!(f, "Forward"),
+        }
+    }
 }
 
 /// A generic action struct that can be used to contain the information about action to perform

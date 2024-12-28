@@ -6,4 +6,3 @@ pub(crate) mod linker;
 pub(crate) mod mapper;
 pub(crate) mod message;
 pub(crate) mod network;
-pub(crate) mod output;

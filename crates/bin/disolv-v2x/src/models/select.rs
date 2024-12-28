@@ -8,7 +8,6 @@ use disolv_models::device::models::LinkSelect;
 use disolv_models::net::radio::{CommStats, LinkProperties};
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde_with::skip_serializing_none]
 pub struct SelectorSettings {
     pub target_class: AgentClass,
     pub name: String,

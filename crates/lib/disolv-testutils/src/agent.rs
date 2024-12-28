@@ -106,7 +106,6 @@ impl Orderable for TDevice {
 }
 
 impl Agent<MyBucket> for TDevice {
-    type P = DeviceStats;
     fn id(&self) -> AgentId {
         self.device_info.id
     }

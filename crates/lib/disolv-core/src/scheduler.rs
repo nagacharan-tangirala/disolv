@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use hashbrown::HashMap;
 use indexmap::IndexMap;
 use keyed_priority_queue::KeyedPriorityQueue;
 use log::debug;
@@ -7,7 +8,6 @@ use typed_builder::TypedBuilder;
 
 use crate::agent::{Agent, AgentId, AgentOrder};
 use crate::bucket::{Bucket, TimeMS};
-use crate::hashbrown::HashMap;
 
 /// A trait used to represent a scheduler. A scheduler is used to schedule entities. The order
 /// of calling the scheduler's functions is important to ensure the correct behavior of the engine.

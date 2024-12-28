@@ -6,6 +6,7 @@ use disolv_core::agent::{AgentClass, AgentKind, AgentOrder};
 use disolv_core::bucket::TimeMS;
 use disolv_models::device::directions::CommDirections;
 use disolv_models::net::radio::ActionSettings;
+use disolv_output::logger::LogSettings;
 use disolv_output::result::OutputSettings;
 
 use crate::models::ai::aggregate::AggregationSettings;
@@ -22,14 +23,6 @@ use crate::models::device::mapper::{FieldSettings, MobilitySettings};
 use crate::models::device::message::MessageType;
 use crate::models::device::network::SliceSettings;
 use crate::simulation::distribute::DistributorSettings;
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct LogSettings {
-    pub log_path: String,
-    pub log_level: String,
-    pub log_file_name: String,
-    pub log_overwrite: bool,
-}
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SimSettings {
@@ -73,6 +66,7 @@ pub struct ServerClassSettings {
     pub fl_composer: ComposerSettings,
     pub aggregation: AggregationSettings,
     pub durations: ServerDurations,
+    pub hardware: HardwareSettings,
     pub data_holder: DataHolderSettings,
     pub trainer_settings: TrainerSettings,
     pub class_settings: AgentClassSettings,
