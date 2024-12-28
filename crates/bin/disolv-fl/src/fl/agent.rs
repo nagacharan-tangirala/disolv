@@ -22,6 +22,13 @@ impl<B: AutodiffBackend> FAgent<B> {
         }
     }
 
+    pub(crate) fn agent_state(&self) -> String {
+        match self {
+            FAgent::FClient(client) => client.client_state.to_string(),
+            FAgent::FServer(server) => server.server_state.to_string(),
+        }
+    }
+
     pub(crate) fn update_step(&mut self, new_step: TimeMS) {
         match self {
             FAgent::FClient(client) => client.step = new_step,
