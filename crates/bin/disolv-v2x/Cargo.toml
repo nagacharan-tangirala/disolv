@@ -12,21 +12,19 @@ disolv-core = { version = "0.0.0", path = "../../lib/disolv-core" }
 disolv-input = { version = "0.0.0", path = "../../lib/disolv-input" }
 disolv-output = { version = "0.0.0", path = "../../lib/disolv-output" }
 disolv-models = { version = "0.0.0", path = "../../lib/disolv-models" }
-toml = "0.8.19"
-rand = "0.8.5"
-indexmap = "2.7.0"
-tikv-jemallocator = "0.6.0"
-log4rs = "1.3.0"
-log = "0.4.22"
-itertools = "0.13.0"
-clap = { version = "4.5.16", features = ["derive"] }
-typed-builder = "0.20.0"
-serde = { version = "1.0.215", features = ["derive"] }
-serde_with = "3.11.0"
-ratatui = "0.26.3"
-crossterm = "0.28.1"
-parquet = "53.3.0"
-arrow = "53.3.0"
+disolv-runner = { version = "0.0.0", path = "../../lib/disolv-runner" }
+toml.workspace = true
+rand.workspace = true
+indexmap.workspace = true
+tikv-jemallocator.workspace = true
+log4rs.workspace = true
+log.workspace = true
+itertools.workspace = true
+clap = { workspace = true, features = ["derive"] }
+typed-builder.workspace = true
+serde = { workspace = true, features = ["derive"] }
+uuid = { workspace = true, features = ["v4"] }
+hashbrown.workspace = true
 
 [dev-dependencies]
 disolv-testutils = { path = "../../lib/disolv-testutils" }
