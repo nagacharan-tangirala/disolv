@@ -11,7 +11,7 @@ use disolv_core::radio::{Action, Link};
 use disolv_models::net::metrics::Bandwidth;
 use disolv_models::net::radio::LinkProperties;
 
-use crate::fl::client::AgentInfo;
+use crate::fl::device::DeviceInfo;
 
 /// These are type of messages exchanged in a typical training context.
 #[derive(Deserialize, Default, Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -54,10 +54,14 @@ pub enum FlContent {
     None,
     StateInfo,
     GlobalModel,
+    GlobalModelReceived,
     LocalModel,
     ClientSelected,
+    ClientPreparing,
+    InitiateTraining,
     CompleteTraining,
     TrainingFailed,
+    Training,
 }
 
 impl Display for FlContent {
@@ -66,10 +70,14 @@ impl Display for FlContent {
             FlContent::None => write!(f, "None"),
             FlContent::StateInfo => write!(f, "StateInfo"),
             FlContent::GlobalModel => write!(f, "GlobalModel"),
+            FlContent::GlobalModelReceived => write!(f, "GlobalModelReceived"),
             FlContent::LocalModel => write!(f, "LocalModel"),
             FlContent::ClientSelected => write!(f, "Selected"),
+            FlContent::InitiateTraining => write!(f, "InitiateTraining"),
             FlContent::CompleteTraining => write!(f, "CompleteTraining"),
+            FlContent::Training => write!(f, "Training"),
             FlContent::TrainingFailed => write!(f, "TrainingFailed"),
+            FlContent::ClientPreparing => write!(f, "ClientPreparing"),
         }
     }
 }
@@ -83,6 +91,7 @@ pub struct MessageUnit {
     pub fl_content: FlContent,
     pub message_type: MessageType,
     pub message_size: Bytes,
+    pub device_info: DeviceInfo,
 }
 
 impl DataUnit<MessageType> for MessageUnit {
@@ -136,7 +145,7 @@ impl Metadata for FlPayloadInfo {
     }
 }
 
-pub type FlPayload = Payload<MessageType, MessageUnit, FlPayloadInfo, AgentInfo, Message>;
+pub type FlPayload = Payload<MessageType, MessageUnit, FlPayloadInfo, DeviceInfo, Message>;
 
 #[derive(Debug, Clone, Default, Copy)]
 pub struct TxMetrics {
