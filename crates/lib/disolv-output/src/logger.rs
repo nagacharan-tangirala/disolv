@@ -42,13 +42,14 @@ fn get_logging_level(log_level: &str) -> LevelFilter {
     }
 }
 
-pub fn initiate_logger(config_path: &Path, log_settings: &LogSettings, scenario_id: u32) {
+pub fn initiate_logger(config_path: &Path, log_settings: &LogSettings, scenario_id: Option<u32>) {
     let log_settings = log_settings.clone();
     let log_level = log_settings.log_level;
-    let log_path = config_path
-        .join(log_settings.log_path)
-        .join(scenario_id.to_string())
-        .join("logs");
+    let mut log_path = config_path.join(log_settings.log_path);
+    log_path = match scenario_id {
+        Some(val) => log_path.join(val.to_string()).join("logs"),
+        None => log_path.join("logs"),
+    };
 
     if !log_path.exists() {
         fs::create_dir_all(&log_path)
