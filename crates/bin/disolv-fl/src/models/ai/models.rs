@@ -12,7 +12,9 @@ use crate::models::ai::mnist::{MnistFlDataset, MnistModel};
 pub enum ClientState {
     #[default]
     Sensing,
+    Informing,
     Preparing,
+    ReadyToTrain,
     Training,
 }
 
@@ -20,7 +22,9 @@ impl Display for ClientState {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ClientState::Sensing => write!(f, "Sensing"),
-            ClientState::Preparing => write!(f, "Waiting"),
+            ClientState::Preparing => write!(f, "Preparing"),
+            ClientState::Informing => write!(f, "Informing"),
+            ClientState::ReadyToTrain => write!(f, "ReadyToTrain"),
             ClientState::Training => write!(f, "Training"),
         }
     }
@@ -68,16 +72,9 @@ impl DatasetType {
 
     pub fn has_data(&self) -> bool {
         match self {
-            DatasetType::Mnist(mnist) => mnist.images.len() > 0,
+            DatasetType::Mnist(mnist) => !mnist.images.is_empty(),
             DatasetType::Cifar(cifar) => false,
             DatasetType::Empty => false,
-        }
-    }
-
-    pub fn length(&self) -> usize {
-        match self {
-            DatasetType::Mnist(mnist) => mnist.images.len(),
-            _ => 0,
         }
     }
 
