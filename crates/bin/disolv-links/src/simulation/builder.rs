@@ -5,11 +5,11 @@ use hashbrown::HashMap;
 use disolv_core::agent::AgentKind;
 use disolv_core::bucket::TimeMS;
 use disolv_output::logger::initiate_logger;
+use disolv_output::ui::SimUIMetadata;
 
 use crate::links::linker::{LinkerImpl, LinkType};
 use crate::links::reader::{Reader, TraceType};
 use crate::simulation::config::Config;
-use crate::simulation::ui::UIMetadata;
 
 pub(crate) struct LinkBuilder {
     pub(crate) step_size: TimeMS,
@@ -34,14 +34,18 @@ impl LinkBuilder {
         }
     }
 
-    pub(crate) fn build_link_metadata(&self) -> UIMetadata {
-        UIMetadata {
+    pub(crate) fn build_link_metadata(&self) -> SimUIMetadata {
+        SimUIMetadata {
+            scenario: "link_generation".to_string(),
             input_file: self
-                .config_path
-                .to_str()
-                .expect("failed to convert")
-                .to_owned(),
-            output_path: self.config.settings.output_path.to_owned(),
+                .config
+                .position_files
+                .first()
+                .unwrap()
+                .position_file
+                .to_string(),
+            output_path: self.config.settings.output_path.to_string(),
+            log_path: self.config.log_settings.log_path.clone(),
         }
     }
 
