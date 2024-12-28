@@ -1,4 +1,5 @@
 use burn::tensor::backend::AutodiffBackend;
+use hashbrown::HashMap;
 use log::debug;
 use typed_builder::TypedBuilder;
 
@@ -7,7 +8,6 @@ use disolv_core::agent::{
     Orderable,
 };
 use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
 use disolv_core::metrics::Bytes;
 use disolv_core::radio::{Action, Link, Receiver, Transmitter};
 use disolv_models::device::actions::{
@@ -22,6 +22,8 @@ use disolv_models::device::models::LinkSelect;
 use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::net::metrics::Bandwidth;
 use disolv_models::net::radio::{CommStats, LinkProperties};
+use disolv_output::tables::payload::PayloadUpdate;
+use disolv_output::tables::tx::TxData;
 
 use crate::fl::agent::FAgent;
 use crate::fl::bucket::FlBucket;
@@ -147,6 +149,10 @@ impl<B: AutodiffBackend> Device<B> {
                 }
             }
 
+            if let Some(writer) = &mut bucket.models.results.payload_tx {
+                writer.add_data(self.build_update(target_link.target, &payload));
+            }
+
             if target_class == &self.device_info.agent_class {
                 self.transmit_sl(prepared_payload, target_link, bucket);
             } else {
@@ -179,6 +185,34 @@ impl<B: AutodiffBackend> Device<B> {
                 self.send_payload(links, target_class, payload, rx_payloads, bucket, actions);
             }
         });
+    }
+
+    fn build_update(&self, target_id: AgentId, payload: &FlPayload) -> PayloadUpdate {
+        let mut payload_types = String::new();
+        payload.data_units.iter().for_each(|unit| {
+            payload_types.push_str(unit.message_type.to_string().as_str());
+        });
+
+        let mut action_types_str = String::new();
+        payload.data_units.iter().for_each(|unit| {
+            action_types_str.push_str(unit.action.action_type.to_string().as_str())
+        });
+
+        let mut fl_content_type_str = String::new();
+        payload
+            .data_units
+            .iter()
+            .for_each(|unit| fl_content_type_str.push_str(unit.fl_content.to_string().as_str()));
+
+        PayloadUpdate::builder()
+            .time_step(self.step)
+            .source(self.device_info.id)
+            .target(target_id)
+            .agent_state(self.fl_agent.agent_state())
+            .payload_type(payload_types)
+            .action_type(action_types_str)
+            .fl_content(payload.data_units.first().unwrap().fl_content.to_string())
+            .build()
     }
 }
 
@@ -224,11 +258,10 @@ impl<B: AutodiffBackend> Movable<FlBucket<B>> for Device<B> {
         self.map_state = bucket
             .positions_for(self.device_info.id, &self.device_info.agent_type)
             .unwrap_or(self.map_state);
-        bucket.models.output.basic_results.positions.add_data(
-            self.step,
-            self.device_info.id,
-            &self.map_state,
-        );
+
+        if let Some(writer) = &mut bucket.models.results.positions {
+            writer.add_data(self.step, self.device_info.id, &self.map_state)
+        }
     }
 }
 
@@ -246,40 +279,67 @@ impl<B: AutodiffBackend>
     fn transmit(
         &mut self,
         payload: FlPayload,
-        target: Link<LinkProperties>,
+        target_link: Link<LinkProperties>,
         bucket: &mut FlBucket<B>,
     ) {
         self.models.flow.register_outgoing_attempt(&payload);
         let tx_metrics = bucket.models.network.transfer(&payload);
-        if let Some(tx) = &mut bucket.models.output.tx_data_writer {
-            tx.add_data(self.step, &target, &payload, tx_metrics)
+
+        let tx_stats = TxData::builder()
+            .agent_id(self.device_info.id.as_u64())
+            .selected_agent(target_link.target.as_u64())
+            .distance(target_link.properties.distance.unwrap_or(-1.0))
+            .data_count(payload.metadata.total_count)
+            .link_found(self.step.as_u64())
+            .tx_order(tx_metrics.tx_order)
+            .tx_status(0)
+            .payload_size(tx_metrics.payload_size.as_u64())
+            .tx_fail_reason(0)
+            .latency(0)
+            .build();
+
+        if let Some(tx) = &mut bucket.models.results.tx_data {
+            tx.add_data(self.step, tx_stats);
         }
 
         self.models.flow.register_outgoing_feasible(&payload);
         bucket
             .models
             .data_lake
-            .add_payload_to(target.target, payload);
+            .add_payload_to(target_link.target, payload);
     }
 
     fn transmit_sl(
         &mut self,
         payload: FlPayload,
-        target: Link<LinkProperties>,
+        target_link: Link<LinkProperties>,
         bucket: &mut FlBucket<B>,
     ) {
         self.models.sl_flow.register_outgoing_attempt(&payload);
         let sl_metrics = bucket.models.network.transfer(&payload);
 
-        if let Some(tx) = &mut bucket.models.output.tx_data_writer {
-            tx.add_data(self.step, &target, &payload, sl_metrics)
+        let tx_stats = TxData::builder()
+            .agent_id(self.device_info.id.as_u64())
+            .selected_agent(target_link.target.as_u64())
+            .distance(target_link.properties.distance.unwrap_or(-1.0))
+            .data_count(payload.metadata.total_count)
+            .link_found(self.step.as_u64())
+            .tx_order(sl_metrics.tx_order)
+            .tx_status(0)
+            .payload_size(sl_metrics.payload_size.as_u64())
+            .tx_fail_reason(0)
+            .latency(0)
+            .build();
+
+        if let Some(tx) = &mut bucket.models.results.tx_data {
+            tx.add_data(self.step, tx_stats);
         }
 
         self.models.sl_flow.register_outgoing_feasible(&payload);
         bucket
             .models
             .data_lake
-            .add_sl_payload_to(target.target, payload);
+            .add_sl_payload_to(target_link.target, payload);
     }
 }
 
@@ -372,11 +432,13 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Device<B> {
     }
 
     fn stage_four_reverse(&mut self, bucket: &mut FlBucket<B>) {
-        bucket.models.output.basic_results.rx_counts.add_data(
-            self.step,
-            self.device_info.id,
-            &self.models.flow.comm_stats.outgoing_stats,
-        );
+        if let Some(rx) = &mut bucket.models.results.rx_counts {
+            rx.add_data(
+                self.step,
+                self.device_info.id,
+                &self.models.flow.comm_stats.outgoing_stats,
+            );
+        }
 
         if self.step == self.models.power.peek_time_to_off() {
             self.power_state = PowerState::Off;
