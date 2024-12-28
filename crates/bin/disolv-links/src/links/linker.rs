@@ -1,17 +1,17 @@
 use std::fs::File;
 use std::sync::Arc;
 
-use kiddo::{KdTree, NearestNeighbour, SquaredEuclidean};
-use log::debug;
-use serde::Deserialize;
-
 use arrow::array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
-use disolv_core::bucket::TimeMS;
-use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
+use kiddo::{KdTree, NearestNeighbour, SquaredEuclidean};
+use log::debug;
 use parquet::arrow::ArrowWriter;
 use parquet::basic::Compression;
 use parquet::file::properties::WriterProperties;
+use serde::Deserialize;
+
+use disolv_core::bucket::TimeMS;
+use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
 
 use crate::links::reader::AgentIdPos;
 use crate::simulation::config::LinkSettings;
@@ -68,7 +68,7 @@ impl WriterCache {
             targets: Vec::with_capacity(cache_size),
             distances: Vec::with_capacity(cache_size),
             times: Vec::with_capacity(cache_size),
-            cache_size: cache_size,
+            cache_size,
         }
     }
 

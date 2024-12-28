@@ -12,12 +12,11 @@ use ratatui::backend::CrosstermBackend;
 use disolv_output::terminal::{handle_sim_key_events, TerminalUI};
 use disolv_output::ui::{Message, Renderer, SimContent};
 
-use crate::simulation::builder::LinkBuilder;
 use crate::simulation::config::{Config, read_config};
+use crate::simulation::finder::LinkFinder;
 use crate::simulation::ui::SimRenderer;
 
 mod links;
-mod positions;
 mod simulation;
 
 #[derive(Parser, Debug)]
@@ -32,18 +31,18 @@ fn main() {
     let start = std::time::Instant::now();
     let file_path = PathBuf::from(config_file);
     let config: Config = read_config(&file_path);
-    let builder = LinkBuilder::new(config, file_path);
-    generate_links(builder);
+    let finder = LinkFinder::new(config, file_path);
+    generate_links(finder);
     let elapsed = start.elapsed();
     println!("Link calculation finished in {} ms.", elapsed.as_millis());
 }
 
-fn generate_links(mut builder: LinkBuilder) {
+fn generate_links(mut link_finder: LinkFinder) {
     let (sender_ui, receiver_ui) = mpsc::sync_channel(0);
     let sender = sender_ui.clone();
     let terminal_sender = sender_ui.clone();
-    let duration = builder.end.as_u64();
-    let ui_metadata = builder.build_link_metadata();
+    let duration = link_finder.end.as_u64();
+    let ui_metadata = link_finder.build_link_metadata();
     thread::scope(|s| {
         s.spawn(move || {
             let mut ui_content = SimContent::new(duration, ui_metadata);
@@ -92,22 +91,22 @@ fn generate_links(mut builder: LinkBuilder) {
                     }
                 });
             });
-            builder.initialize();
-            debug!("{} {}", builder.start, builder.end);
-            let mut now = builder.start;
-            while now < builder.end {
-                builder.build_links_at(now);
+            link_finder.initialize();
+            debug!("{} {}", link_finder.start, link_finder.end);
+            let mut now = link_finder.start;
+            while now < link_finder.end {
+                link_finder.find_links_at(now);
                 match terminal_sender.send(Message::CurrentTime(now.as_u64())) {
                     Ok(_) => {}
                     Err(_) => {
                         info!("User must have requested to quit, terminating at {}", now);
-                        builder.complete();
+                        link_finder.complete();
                         return;
                     }
                 };
-                now += builder.step_size;
+                now += link_finder.step_size;
             }
-            builder.complete();
+            link_finder.complete();
             sender_ui
                 .send(Message::Quit)
                 .expect("Failed to send quit message");

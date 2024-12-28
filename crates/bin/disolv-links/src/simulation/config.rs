@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use serde::Deserialize;
-use toml;
 
 use disolv_core::agent::AgentKind;
 use disolv_core::bucket::TimeMS;

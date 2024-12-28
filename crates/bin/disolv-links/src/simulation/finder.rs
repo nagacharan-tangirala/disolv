@@ -11,7 +11,7 @@ use crate::links::linker::{LinkerImpl, LinkType};
 use crate::links::reader::{Reader, TraceType};
 use crate::simulation::config::Config;
 
-pub(crate) struct LinkBuilder {
+pub(crate) struct LinkFinder {
     pub(crate) step_size: TimeMS,
     pub(crate) start: TimeMS,
     pub(crate) end: TimeMS,
@@ -21,7 +21,7 @@ pub(crate) struct LinkBuilder {
     linkers: Vec<LinkerImpl>,
 }
 
-impl LinkBuilder {
+impl LinkFinder {
     pub(crate) fn new(config: Config, config_path: PathBuf) -> Self {
         Self {
             start: config.settings.start,
@@ -100,7 +100,7 @@ impl LinkBuilder {
         });
     }
 
-    pub(crate) fn build_links_at(&mut self, step: TimeMS) {
+    pub(crate) fn find_links_at(&mut self, step: TimeMS) {
         self.readers.values_mut().for_each(|reader| {
             reader.update_positions_at(step);
         });
