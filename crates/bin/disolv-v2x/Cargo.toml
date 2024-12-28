@@ -25,6 +25,8 @@ typed-builder.workspace = true
 serde = { workspace = true, features = ["derive"] }
 uuid = { workspace = true, features = ["v4"] }
 hashbrown.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
 
 [dev-dependencies]
 disolv-testutils = { path = "../../lib/disolv-testutils" }

@@ -1835,8 +1835,10 @@ dependencies = [
 name = "disolv-runner"
 version = "0.0.0"
 dependencies = [
+ "crossterm",
  "disolv-core",
  "disolv-output",
+ "ratatui",
 ]
 
 [[package]]
@@ -1851,6 +1853,7 @@ name = "disolv-v2x"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "crossterm",
  "disolv-core",
  "disolv-input",
  "disolv-models",
@@ -1863,6 +1866,7 @@ dependencies = [
  "log",
  "log4rs",
  "rand",
+ "ratatui",
  "serde",
  "tikv-jemallocator",
  "toml",

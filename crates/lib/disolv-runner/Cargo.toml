@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 disolv-core = { path = "../disolv-core" }
 disolv-output = { path = "../disolv-output" }
+ratatui.workspace = true
+crossterm.workspace = true
