@@ -2,14 +2,10 @@ use burn::tensor::backend::AutodiffBackend;
 use log::debug;
 use typed_builder::TypedBuilder;
 
-use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_core::message::DataUnit;
-use disolv_core::radio::ActionType;
 use disolv_models::device::actions::am_i_target;
-use disolv_models::device::mobility::MapState;
-use disolv_models::device::power::PowerState;
-use disolv_models::net::radio::CommStats;
+use disolv_output::tables::model::ModelUpdate;
 
 use crate::fl::bucket::FlBucket;
 use crate::fl::device::DeviceInfo;
@@ -21,7 +17,6 @@ use crate::models::ai::models::{
 use crate::models::ai::times::ClientTimes;
 use crate::models::ai::trainer::Trainer;
 use crate::models::device::message::{FlContent, FlPayload, Message, MessageType};
-use crate::models::device::output::ModelUpdate;
 
 #[derive(Clone, TypedBuilder)]
 pub(crate) struct ClientModels<B: AutodiffBackend> {
@@ -75,9 +70,10 @@ impl<B: AutodiffBackend> Client<B> {
                 debug!("Got an FL Message for agent {}", self.client_info.id);
                 match message_unit.fl_content {
                     FlContent::StateInfo => self.prepare_state_update(bucket),
-                    FlContent::CompleteTraining => self.complete_training(bucket),
+                    FlContent::ClientSelected => self.initiate_preparation(bucket),
+                    FlContent::InitiateTraining => self.initiate_training(bucket),
                     FlContent::GlobalModel => self.collect_global_model(bucket),
-                    FlContent::ClientSelected => self.initiate_training(bucket),
+                    FlContent::CompleteTraining => self.complete_training(bucket),
                     _ => panic!("Client should not receive this message"),
                 };
                 // This is to ensure that client only listens to the first FL related instruction.
@@ -86,10 +82,11 @@ impl<B: AutodiffBackend> Client<B> {
         }
     }
 
-    pub(crate) fn draft_fl_message(&self, _bucket: &mut FlBucket<B>) -> FlMessageDraft {}
+    pub(crate) fn draft_fl_message(&self, _bucket: &mut FlBucket<B>) -> FlMessageDraft {
+        self.message_draft.clone()
+    }
 
     fn prepare_state_update(&mut self, bucket: &mut FlBucket<B>) {
-        self.client_state = ClientState::Preparing;
         self.message_draft = FlMessageDraft::builder()
             .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
@@ -97,34 +94,66 @@ impl<B: AutodiffBackend> Client<B> {
             .fl_content(FlContent::StateInfo)
             .selected_clients(None)
             .build();
-        self.write_state_update(bucket);
+
+        if self.client_state != ClientState::Informing {
+            self.write_state_update(bucket);
+        }
+        self.client_state = ClientState::Informing;
+    }
+
+    fn initiate_preparation(&mut self, bucket: &mut FlBucket<B>) {
+        self.message_draft = FlMessageDraft::builder()
+            .message(Message::FlMessage)
+            .message_type(MessageType::KiloByte)
+            .quantity(1)
+            .fl_content(FlContent::ClientPreparing)
+            .selected_clients(None)
+            .build();
+
+        if self.client_state != ClientState::Preparing {
+            self.write_state_update(bucket);
+        }
+        self.client_state = ClientState::Preparing;
     }
 
     fn collect_global_model(&mut self, bucket: &mut FlBucket<B>) {
+        if self.client_state == ClientState::ReadyToTrain {
+            return;
+        }
         self.fl_models.local_model = match bucket.models.model_lake.global_model.to_owned() {
             Some(val) => val,
             None => panic!("Global model not present"),
         };
+        self.client_state = ClientState::ReadyToTrain;
+
         self.message_draft = FlMessageDraft::builder()
             .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::StateInfo)
+            .fl_content(FlContent::GlobalModelReceived)
             .selected_clients(None)
             .build();
 
-        self.write_model_update(
-            bucket,
-            AgentId::from(1000000),
-            self.client_info.id,
-            ModelLevel::Global,
-            ModelDirection::Received,
-            TrainingStatus::NA,
-            -1.0,
-        );
+        if let Some(writer) = &mut bucket.models.results.model {
+            let model_update = ModelUpdate::builder()
+                .time_step(self.step.as_u64())
+                .agent_id(99999999999)
+                .target_id(self.client_info.id.as_u64())
+                .agent_state(self.client_state.to_string())
+                .model(ModelLevel::Global.to_string())
+                .direction(ModelDirection::Received.to_string())
+                .status(TrainingStatus::NA.to_string())
+                .accuracy(-1.0)
+                .build();
+            writer.add_data(model_update);
+        }
     }
 
     fn initiate_training(&mut self, bucket: &mut FlBucket<B>) {
+        if self.client_state == ClientState::Training {
+            return;
+        }
+
         self.client_state = ClientState::Training;
         self.fl_models
             .times
@@ -136,6 +165,14 @@ impl<B: AutodiffBackend> Client<B> {
         self.fl_models.trainer.train(&bucket.models.device);
         self.fl_models.trainer.save_model_to_file(self.step);
         self.fl_models.local_model = self.fl_models.trainer.model.to_owned();
+
+        self.message_draft = FlMessageDraft::builder()
+            .message(Message::FlMessage)
+            .message_type(MessageType::KiloByte)
+            .quantity(1)
+            .fl_content(FlContent::Training)
+            .selected_clients(None)
+            .build();
         self.write_state_update(bucket);
     }
 
@@ -143,8 +180,20 @@ impl<B: AutodiffBackend> Client<B> {
         self.client_state = ClientState::Sensing;
         debug!("Completed training in {}", self.client_info.id);
 
+        // Initiate variables in case of failure.
+        self.message_draft.message = Message::FlMessage;
+        self.message_draft.fl_content = FlContent::TrainingFailed;
+        self.message_draft.message_type = MessageType::KiloByte;
+        self.message_draft.quantity = 1;
+
+        let model_level = ModelLevel::Local;
+        let mut direction = ModelDirection::NA;
+        let mut status = TrainingStatus::Failure;
+        let accuracy = -1.0;
+
         if self.is_training_complete() {
             let accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
+
             self.message_draft.message = Message::FlMessage;
             self.message_draft.fl_content = FlContent::LocalModel;
             self.message_draft.message_type = MessageType::F64Weights;
@@ -154,32 +203,24 @@ impl<B: AutodiffBackend> Client<B> {
                 .model_lake
                 .add_local_model(self.client_info.id, self.fl_models.trainer.model.clone());
 
-            self.write_model_update(
-                bucket,
-                self.client_info.id,
-                AgentId::from(1000000),
-                ModelLevel::Local,
-                ModelDirection::Sent,
-                TrainingStatus::Success,
-                accuracy,
-            );
-        } else {
-            self.message_draft.message = Message::FlMessage;
-            self.message_draft.fl_content = FlContent::TrainingFailed;
-            self.message_draft.message_type = MessageType::KiloByte;
-            self.message_draft.quantity = 1;
-
-            self.write_model_update(
-                bucket,
-                self.client_info.id,
-                AgentId::from(1000000),
-                ModelLevel::Local,
-                ModelDirection::NA,
-                TrainingStatus::Failure,
-                -1.0,
-            );
+            direction = ModelDirection::Sent;
+            status = TrainingStatus::Success;
         }
-        self.write_state_update(bucket);
+
+        if let Some(writer) = &mut bucket.models.results.model {
+            let model_update = ModelUpdate::builder()
+                .time_step(self.step.as_u64())
+                .agent_id(self.client_info.id.as_u64())
+                .target_id(9999999999)
+                .agent_state(self.client_state.to_string())
+                .model(model_level.to_string())
+                .direction(direction.to_string())
+                .status(status.to_string())
+                .accuracy(accuracy)
+                .build();
+
+            writer.add_data(model_update);
+        }
     }
 
     fn is_training_complete(&self) -> bool {
@@ -188,38 +229,12 @@ impl<B: AutodiffBackend> Client<B> {
     }
 
     fn write_state_update(&self, bucket: &mut FlBucket<B>) {
-        if let Some(writer) = &mut bucket.models.output.fl_state_writer {
+        if let Some(writer) = &mut bucket.models.results.state {
             writer.add_data(
                 self.step,
                 self.client_info.id,
                 self.client_state.to_string(),
             );
-        }
-    }
-
-    fn write_model_update(
-        &self,
-        bucket: &mut FlBucket<B>,
-        source_id: AgentId,
-        target_id: AgentId,
-        level: ModelLevel,
-        direction: ModelDirection,
-        status: TrainingStatus,
-        accuracy: f32,
-    ) {
-        if let Some(writer) = &mut bucket.models.output.fl_model_writer {
-            let model_update = ModelUpdate::builder()
-                .time_step(self.step)
-                .agent_id(source_id)
-                .target_id(target_id)
-                .agent_state(self.client_state.to_string())
-                .model(level.to_string())
-                .direction(direction.to_string())
-                .status(status.to_string())
-                .accuracy(accuracy)
-                .build();
-
-            writer.add_data(model_update);
         }
     }
 }
