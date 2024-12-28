@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use arrow::array::{ArrayRef, Float32Array, RecordBatch, UInt32Array, UInt64Array};
+use arrow::datatypes::{DataType, Field, Schema};
 use typed_builder::TypedBuilder;
 
 use disolv_core::bucket::TimeMS;
 
-use crate::arrow::array::{ArrayRef, Float32Array, RecordBatch, UInt32Array, UInt64Array};
-use crate::arrow::datatypes::{DataType, Field, Schema};
 use crate::result::{ResultWriter, WriterType};
 
 #[derive(TypedBuilder, Copy, Clone)]

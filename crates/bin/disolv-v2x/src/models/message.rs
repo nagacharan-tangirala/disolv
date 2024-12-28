@@ -10,9 +10,9 @@ use disolv_core::message::{
 };
 use disolv_core::metrics::Bytes;
 use disolv_core::radio::{Action, Link};
-use disolv_core::uuid::Uuid;
 use disolv_models::net::metrics::{Bandwidth, Latency};
 use disolv_models::net::radio::LinkProperties;
+use uuid::Uuid;
 
 use crate::v2x::device::DeviceInfo;
 

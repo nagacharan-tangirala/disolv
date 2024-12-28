@@ -1,17 +1,20 @@
-use crate::batch::{get_row_groups_for_time, read_f64_column, read_u32_column, read_u64_column};
-use crate::columns::{AGENT_ID, COORD_X, COORD_Y, COORD_Z, ROAD_ID, TIME_STEP, VELOCITY};
-use arrow_array::RecordBatch;
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
-use disolv_models::device::mobility::road::RoadId;
-use disolv_models::device::mobility::velocity::Velocity;
-use disolv_models::device::mobility::{MapState, Point2D};
-use log::debug;
-use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use std::fs::File;
 use std::path::PathBuf;
+
+use arrow::record_batch::RecordBatch;
+use hashbrown::HashMap;
+use log::debug;
+use parquet::arrow::arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder};
 use typed_builder::TypedBuilder;
+
+use disolv_core::agent::AgentId;
+use disolv_core::bucket::TimeMS;
+use disolv_models::device::mobility::{MapState, Point2D};
+use disolv_models::device::mobility::road::RoadId;
+use disolv_models::device::mobility::velocity::Velocity;
+
+use crate::batch::{get_row_groups_for_time, read_f64_column, read_u32_column, read_u64_column};
+use crate::columns::{AGENT_ID, COORD_X, COORD_Y, COORD_Z, ROAD_ID, TIME_STEP, VELOCITY};
 
 pub type TraceMap = HashMap<TimeMS, HashMap<AgentId, MapState>>;
 

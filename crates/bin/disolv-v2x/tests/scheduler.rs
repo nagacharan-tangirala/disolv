@@ -3,7 +3,7 @@ use keyed_priority_queue::KeyedPriorityQueue;
 
 use disolv_core::agent::{Agent, AgentId, AgentImpl};
 use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
+use hashbrown::HashMap;
 use disolv_testutils::agent::{AgentKind, TDevice};
 use disolv_testutils::bucket::MyBucket;
 use disolv_v2x::simulation::scheduler::{DefaultScheduler, Scheduler};

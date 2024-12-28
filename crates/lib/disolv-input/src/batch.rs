@@ -1,12 +1,12 @@
 use std::fs::File;
 use std::path::PathBuf;
 
-use arrow_array::RecordBatch;
-use log::{debug, error};
+use arrow::record_batch::RecordBatch;
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::file::statistics::Statistics;
 
 use disolv_core::bucket::TimeMS;
+use log::{debug, error};
 
 use crate::columns::TIME_STEP;
 

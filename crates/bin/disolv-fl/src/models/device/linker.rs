@@ -3,7 +3,7 @@ use typed_builder::TypedBuilder;
 
 use disolv_core::agent::{AgentId, AgentKind};
 use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
+use hashbrown::HashMap;
 use disolv_core::model::BucketModel;
 use disolv_core::radio::Link;
 use disolv_input::links::{LinkMap, LinkReader};

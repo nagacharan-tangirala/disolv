@@ -6,9 +6,6 @@ use arrow::array::{ArrayRef, Float32Array, RecordBatch, StringArray, UInt64Array
 use arrow::datatypes::{DataType, Field, Schema};
 use typed_builder::TypedBuilder;
 
-use disolv_core::agent::AgentId;
-use disolv_core::bucket::TimeMS;
-
 use crate::result::{ResultWriter, WriterType};
 
 #[derive(Debug, TypedBuilder)]

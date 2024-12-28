@@ -11,10 +11,11 @@ use ratatui::Terminal;
 
 use crate::simulation::builder::LinkBuilder;
 use crate::simulation::config::{Config, read_config};
-use crate::simulation::tui::{handle_link_key_events, Tui};
+use crate::simulation::tui::{handle_sim_key_events, Tui};
 use crate::simulation::ui::{Content, Message};
 
 mod links;
+mod positions;
 mod simulation;
 
 #[derive(Parser, Debug)]
@@ -57,7 +58,7 @@ fn generate_links(mut builder: LinkBuilder) {
                         Message::CurrentTime(now) => ui_content.update_now(now),
                         Message::Quit => ui_content.quit(),
                         Message::Key(key_event) => {
-                            handle_link_key_events(key_event, &mut ui_content)
+                            handle_sim_key_events(key_event, &mut ui_content)
                         }
                         Message::Mouse(_) => {}
                         Message::Resize(_, _) => {}

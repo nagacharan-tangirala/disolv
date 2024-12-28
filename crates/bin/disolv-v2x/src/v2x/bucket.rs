@@ -4,22 +4,20 @@ use typed_builder::TypedBuilder;
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::Bucket;
 use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
+use hashbrown::HashMap;
+use disolv_core::metrics::Consumable;
 use disolv_core::model::BucketModel;
 use disolv_core::radio::Link;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::mobility::MapState;
 use disolv_models::net::network::{Network, SliceType};
 use disolv_models::net::radio::{CommStats, LinkProperties};
-use disolv_output::position::PosWriter;
-use disolv_output::result::{BasicResults, ResultWriter};
+use disolv_output::result::Results;
+use disolv_output::tables::net::NetStats;
 
 use crate::models::message::{DataBlob, DataType, MessageType, TxMetrics};
 use crate::models::message::PayloadInfo;
 use crate::models::network::{Slice, V2XSlice};
-use crate::models::output::OutputWriter;
-use crate::out::net::NetStatWriter;
-use crate::out::tx::TxDataWriter;
 use crate::v2x::device::DeviceInfo;
 use crate::v2x::linker::Linker;
 use crate::v2x::space::{Mapper, Space};
@@ -31,7 +29,7 @@ pub type V2XNetwork =
 #[derive(TypedBuilder)]
 pub struct BucketModels {
     pub network: V2XNetwork,
-    pub output: OutputWriter,
+    pub results: Results,
     pub space: Space,
     pub mapper_holder: Vec<(AgentKind, Mapper)>,
     pub linker_holder: Vec<Linker>,
@@ -143,9 +141,12 @@ impl Bucket for DeviceBucket {
 
     fn after_agents(&mut self) {
         for slice in self.models.network.slices.values() {
-            match &mut self.models.output.network_writer {
-                Some(net_writer) => net_writer.add_data(self.step, slice),
-                None => {}
+            if let Some(net_writer) = &mut self.models.results.net_stats {
+                let net_stats = NetStats::builder()
+                    .slice_id(slice.id)
+                    .bandwidth(slice.resources.bandwidth_type.available().as_u64())
+                    .build();
+                net_writer.add_data(self.step, net_stats);
             }
         }
     }
@@ -161,11 +162,11 @@ impl Bucket for DeviceBucket {
 
     fn stream_output(&mut self) {
         debug!("Writing output at {}", self.step);
-        self.models.output.write_to_file();
+        self.models.results.write_to_file();
     }
 
     fn terminate(mut self) {
-        self.models.output.write_to_file();
-        self.models.output.close_output_files();
+        self.models.results.write_to_file();
+        self.models.results.close_files();
     }
 }

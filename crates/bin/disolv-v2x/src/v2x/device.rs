@@ -19,6 +19,7 @@ use disolv_models::device::mobility::MapState;
 use disolv_models::device::models::{Compose, LinkSelect};
 use disolv_models::device::power::{PowerManager, PowerState};
 use disolv_models::net::radio::{CommStats, LinkProperties};
+use disolv_output::tables::tx::TxData;
 
 use crate::models::compose::Composer;
 use crate::models::message::{DataBlob, DataType, MessageType, PayloadInfo, TxStatus, V2XPayload};
@@ -154,11 +155,10 @@ impl Movable<DeviceBucket> for Device {
         self.map_state = bucket
             .positions_for(self.device_info.id, &self.device_info.device_type)
             .unwrap_or(self.map_state);
-        bucket.models.output.basic_results.positions.add_data(
-            self.step,
-            self.device_info.id,
-            &self.map_state,
-        );
+
+        if let Some(pos) = &mut bucket.models.results.positions {
+            pos.add_data(self.step, self.device_info.id, &self.map_state);
+        }
     }
 }
 
@@ -219,8 +219,22 @@ impl
 
         self.models.flow.register_outgoing_attempt(&payload);
         let tx_metrics = bucket.models.network.transfer(&payload);
-        if let Some(tx) = &mut bucket.models.output.tx_data_writer {
-            tx.add_data(self.step, &target_link, &payload, tx_metrics)
+
+        let tx_stats = TxData::builder()
+            .agent_id(self.device_info.id.as_u64())
+            .selected_agent(target_link.target.as_u64())
+            .distance(target_link.properties.distance.unwrap_or(-1.0))
+            .data_count(payload.metadata.total_count)
+            .link_found(self.step.as_u64())
+            .tx_order(tx_metrics.tx_order)
+            .tx_status(tx_metrics.tx_status.as_int())
+            .payload_size(tx_metrics.payload_size.as_u64())
+            .tx_fail_reason(tx_metrics.tx_fail_reason.as_int())
+            .latency(tx_metrics.latency.as_u64())
+            .build();
+
+        if let Some(tx) = &mut bucket.models.results.tx_data {
+            tx.add_data(self.step, tx_stats);
         }
 
         if tx_metrics.tx_status == TxStatus::Ok {
@@ -247,8 +261,21 @@ impl
         self.models.sl_flow.register_outgoing_attempt(&payload);
         let sl_metrics = bucket.models.network.transfer(&payload);
 
-        if let Some(tx) = &mut bucket.models.output.tx_data_writer {
-            tx.add_data(self.step, &target_link, &payload, sl_metrics)
+        let tx_stats = TxData::builder()
+            .agent_id(self.device_info.id.as_u64())
+            .selected_agent(target_link.target.as_u64())
+            .distance(target_link.properties.distance.unwrap_or(-1.0))
+            .data_count(payload.metadata.total_count)
+            .link_found(self.step.as_u64())
+            .tx_order(sl_metrics.tx_order)
+            .tx_status(sl_metrics.tx_status.as_int())
+            .payload_size(sl_metrics.payload_size.as_u64())
+            .tx_fail_reason(sl_metrics.tx_fail_reason.as_int())
+            .latency(sl_metrics.latency.as_u64())
+            .build();
+
+        if let Some(tx) = &mut bucket.models.results.tx_data {
+            tx.add_data(self.step, tx_stats);
         }
 
         if sl_metrics.tx_status == TxStatus::Ok {
@@ -320,11 +347,13 @@ impl Agent<DeviceBucket> for Device {
             self.device_info.id, self.step
         );
 
-        bucket.models.output.basic_results.rx_counts.add_data(
-            self.step,
-            self.device_info.id,
-            &self.models.flow.comm_stats.outgoing_stats,
-        );
+        if let Some(rx) = &mut bucket.models.results.rx_counts {
+            rx.add_data(
+                self.step,
+                self.device_info.id,
+                &self.models.flow.comm_stats.outgoing_stats,
+            );
+        }
 
         if self.step == self.models.power.peek_time_to_off() {
             self.power_state = PowerState::Off;

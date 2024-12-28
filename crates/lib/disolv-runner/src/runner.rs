@@ -2,13 +2,13 @@ use std::{io, thread};
 use std::sync::mpsc;
 use std::time::Duration;
 
+use crossterm::event::{self, Event as CrosstermEvent};
 use disolv_core::bucket::Bucket;
 use disolv_core::scheduler::Scheduler;
-use disolv_output::crossterm::event::{self, Event as CrosstermEvent};
-use disolv_output::ratatui::backend::CrosstermBackend;
-use disolv_output::ratatui::Terminal;
 use disolv_output::terminal::{handle_sim_key_events, TerminalUI};
 use disolv_output::ui::{Message, Renderer, SimContent, SimUIMetadata};
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
 
 pub fn run_simulation<B, S, R>(mut scheduler: S, metadata: SimUIMetadata, renderer: R)
 where

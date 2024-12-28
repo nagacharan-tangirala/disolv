@@ -12,7 +12,6 @@ use crate::models::message::{PayloadInfo, TxMetrics};
 
 /// All the latency configuration parameters are optional, but at least one of them must be present.
 /// Name of the variant is mandatory.
-#[serde_with::skip_serializing_none]
 #[derive(Deserialize, Debug, Clone)]
 pub struct LatencyConfig {
     pub variant: String,

@@ -3,7 +3,7 @@ use log::debug;
 
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
+use hashbrown::HashMap;
 
 use crate::models::ai::models::ModelType;
 
