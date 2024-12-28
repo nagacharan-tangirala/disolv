@@ -1,9 +1,8 @@
-use log::{debug, error};
-
 use disolv_core::agent::{AgentId, AgentProperties};
-use disolv_core::hashbrown::HashMap;
 use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 use disolv_core::radio::{Action, ActionType};
+use hashbrown::HashMap;
+use log::{debug, error};
 
 /// Prepares a list of data units that the payload should consider forwarding.
 ///
@@ -67,8 +66,9 @@ pub fn set_actions_before_tx<
                     let mut new_action = Action::with_action_type(ActionType::Consume);
                     new_action.to_agent = Some(target_id);
                     unit.update_action(&new_action);
+                } else {
+                    unit.update_action(action);
                 }
-                unit.update_action(action);
             }
             None => {
                 error!("No action found for data type {}", unit.content_type());
