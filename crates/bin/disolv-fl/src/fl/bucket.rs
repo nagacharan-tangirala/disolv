@@ -1,16 +1,17 @@
 use burn::prelude::Backend;
+use hashbrown::HashMap;
 use log::{debug, info};
 use typed_builder::TypedBuilder;
 
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::{Bucket, TimeMS};
-use disolv_core::hashbrown::HashMap;
 use disolv_core::model::BucketModel;
 use disolv_core::radio::Link;
 use disolv_models::bucket::lake::DataLake;
 use disolv_models::device::mobility::MapState;
 use disolv_models::net::network::Network;
 use disolv_models::net::radio::{CommStats, LinkProperties};
+use disolv_output::result::Results;
 
 use crate::fl::device::DeviceInfo;
 use crate::models::ai::models::DatasetType;
@@ -19,7 +20,6 @@ use crate::models::device::linker::Linker;
 use crate::models::device::mapper::{GeoMap, GeoMapper};
 use crate::models::device::message::{FlPayloadInfo, Message, MessageType, MessageUnit, TxMetrics};
 use crate::models::device::network::{FlSlice, Slice};
-use crate::models::device::output::OutputWriter;
 use crate::simulation::distribute::DataDistributor;
 
 pub type FlDataLake = DataLake<MessageType, MessageUnit, FlPayloadInfo, DeviceInfo, Message>;
@@ -36,7 +36,7 @@ pub type FlNetwork = Network<
 
 #[derive(TypedBuilder)]
 pub(crate) struct FlBucketModels<B: Backend> {
-    pub(crate) output: OutputWriter,
+    pub(crate) results: Results,
     pub(crate) network: FlNetwork,
     pub(crate) space: GeoMap,
     pub(crate) mapper_holder: Vec<(AgentKind, GeoMapper)>,
@@ -176,11 +176,11 @@ impl<B: Backend> Bucket for FlBucket<B> {
 
     fn stream_output(&mut self) {
         debug!("Writing output at {}", self.step);
-        self.models.output.write_to_file();
+        self.models.results.write_to_file();
     }
 
     fn terminate(mut self) {
-        self.models.output.write_to_file();
-        self.models.output.close_output_files();
+        self.models.results.write_to_file();
+        self.models.results.close_files();
     }
 }
