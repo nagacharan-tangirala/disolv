@@ -1,4 +1,4 @@
-use std::io;
+use std::{error, io};
 use std::panic;
 
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent};
@@ -6,22 +6,25 @@ use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::Backend;
 use ratatui::Terminal;
 
-use crate::simulation::ui::{ContentResult, render_sim_ui, SimContent};
+use crate::ui::{Renderer, SimContent};
+
+pub type ContentResult<T> = Result<T, Box<dyn error::Error>>;
 
 /// Representation of a terminal user interface.
 ///
 /// It is responsible for setting up the terminal,
 /// initializing the interface and handling the draw events.
 #[derive(Debug)]
-pub struct Tui<B: Backend> {
+pub struct TerminalUI<B: Backend, R: Renderer> {
     /// Interface to the Terminal.
     terminal: Terminal<B>,
+    renderer: R,
 }
 
-impl<B: Backend> Tui<B> {
-    /// Constructs a new instance of [`Tui`].
-    pub fn new(terminal: Terminal<B>) -> Self {
-        Self { terminal }
+impl<B: Backend, R: Renderer> TerminalUI<B, R> {
+    /// Constructs a new instance of [`TerminalUI`].
+    pub fn new(terminal: Terminal<B>, renderer: R) -> Self {
+        Self { terminal, renderer }
     }
 
     /// Initializes the terminal interface.
@@ -48,8 +51,9 @@ impl<B: Backend> Tui<B> {
     ///
     /// [`Draw`]: ratatui::Terminal::draw
     /// [`rendering`]: crate::ui:render
-    pub fn draw_sim_ui(&mut self, app: &mut SimContent) -> ContentResult<()> {
-        self.terminal.draw(|frame| render_sim_ui(app, frame))?;
+    pub fn draw_ui(&mut self, app: &mut SimContent) -> ContentResult<()> {
+        self.terminal
+            .draw(|frame| self.renderer.render_sim_ui(app, frame))?;
         Ok(())
     }
 
@@ -73,6 +77,7 @@ impl<B: Backend> Tui<B> {
     }
 }
 
+/// Handles the key events and updates the state of [`Content`].
 pub fn handle_sim_key_events(key_event: KeyEvent, content: &mut SimContent) {
     match key_event.code {
         // Other handlers you could add here.

@@ -8,8 +8,7 @@ use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_models::net::radio::OutgoingStats;
 
-use crate::result::ResultWriter;
-use crate::writer::DataOutput;
+use crate::result::{ResultWriter, WriterType};
 
 #[derive(Debug)]
 pub struct RxCountWriter {
@@ -22,13 +21,13 @@ pub struct RxCountWriter {
     feasible_in_data_size: Vec<u64>,
     feasible_in_data_count: Vec<u32>,
     success_rate: Vec<f32>,
-    to_output: DataOutput,
+    to_output: WriterType,
 }
 
 impl RxCountWriter {
     pub fn new(output_file: PathBuf) -> Self {
         Self {
-            to_output: DataOutput::new(&output_file, Self::schema()),
+            to_output: WriterType::new(&output_file, Self::schema()),
             time_step: Vec::new(),
             agent_id: Vec::new(),
             attempted_in_agent_count: Vec::new(),
@@ -145,13 +144,13 @@ impl ResultWriter for RxCountWriter {
         ])
         .expect("Failed to convert results to record batch");
         match &mut self.to_output {
-            DataOutput::Parquet(to_output) => {
+            WriterType::Parquet(to_output) => {
                 to_output
                     .writer
                     .write(&record_batch)
                     .expect("Failed to write parquet");
             }
-            DataOutput::Csv(to_output) => {
+            WriterType::Csv(to_output) => {
                 to_output
                     .writer
                     .write(&record_batch)
@@ -162,8 +161,8 @@ impl ResultWriter for RxCountWriter {
 
     fn close_file(self) {
         match self.to_output {
-            DataOutput::Parquet(to_output) => to_output.close(),
-            DataOutput::Csv(to_output) => to_output.close(),
+            WriterType::Parquet(to_output) => to_output.close(),
+            WriterType::Csv(to_output) => to_output.close(),
         }
     }
 }
