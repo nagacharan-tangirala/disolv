@@ -6,6 +6,7 @@ use disolv_core::agent::{AgentClass, AgentKind, AgentOrder};
 use disolv_core::bucket::TimeMS;
 use disolv_models::device::directions::CommDirections;
 use disolv_models::net::radio::ActionSettings;
+use disolv_output::logger::LogSettings;
 use disolv_output::result::OutputSettings;
 
 use crate::models::compose::ComposerSettings;
@@ -32,14 +33,6 @@ pub struct SimSettings {
     pub step_size: TimeMS,
     pub streaming_interval: TimeMS,
     pub seed: u64,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct LogSettings {
-    pub log_path: String,
-    pub log_level: String,
-    pub log_file_name: String,
-    pub log_overwrite: bool,
 }
 
 #[derive(Deserialize, Debug, Clone)]
