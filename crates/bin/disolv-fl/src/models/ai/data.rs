@@ -1,10 +1,8 @@
 use std::cmp::min;
 
 use log::debug;
-use ratatui::text::ToText;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-use disolv_core::agent::AgentId;
 use disolv_core::model::{Model, ModelSettings};
 
 use crate::models::ai::models::DatasetType;

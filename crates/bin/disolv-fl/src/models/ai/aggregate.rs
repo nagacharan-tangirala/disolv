@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use burn::prelude::Backend;
 use burn::tensor::backend::AutodiffBackend;
 use log::debug;
 use serde::Deserialize;
