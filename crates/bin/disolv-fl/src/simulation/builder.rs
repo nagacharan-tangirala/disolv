@@ -2,12 +2,12 @@ use std::path::{Path, PathBuf};
 
 use burn::backend::{Autodiff, Wgpu};
 use burn::backend::wgpu::WgpuDevice;
+use hashbrown::HashMap;
 use indexmap::IndexMap;
 use log::info;
 
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::TimeMS;
-use disolv_core::hashbrown::HashMap;
 use disolv_core::metrics::Measurable;
 use disolv_core::model::Model;
 use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
@@ -18,6 +18,9 @@ use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;
 use disolv_models::device::power::PowerManager;
 use disolv_models::net::network::Network;
+use disolv_output::logger::initiate_logger;
+use disolv_output::result::Results;
+use disolv_output::ui::SimUIMetadata;
 
 use crate::fl::agent::FAgent;
 use crate::fl::agent::FAgent::{FClient, FServer};
@@ -40,13 +43,11 @@ use crate::models::device::link::LinkSelector;
 use crate::models::device::linker::{Linker, LinkerSettings};
 use crate::models::device::mapper::{GeoMap, GeoMapper};
 use crate::models::device::network::{RadioMetrics, RadioResources, Slice, SliceSettings};
-use crate::models::device::output::OutputWriter;
 use crate::simulation::config::{
     AgentClassSettings, BaseConfig, BaseConfigReader, ClientClassSettings, ServerClassSettings,
 };
 use crate::simulation::distribute::DataDistributor;
-use crate::simulation::logger;
-use crate::simulation::ui::SimUIMetadata;
+use crate::simulation::ui::SimRenderer;
 
 pub type WgpuBackend = Wgpu<f32, i32>;
 pub type WgpuAdBackend = Autodiff<WgpuBackend>;
@@ -104,7 +105,11 @@ impl SimulationBuilder {
     }
 
     pub(crate) fn build(&mut self) -> DScheduler {
-        logger::initiate_logger(&self.config_path, &self.base_config.log_settings);
+        initiate_logger(
+            &self.config_path,
+            &self.base_config.log_settings,
+            Some(self.base_config.output_settings.scenario_id),
+        );
 
         info!("Building devices and device pools...");
         let device_bucket = self.build_fl_bucket();
@@ -113,7 +118,11 @@ impl SimulationBuilder {
     }
 
     pub(crate) fn build_with_map(&mut self) -> MScheduler {
-        logger::initiate_logger(&self.config_path, &self.base_config.log_settings);
+        initiate_logger(
+            &self.config_path,
+            &self.base_config.log_settings,
+            Some(self.base_config.output_settings.scenario_id),
+        );
 
         info!("Building devices and device pools...");
         let device_bucket = self.build_fl_bucket();
@@ -445,7 +454,7 @@ impl SimulationBuilder {
     fn build_fl_bucket(&mut self) -> FedBucket {
         info!("Building FL bucket...");
         let bucket_models = FlBucketModels::builder()
-            .output(OutputWriter::new(&self.base_config.output_settings))
+            .results(Results::new(&self.base_config.output_settings))
             .network(self.build_network())
             .space(self.build_space())
             .mapper_holder(self.build_mapper_vec())
@@ -607,5 +616,9 @@ impl SimulationBuilder {
 
     pub(crate) fn metadata(&self) -> SimUIMetadata {
         self.metadata.clone()
+    }
+
+    pub(crate) fn renderer(&self) -> SimRenderer {
+        SimRenderer::new()
     }
 }
