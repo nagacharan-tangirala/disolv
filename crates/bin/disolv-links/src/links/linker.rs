@@ -54,7 +54,7 @@ pub(crate) enum LinkType {
 
 #[derive(Clone, Default)]
 struct WriterCache {
-    cache_size: usize,
+    cache_limit: usize,
     sources: Vec<u64>,
     destinations: Vec<u64>,
     distances: Vec<f64>,
@@ -68,12 +68,12 @@ impl WriterCache {
             destinations: Vec::with_capacity(cache_size),
             distances: Vec::with_capacity(cache_size),
             times: Vec::with_capacity(cache_size),
-            cache_size,
+            cache_limit: (cache_size * 90) / 100,
         }
     }
 
     fn is_full(&self) -> bool {
-        self.sources.len() > self.cache_size
+        self.sources.len() >= self.cache_limit
     }
 
     fn as_record_batch(&mut self) -> RecordBatch {
@@ -102,30 +102,6 @@ impl WriterCache {
 pub(crate) enum LinkerImpl {
     Circular(CircularLinker),
     ReverseUnicast(ReverseUnicastLinker),
-}
-
-impl ResultWriter for LinkerImpl {
-    fn schema() -> Schema {
-        let time_ms = Field::new(TIME_STEP, DataType::UInt64, false);
-        let source_id = Field::new(AGENT_ID, DataType::UInt64, false);
-        let destination_id = Field::new(TARGET_ID, DataType::UInt64, false);
-        let distance = Field::new(DISTANCE, DataType::Float64, false);
-        Schema::new(vec![time_ms, source_id, destination_id, distance])
-    }
-
-    fn write_to_file(&mut self) {
-        match self {
-            LinkerImpl::Circular(linker) => linker.write_to_file(),
-            LinkerImpl::ReverseUnicast(linker) => linker.write_to_file(),
-        }
-    }
-
-    fn close_file(self) {
-        match self {
-            LinkerImpl::Circular(linker) => linker.close(),
-            LinkerImpl::ReverseUnicast(linker) => linker.close(),
-        }
-    }
 }
 
 impl LinkerImpl {
@@ -161,6 +137,30 @@ impl LinkerImpl {
         match self {
             LinkerImpl::Circular(circular) => circular.flush(),
             LinkerImpl::ReverseUnicast(unicast) => unicast.flush(),
+        }
+    }
+}
+
+impl ResultWriter for LinkerImpl {
+    fn schema() -> Schema {
+        let time_ms = Field::new(TIME_STEP, DataType::UInt64, false);
+        let source_id = Field::new(AGENT_ID, DataType::UInt64, false);
+        let destination_id = Field::new(TARGET_ID, DataType::UInt64, false);
+        let distance = Field::new(DISTANCE, DataType::Float64, false);
+        Schema::new(vec![time_ms, source_id, destination_id, distance])
+    }
+
+    fn write_to_file(&mut self) {
+        match self {
+            LinkerImpl::Circular(linker) => linker.write_to_file(),
+            LinkerImpl::ReverseUnicast(linker) => linker.write_to_file(),
+        }
+    }
+
+    fn close_file(self) {
+        match self {
+            LinkerImpl::Circular(linker) => linker.close(),
+            LinkerImpl::ReverseUnicast(linker) => linker.close(),
         }
     }
 }

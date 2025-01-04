@@ -142,13 +142,13 @@ impl LinkFinder {
             linker.calculate_links(source_positions, destination_tree, step);
             linker.write_to_file();
         }
-
-        self.linkers
-            .iter_mut()
-            .for_each(|linker| linker.flush_cache());
     }
 
-    pub(crate) fn complete(self) {
+    pub(crate) fn complete(mut self) {
+        &mut self
+            .linkers
+            .iter_mut()
+            .for_each(|linker| linker.flush_cache());
         self.linkers
             .into_iter()
             .for_each(|linker| linker.close_file());
