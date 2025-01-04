@@ -1,17 +1,17 @@
-use std::fs::File;
+use std::mem;
+use std::path::Path;
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float64Array, RecordBatch, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::{DataType, Field, Schema};
 use kiddo::{KdTree, NearestNeighbour, SquaredEuclidean};
 use log::debug;
-use parquet::arrow::ArrowWriter;
-use parquet::basic::Compression;
-use parquet::file::properties::WriterProperties;
 use serde::Deserialize;
 
 use disolv_core::bucket::TimeMS;
 use disolv_input::columns::{AGENT_ID, DISTANCE, TARGET_ID, TIME_STEP};
+use disolv_output::result::ResultWriter;
+use disolv_output::writer::WriterType;
 
 use crate::links::reader::AgentIdPos;
 use crate::simulation::config::LinkSettings;
@@ -56,7 +56,7 @@ pub(crate) enum LinkType {
 struct WriterCache {
     cache_size: usize,
     sources: Vec<u64>,
-    targets: Vec<u64>,
+    destinations: Vec<u64>,
     distances: Vec<f64>,
     times: Vec<u64>,
 }
@@ -65,7 +65,7 @@ impl WriterCache {
     fn new(cache_size: usize) -> Self {
         Self {
             sources: Vec::with_capacity(cache_size),
-            targets: Vec::with_capacity(cache_size),
+            destinations: Vec::with_capacity(cache_size),
             distances: Vec::with_capacity(cache_size),
             times: Vec::with_capacity(cache_size),
             cache_size,
@@ -80,19 +80,19 @@ impl WriterCache {
         RecordBatch::try_from_iter(vec![
             (
                 TIME_STEP,
-                Arc::new(UInt64Array::from(std::mem::take(&mut self.times))) as ArrayRef,
+                Arc::new(UInt64Array::from(mem::take(&mut self.times))) as ArrayRef,
             ),
             (
                 AGENT_ID,
-                Arc::new(UInt64Array::from(std::mem::take(&mut self.sources))) as ArrayRef,
+                Arc::new(UInt64Array::from(mem::take(&mut self.sources))) as ArrayRef,
             ),
             (
                 TARGET_ID,
-                Arc::new(UInt64Array::from(std::mem::take(&mut self.targets))) as ArrayRef,
+                Arc::new(UInt64Array::from(mem::take(&mut self.destinations))) as ArrayRef,
             ),
             (
                 DISTANCE,
-                Arc::new(Float64Array::from(std::mem::take(&mut self.distances))) as ArrayRef,
+                Arc::new(Float64Array::from(mem::take(&mut self.distances))) as ArrayRef,
             ),
         ])
         .expect("Failed to convert writer cache to record batch")
@@ -101,201 +101,200 @@ impl WriterCache {
 
 pub(crate) enum LinkerImpl {
     Circular(CircularLinker),
-    Unicast(UnicastLinker),
+    ReverseUnicast(ReverseUnicastLinker),
+}
+
+impl ResultWriter for LinkerImpl {
+    fn schema() -> Schema {
+        let time_ms = Field::new(TIME_STEP, DataType::UInt64, false);
+        let source_id = Field::new(AGENT_ID, DataType::UInt64, false);
+        let destination_id = Field::new(TARGET_ID, DataType::UInt64, false);
+        let distance = Field::new(DISTANCE, DataType::Float64, false);
+        Schema::new(vec![time_ms, source_id, destination_id, distance])
+    }
+
+    fn write_to_file(&mut self) {
+        match self {
+            LinkerImpl::Circular(linker) => linker.write_to_file(),
+            LinkerImpl::ReverseUnicast(linker) => linker.write_to_file(),
+        }
+    }
+
+    fn close_file(self) {
+        match self {
+            LinkerImpl::Circular(linker) => linker.close(),
+            LinkerImpl::ReverseUnicast(linker) => linker.close(),
+        }
+    }
 }
 
 impl LinkerImpl {
-    pub(crate) fn new(output_path: &str, link_settings: &LinkSettings) -> LinkerImpl {
-        let output_file = output_path.to_owned() + link_settings.links_file.as_str() + ".parquet";
-        let writer = Self::create_writer(&output_file);
+    pub(crate) fn new(output_path: &Path, link_settings: &LinkSettings) -> LinkerImpl {
+        let output_file = output_path.join(&link_settings.links_file);
+        let writer = WriterType::new(&output_file, Self::schema());
         match link_settings.link_model.to_lowercase().as_str() {
             "circular" => LinkerImpl::Circular(CircularLinker::new(writer, link_settings)),
-            "unicast" => LinkerImpl::Unicast(UnicastLinker::new(writer, link_settings)),
+            "reverseunicast" => {
+                LinkerImpl::ReverseUnicast(ReverseUnicastLinker::new(writer, link_settings))
+            }
             _ => panic!("Invalid linker model"),
         }
     }
 
-    pub(crate) fn write_links(
+    pub(crate) fn calculate_links(
         &mut self,
         source_positions: &AgentIdPos,
-        target_tree: &KdTree<f64, 2>,
+        destination_tree: &KdTree<f64, 2>,
         now: TimeMS,
     ) {
         match self {
             LinkerImpl::Circular(circular) => {
-                circular.write_links(source_positions, target_tree, now)
+                circular.calculate_links(source_positions, destination_tree, now)
             }
-            LinkerImpl::Unicast(unicast) => unicast.write_links(source_positions, target_tree, now),
+            LinkerImpl::ReverseUnicast(unicast) => {
+                unicast.calculate_links(source_positions, destination_tree, now)
+            }
         }
     }
 
-    fn create_writer(output_file: &str) -> ArrowWriter<File> {
-        debug!("Creating links file {}", output_file);
-        let time_ms = Field::new(TIME_STEP, DataType::UInt64, false);
-        let source_id = Field::new(AGENT_ID, DataType::UInt64, false);
-        let target_id = Field::new(TARGET_ID, DataType::UInt64, false);
-        let distance = Field::new(DISTANCE, DataType::Float64, false);
-
-        let props = WriterProperties::builder()
-            .set_compression(Compression::SNAPPY)
-            .build();
-
-        let schema = Schema::new(vec![time_ms, source_id, target_id, distance]);
-        let output_file = match File::create(output_file) {
-            Ok(file) => file,
-            Err(_) => panic!("Failed to create links file to write"),
-        };
-        match ArrowWriter::try_new(output_file, SchemaRef::from(schema), Some(props)) {
-            Ok(writer) => writer,
-            Err(_) => panic!("Failed to create links file writer"),
-        }
-    }
-
-    pub(crate) fn flush(mut self) {
+    pub(crate) fn flush_cache(&mut self) {
         match self {
             LinkerImpl::Circular(circular) => circular.flush(),
-            LinkerImpl::Unicast(unicast) => unicast.flush(),
+            LinkerImpl::ReverseUnicast(unicast) => unicast.flush(),
         }
     }
 }
 
 pub(crate) struct CircularLinker {
-    writer: ArrowWriter<File>,
-    linker_settings: LinkSettings,
+    writer: WriterType,
+    link_settings: LinkSettings,
     writer_cache: WriterCache,
 }
 
 impl CircularLinker {
-    fn new(writer: ArrowWriter<File>, link_settings: &LinkSettings) -> Self {
+    fn new(writer: WriterType, link_settings: &LinkSettings) -> Self {
         Self {
-            writer: writer,
-            linker_settings: link_settings.clone(),
+            writer,
+            link_settings: link_settings.clone(),
             writer_cache: WriterCache::new(125000),
         }
     }
 
-    pub(crate) fn write_links(
+    pub(crate) fn calculate_links(
         &mut self,
         source_positions: &AgentIdPos,
-        target_tree: &KdTree<f64, 2>,
+        destination_tree: &KdTree<f64, 2>,
         now: TimeMS,
     ) {
-        debug!("Calculating links for {}", now);
-
         for agent_id_pos in source_positions.iter() {
-            if let Some(radius) = self.linker_settings.link_radius {
-                let neighbours: Vec<NearestNeighbour<f64, u64>> = target_tree
+            if let Some(radius) = self.link_settings.link_radius {
+                let neighbours: Vec<NearestNeighbour<f64, u64>> = destination_tree
                     .within::<SquaredEuclidean>(&agent_id_pos.1, radius.as_f64() * radius.as_f64());
 
                 neighbours.into_iter().for_each(|neigh_dist| {
                     if neigh_dist.distance > 0. {
                         self.writer_cache.times.push(now.as_u64());
                         self.writer_cache.sources.push(agent_id_pos.0.as_u64());
-                        self.writer_cache.targets.push(neigh_dist.item);
+                        self.writer_cache.destinations.push(neigh_dist.item);
                         self.writer_cache.distances.push(neigh_dist.distance.sqrt());
                     }
                 });
                 continue;
             }
 
-            if let Some(count) = self.linker_settings.link_count {
-                let neighbours =
-                    target_tree.nearest_n::<SquaredEuclidean>(&agent_id_pos.1, count.as_usize());
+            if let Some(count) = self.link_settings.link_count {
+                let neighbours = destination_tree
+                    .nearest_n::<SquaredEuclidean>(&agent_id_pos.1, count.as_usize());
 
                 neighbours.into_iter().for_each(|neigh_dist| {
                     if neigh_dist.distance > 0. {
                         self.writer_cache.times.push(now.as_u64());
                         self.writer_cache.sources.push(agent_id_pos.0.as_u64());
-                        self.writer_cache.targets.push(neigh_dist.item);
+                        self.writer_cache.destinations.push(neigh_dist.item);
                         self.writer_cache.distances.push(neigh_dist.distance.sqrt());
                     }
                 });
             }
         }
+    }
+
+    pub(crate) fn write_to_file(&mut self) {
         if self.writer_cache.is_full() {
             debug!("Cache full. Writing to files");
             self.writer
-                .write(&self.writer_cache.as_record_batch())
-                .expect("Failed to write record batches to file");
+                .record_batch_to_file(&self.writer_cache.as_record_batch());
         }
     }
 
-    pub(crate) fn flush(mut self) {
+    pub(crate) fn flush(&mut self) {
         debug!(r"Link calculation done. Flushing the cache to file");
         self.writer
-            .write(&self.writer_cache.as_record_batch())
-            .expect("Failed to flush link cache");
-        self.writer.close().expect("Failed to close the link file");
+            .record_batch_to_file(&self.writer_cache.as_record_batch());
+    }
+
+    pub(crate) fn close(self) {
+        self.writer.close();
     }
 }
 
-pub struct UnicastLinker {
-    writer: ArrowWriter<File>,
-    linker_settings: LinkSettings,
+pub struct ReverseUnicastLinker {
+    writer: WriterType,
+    _link_settings: LinkSettings,
     writer_cache: WriterCache,
 }
 
-impl UnicastLinker {
-    fn new(writer: ArrowWriter<File>, link_settings: &LinkSettings) -> Self {
+impl ReverseUnicastLinker {
+    fn new(writer: WriterType, link_settings: &LinkSettings) -> Self {
+        debug!("Unicast linker selected, link radius and count are not considered");
         Self {
-            writer: writer,
-            linker_settings: link_settings.clone(),
+            writer,
+            _link_settings: link_settings.to_owned(),
             writer_cache: WriterCache::new(125000),
         }
     }
 
-    pub(crate) fn write_links(
+    fn calculate_links(
         &mut self,
         source_positions: &AgentIdPos,
-        target_tree: &KdTree<f64, 2>,
+        destination_tree: &KdTree<f64, 2>,
         now: TimeMS,
     ) {
-        debug!("Calculating links for {}", now);
-
         for agent_id_pos in source_positions.iter() {
-            if let Some(radius) = self.linker_settings.link_radius {
-                let neighbours: Vec<NearestNeighbour<f64, u64>> = target_tree
-                    .within::<SquaredEuclidean>(&agent_id_pos.1, radius.as_f64() * radius.as_f64());
+            // Get the nearest neighbor.
+            let neighbours: Vec<NearestNeighbour<f64, u64>> =
+                destination_tree.nearest_n::<SquaredEuclidean>(&agent_id_pos.1, 1);
 
-                neighbours.into_iter().for_each(|neigh_dist| {
-                    if neigh_dist.distance > 0. {
-                        self.writer_cache.times.push(now.as_u64());
-                        self.writer_cache.sources.push(agent_id_pos.0.as_u64());
-                        self.writer_cache.targets.push(neigh_dist.item);
-                        self.writer_cache.distances.push(neigh_dist.distance.sqrt());
-                    }
-                });
-                continue;
-            }
+            neighbours.into_iter().for_each(|neigh_dist| {
+                let mut source = agent_id_pos.0.as_u64();
+                let mut destination = neigh_dist.item;
+                mem::swap(&mut source, &mut destination);
 
-            if let Some(count) = self.linker_settings.link_count {
-                let neighbours =
-                    target_tree.nearest_n::<SquaredEuclidean>(&agent_id_pos.1, count.as_usize());
-
-                neighbours.into_iter().for_each(|neigh_dist| {
-                    if neigh_dist.distance > 0. {
-                        self.writer_cache.times.push(now.as_u64());
-                        self.writer_cache.sources.push(neigh_dist.item);
-                        self.writer_cache.targets.push(agent_id_pos.0.as_u64());
-                        self.writer_cache.distances.push(neigh_dist.distance.sqrt());
-                    }
-                });
-            }
-        }
-
-        if self.writer_cache.is_full() {
-            debug!("Cache full. Writing to files");
-            self.writer
-                .write(&self.writer_cache.as_record_batch())
-                .expect("Failed to write record batches to file");
+                if neigh_dist.distance > 0. {
+                    self.writer_cache.times.push(now.as_u64());
+                    self.writer_cache.sources.push(source);
+                    self.writer_cache.destinations.push(destination);
+                    self.writer_cache.distances.push(neigh_dist.distance.sqrt());
+                }
+            });
+            continue;
         }
     }
 
-    fn flush(mut self) {
+    fn write_to_file(&mut self) {
+        if self.writer_cache.is_full() {
+            debug!("Cache full. Writing to files");
+            self.writer
+                .record_batch_to_file(&self.writer_cache.as_record_batch());
+        }
+    }
+
+    fn flush(&mut self) {
         debug!(r"Link calculation done. Flushing the cache to file");
         self.writer
-            .write(&self.writer_cache.as_record_batch())
-            .expect("Failed to flush link cache");
-        self.writer.close().expect("Failed to close the link file");
+            .record_batch_to_file(&self.writer_cache.as_record_batch());
+    }
+
+    fn close(self) {
+        self.writer.close();
     }
 }

@@ -1,10 +1,13 @@
+use std::path::Path;
 pub use std::path::PathBuf;
 
 use hashbrown::HashMap;
+use log::debug;
 
 use disolv_core::agent::AgentKind;
 use disolv_core::bucket::TimeMS;
 use disolv_output::logger::initiate_logger;
+use disolv_output::result::ResultWriter;
 use disolv_output::ui::SimUIMetadata;
 
 use crate::links::linker::{LinkerImpl, LinkType};
@@ -84,14 +87,17 @@ impl LinkFinder {
                     }
                 }
             }
+
+            if link_setting.link_count.is_some() && link_setting.link_radius.is_some() {
+                panic!("Only one of the parameters should be given");
+            }
         }
 
         // Initialize link finders.
+        let output_path = Path::new(&self.config.settings.output_path);
         for linker_setting in self.config.link_settings.iter() {
-            self.linkers.push(LinkerImpl::new(
-                self.config.settings.output_path.as_str(),
-                linker_setting,
-            ));
+            self.linkers
+                .push(LinkerImpl::new(output_path, linker_setting));
         }
 
         // Read positions of devices with constant traces.
@@ -105,7 +111,7 @@ impl LinkFinder {
             reader.update_positions_at(step);
         });
 
-        for (link_setting, writer) in self
+        for (link_setting, linker) in self
             .config
             .link_settings
             .iter()
@@ -116,7 +122,7 @@ impl LinkFinder {
                 continue;
             }
 
-            let positions = match self
+            let source_positions = match self
                 .readers
                 .get(&link_setting.source)
                 .expect("missing reader for device type")
@@ -126,17 +132,25 @@ impl LinkFinder {
                 None => continue,
             };
 
-            let position_tree = self
+            let destination_tree = self
                 .readers
                 .get(&link_setting.target)
                 .expect("missing reader for device type")
                 .get_kd_tree();
 
-            writer.write_links(positions, position_tree, step);
+            debug!("Calculating links for {}", step);
+            linker.calculate_links(source_positions, destination_tree, step);
+            linker.write_to_file();
         }
+
+        self.linkers
+            .iter_mut()
+            .for_each(|linker| linker.flush_cache());
     }
 
     pub(crate) fn complete(self) {
-        self.linkers.into_iter().for_each(|w| w.flush())
+        self.linkers
+            .into_iter()
+            .for_each(|linker| linker.close_file());
     }
 }

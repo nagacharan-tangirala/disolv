@@ -14,7 +14,6 @@ pub struct Settings {
     pub start: TimeMS,
     pub end: TimeMS,
     pub step_size: TimeMS,
-    pub output_type: String,
     pub output_path: String,
 }
 
