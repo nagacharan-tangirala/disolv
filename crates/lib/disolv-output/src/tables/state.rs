@@ -8,7 +8,8 @@ use arrow::datatypes::{DataType, Field, Schema};
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 
-use crate::result::{ResultWriter, WriterType};
+use crate::result::ResultWriter;
+use crate::writer::WriterType;
 
 #[derive(Debug)]
 pub struct StateTrace {
@@ -59,20 +60,7 @@ impl ResultWriter for StateTrace {
             ),
         ])
         .expect("Failed to convert results to record batch");
-        match &mut self.to_output {
-            WriterType::Parquet(to_output) => {
-                to_output
-                    .writer
-                    .write(&record_batch)
-                    .expect("Failed to write parquet");
-            }
-            WriterType::Csv(to_output) => {
-                to_output
-                    .writer
-                    .write(&record_batch)
-                    .expect("Failed to write csv");
-            }
-        }
+        self.to_output.record_batch_to_file(&record_batch);
     }
 
     fn close_file(self) {
