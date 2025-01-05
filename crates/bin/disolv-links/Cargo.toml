@@ -12,6 +12,7 @@ disolv-models = { path = "../../lib/disolv-models" }
 disolv-core = { path = "../../lib/disolv-core" }
 disolv-input = { path = "../../lib/disolv-input" }
 disolv-output = { path = "../../lib/disolv-output" }
+disolv-runner = { path = "../../lib/disolv-runner" }
 crossterm.workspace = true
 ratatui.workspace = true
 toml.workspace = true

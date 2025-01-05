@@ -54,7 +54,7 @@ impl Reader {
 
     pub(crate) fn update_positions_at(&mut self, time_ms: TimeMS) {
         match self {
-            Reader::Constant(reader) => {}
+            Reader::Constant(_) => {}
             Reader::Mobile(reader) => {
                 reader.read_positions_at(time_ms);
                 reader.build_kd_tree_at(time_ms);

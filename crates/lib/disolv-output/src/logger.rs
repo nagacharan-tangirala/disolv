@@ -2,11 +2,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use chrono::Utc;
-use log4rs::append::file::FileAppender;
-use log4rs::config::{Appender, Config, Root};
-use log4rs::config::runtime::ConfigErrors;
-use log4rs::encode::pattern::PatternEncoder;
 use log::LevelFilter;
+use log4rs::append::file::FileAppender;
+use log4rs::config::runtime::ConfigErrors;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]

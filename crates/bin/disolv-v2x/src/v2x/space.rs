@@ -5,11 +5,11 @@ use typed_builder::TypedBuilder;
 
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
-use hashbrown::{HashMap, HashSet};
 use disolv_core::model::BucketModel;
 use disolv_input::mobility::{MapReader, TraceMap};
-use disolv_models::device::mobility::{MapState, MobilityType, Point2D};
 use disolv_models::device::mobility::cell::CellId;
+use disolv_models::device::mobility::{MapState, MobilityType, Point2D};
+use hashbrown::{HashMap, HashSet};
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct Space {

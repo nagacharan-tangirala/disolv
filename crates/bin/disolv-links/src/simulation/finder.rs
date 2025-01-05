@@ -145,8 +145,7 @@ impl LinkFinder {
     }
 
     pub(crate) fn complete(mut self) {
-        &mut self
-            .linkers
+        self.linkers
             .iter_mut()
             .for_each(|linker| linker.flush_cache());
         self.linkers
