@@ -1787,6 +1787,7 @@ dependencies = [
  "disolv-input",
  "disolv-models",
  "disolv-output",
+ "disolv-runner",
  "hashbrown 0.15.2",
  "kiddo",
  "log",
@@ -1841,9 +1842,11 @@ dependencies = [
  "disolv-core",
  "disolv-input",
  "disolv-output",
+ "disolv-runner",
  "hashbrown 0.15.2",
  "log",
  "parquet",
+ "quick-xml",
  "ratatui",
  "serde",
  "toml",
@@ -1881,7 +1884,7 @@ dependencies = [
  "disolv-testutils",
  "hashbrown 0.15.2",
  "indexmap 2.7.0",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "log",
  "log4rs",
  "rand",
@@ -3192,6 +3195,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4233,6 +4245,16 @@ name = "quick-error"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3"
+
+[[package]]
+name = "quick-xml"
+version = "0.37.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "165859e9e55f79d67b96c5d96f4e88b6f2695a1972849c15a6a3f5c59fc2c003"
+dependencies = [
+ "memchr",
+ "serde",
+]
 
 [[package]]
 name = "quote"
