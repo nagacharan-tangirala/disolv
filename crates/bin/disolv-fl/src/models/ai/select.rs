@@ -2,8 +2,8 @@ use rand::seq::IteratorRandom;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
-use hashbrown::{HashMap, HashSet};
 use disolv_core::model::{Model, ModelSettings};
+use hashbrown::{HashMap, HashSet};
 
 use crate::fl::device::DeviceInfo;
 

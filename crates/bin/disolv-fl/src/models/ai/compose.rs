@@ -3,10 +3,10 @@ use typed_builder::TypedBuilder;
 
 use disolv_core::agent::{AgentClass, AgentId};
 use disolv_core::bucket::TimeMS;
-use hashbrown::HashMap;
 use disolv_core::metrics::Bytes;
 use disolv_core::model::{Model, ModelSettings};
 use disolv_core::radio::{Action, Link};
+use hashbrown::HashMap;
 
 use crate::fl::device::DeviceInfo;
 use crate::models::device::message::{
