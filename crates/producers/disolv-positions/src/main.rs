@@ -9,12 +9,12 @@ use disolv_core::bucket::TimeMS;
 use disolv_output::ui::Message;
 use disolv_runner::runner::{add_event_listener, add_event_poller};
 
-use crate::simulation::config::{Config, read_config};
-use crate::simulation::parser::TraceParser;
-use crate::simulation::ui::SimRenderer;
+use crate::produce::config::{Config, read_config};
+use crate::produce::parser::TraceParser;
+use crate::produce::ui::SimRenderer;
 
 mod activation;
-mod simulation;
+mod produce;
 mod trace;
 
 #[derive(Parser, Debug)]

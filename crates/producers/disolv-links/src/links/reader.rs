@@ -14,7 +14,7 @@ use disolv_core::bucket::TimeMS;
 use disolv_input::batch::{read_f64_column, read_u64_column};
 use disolv_input::columns::{AGENT_ID, COORD_X, COORD_Y, TIME_STEP};
 
-use crate::simulation::config::PositionFiles;
+use crate::produce::config::PositionFiles;
 
 pub type AgentIdPos = Vec<(AgentId, [f64; 2])>;
 pub type PositionMap = HashMap<TimeMS, AgentIdPos>;

@@ -1,24 +1,19 @@
-use std::{io, thread};
 use std::path::PathBuf;
 use std::sync::mpsc;
-use std::time::Duration;
+use std::thread;
 
 use clap::Parser;
-use crossterm::event::{self, Event as CrosstermEvent};
 use log::{debug, info};
-use ratatui::{Frame, Terminal};
-use ratatui::backend::CrosstermBackend;
 
-use disolv_output::terminal::{handle_sim_key_events, TerminalUI};
-use disolv_output::ui::{Message, Renderer, SimContent};
+use disolv_output::ui::Message;
 use disolv_runner::runner::{add_event_listener, add_event_poller};
 
-use crate::simulation::config::{Config, read_config};
-use crate::simulation::finder::LinkFinder;
-use crate::simulation::ui::SimRenderer;
+use crate::produce::config::{Config, read_config};
+use crate::produce::finder::LinkFinder;
+use crate::produce::ui::SimRenderer;
 
 mod links;
-mod simulation;
+mod produce;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]

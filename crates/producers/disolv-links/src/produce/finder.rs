@@ -12,7 +12,7 @@ use disolv_output::ui::SimUIMetadata;
 
 use crate::links::linker::{LinkerImpl, LinkType};
 use crate::links::reader::{Reader, TraceType};
-use crate::simulation::config::Config;
+use crate::produce::config::Config;
 
 pub(crate) struct LinkFinder {
     pub(crate) step_size: TimeMS,

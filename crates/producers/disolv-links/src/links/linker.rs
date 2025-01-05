@@ -14,7 +14,7 @@ use disolv_output::result::ResultWriter;
 use disolv_output::writer::WriterType;
 
 use crate::links::reader::AgentIdPos;
-use crate::simulation::config::LinkSettings;
+use crate::produce::config::LinkSettings;
 
 #[derive(Copy, Clone, Default, Debug, Deserialize)]
 pub struct Radius(f64);

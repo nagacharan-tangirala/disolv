@@ -1,14 +1,12 @@
 pub use std::path::PathBuf;
 
-use log::debug;
-
 use disolv_core::bucket::TimeMS;
 use disolv_output::logger::initiate_logger;
 use disolv_output::result::ResultWriter;
 use disolv_output::ui::SimUIMetadata;
 
 use crate::activation::writer::ActivationWriter;
-use crate::simulation::config::Config;
+use crate::produce::config::Config;
 use crate::trace::reader::TraceReader;
 use crate::trace::writer::TraceWriter;
 
@@ -50,9 +48,6 @@ impl TraceParser {
 
     pub(crate) fn parse_positions_at(&mut self, time_ms: TimeMS) {
         if let Some(trace_data) = self.trace_reader.read_data(time_ms) {
-            trace_data
-                .iter()
-                .for_each(|t| debug!("{}, {}, {}", t.time_ms, t.agent_id, t.x));
             self.activation_writer
                 .determine_activations(&trace_data, time_ms);
             trace_data

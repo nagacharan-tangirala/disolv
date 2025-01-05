@@ -10,7 +10,7 @@ use quick_xml::events::{BytesStart, Event};
 
 use disolv_core::bucket::TimeMS;
 
-use crate::simulation::config::TraceSettings;
+use crate::produce::config::TraceSettings;
 use crate::trace::cache::TraceInfo;
 
 pub enum TraceReader {

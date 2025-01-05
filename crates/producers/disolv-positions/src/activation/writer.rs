@@ -10,7 +10,7 @@ use disolv_output::result::ResultWriter;
 use disolv_output::writer::WriterType;
 
 use crate::activation::cache::{ActivationCache, ActivationInfo};
-use crate::simulation::config::ActivationSettings;
+use crate::produce::config::ActivationSettings;
 use crate::trace::cache::TraceInfo;
 
 pub(crate) struct ActivationWriter {

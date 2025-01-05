@@ -7,7 +7,7 @@ use disolv_input::columns::{AGENT_ID, COORD_X, COORD_Y, TIME_STEP};
 use disolv_output::result::ResultWriter;
 use disolv_output::writer::WriterType;
 
-use crate::simulation::config::TraceSettings;
+use crate::produce::config::TraceSettings;
 use crate::trace::cache::{TraceCache, TraceInfo};
 
 pub(crate) struct TraceWriter {
