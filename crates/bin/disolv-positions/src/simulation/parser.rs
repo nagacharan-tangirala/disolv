@@ -1,20 +1,25 @@
 pub use std::path::PathBuf;
 
+use log::debug;
+
 use disolv_core::bucket::TimeMS;
 use disolv_output::logger::initiate_logger;
+use disolv_output::result::ResultWriter;
 use disolv_output::ui::SimUIMetadata;
 
-use crate::positions::reader::TraceReader;
-use crate::positions::writer::TraceWriter;
+use crate::activation::writer::ActivationWriter;
 use crate::simulation::config::Config;
+use crate::trace::reader::TraceReader;
+use crate::trace::writer::TraceWriter;
 
 pub(crate) struct TraceParser {
     pub(crate) step_size: TimeMS,
     pub(crate) duration: TimeMS,
     config_path: PathBuf,
     config: Config,
-    reader: TraceReader,
-    writer: TraceWriter,
+    trace_reader: TraceReader,
+    trace_writer: TraceWriter,
+    activation_writer: ActivationWriter,
 }
 
 impl TraceParser {
@@ -22,8 +27,9 @@ impl TraceParser {
         Self {
             duration: config.timing_settings.duration,
             step_size: config.timing_settings.step_size,
-            reader: TraceReader::new(&config.position_files),
-            writer: TraceWriter::new(&config.output_settings),
+            trace_reader: TraceReader::new(&config.trace_settings),
+            trace_writer: TraceWriter::new(&config.trace_settings),
+            activation_writer: ActivationWriter::new(&config.activation_settings),
             config,
             config_path,
         }
@@ -32,20 +38,33 @@ impl TraceParser {
     pub(crate) fn build_trace_metadata(&self) -> SimUIMetadata {
         SimUIMetadata {
             scenario: "trace_parser".to_string(),
-            input_file: self.config.position_files.trace.to_string(),
-            output_path: self.config.output_settings.output_path.to_string(),
+            input_file: self.config.trace_settings.input_trace.to_string(),
+            output_path: self.config.trace_settings.output_trace.to_string(),
             log_path: self.config.log_settings.log_path.clone(),
         }
     }
 
     pub(crate) fn initialize(&mut self) {
         initiate_logger(&self.config_path, &self.config.log_settings, None);
-        self.reader.initialize();
     }
 
-    pub(crate) fn parse_positions_at(&self, time_ms: TimeMS) {}
+    pub(crate) fn parse_positions_at(&mut self, time_ms: TimeMS) {
+        if let Some(trace_data) = self.trace_reader.read_data(time_ms) {
+            trace_data
+                .iter()
+                .for_each(|t| debug!("{}, {}, {}", t.time_ms, t.agent_id, t.x));
+            self.activation_writer
+                .determine_activations(&trace_data, time_ms);
+            trace_data
+                .into_iter()
+                .for_each(|trace_info| self.trace_writer.store_info(trace_info));
+        }
+        self.trace_writer.write_to_file();
+        self.activation_writer.write_to_file();
+    }
 
     pub(crate) fn complete(self) {
-        self.writer.flush();
+        self.trace_writer.flush();
+        self.activation_writer.flush();
     }
 }
