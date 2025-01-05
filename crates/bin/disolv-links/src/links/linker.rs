@@ -53,7 +53,7 @@ pub(crate) enum LinkType {
 }
 
 #[derive(Clone, Default)]
-struct WriterCache {
+struct LinkCache {
     cache_limit: usize,
     sources: Vec<u64>,
     destinations: Vec<u64>,
@@ -61,7 +61,7 @@ struct WriterCache {
     times: Vec<u64>,
 }
 
-impl WriterCache {
+impl LinkCache {
     fn new(cache_size: usize) -> Self {
         Self {
             sources: Vec::with_capacity(cache_size),
@@ -168,7 +168,7 @@ impl ResultWriter for LinkerImpl {
 pub(crate) struct CircularLinker {
     writer: WriterType,
     link_settings: LinkSettings,
-    writer_cache: WriterCache,
+    link_cache: LinkCache,
 }
 
 impl CircularLinker {
@@ -176,7 +176,7 @@ impl CircularLinker {
         Self {
             writer,
             link_settings: link_settings.clone(),
-            writer_cache: WriterCache::new(125000),
+            link_cache: LinkCache::new(125000),
         }
     }
 
@@ -193,10 +193,10 @@ impl CircularLinker {
 
                 neighbours.into_iter().for_each(|neigh_dist| {
                     if neigh_dist.distance > 0. {
-                        self.writer_cache.times.push(now.as_u64());
-                        self.writer_cache.sources.push(agent_id_pos.0.as_u64());
-                        self.writer_cache.destinations.push(neigh_dist.item);
-                        self.writer_cache.distances.push(neigh_dist.distance.sqrt());
+                        self.link_cache.times.push(now.as_u64());
+                        self.link_cache.sources.push(agent_id_pos.0.as_u64());
+                        self.link_cache.destinations.push(neigh_dist.item);
+                        self.link_cache.distances.push(neigh_dist.distance.sqrt());
                     }
                 });
                 continue;
@@ -208,10 +208,10 @@ impl CircularLinker {
 
                 neighbours.into_iter().for_each(|neigh_dist| {
                     if neigh_dist.distance > 0. {
-                        self.writer_cache.times.push(now.as_u64());
-                        self.writer_cache.sources.push(agent_id_pos.0.as_u64());
-                        self.writer_cache.destinations.push(neigh_dist.item);
-                        self.writer_cache.distances.push(neigh_dist.distance.sqrt());
+                        self.link_cache.times.push(now.as_u64());
+                        self.link_cache.sources.push(agent_id_pos.0.as_u64());
+                        self.link_cache.destinations.push(neigh_dist.item);
+                        self.link_cache.distances.push(neigh_dist.distance.sqrt());
                     }
                 });
             }
@@ -219,17 +219,17 @@ impl CircularLinker {
     }
 
     pub(crate) fn write_to_file(&mut self) {
-        if self.writer_cache.is_full() {
+        if self.link_cache.is_full() {
             debug!("Cache full. Writing to files");
             self.writer
-                .record_batch_to_file(&self.writer_cache.as_record_batch());
+                .record_batch_to_file(&self.link_cache.as_record_batch());
         }
     }
 
     pub(crate) fn flush(&mut self) {
         debug!(r"Link calculation done. Flushing the cache to file");
         self.writer
-            .record_batch_to_file(&self.writer_cache.as_record_batch());
+            .record_batch_to_file(&self.link_cache.as_record_batch());
     }
 
     pub(crate) fn close(self) {
@@ -240,7 +240,7 @@ impl CircularLinker {
 pub struct ReverseUnicastLinker {
     writer: WriterType,
     _link_settings: LinkSettings,
-    writer_cache: WriterCache,
+    link_cache: LinkCache,
 }
 
 impl ReverseUnicastLinker {
@@ -249,7 +249,7 @@ impl ReverseUnicastLinker {
         Self {
             writer,
             _link_settings: link_settings.to_owned(),
-            writer_cache: WriterCache::new(125000),
+            link_cache: LinkCache::new(125000),
         }
     }
 
@@ -270,10 +270,10 @@ impl ReverseUnicastLinker {
                 mem::swap(&mut source, &mut destination);
 
                 if neigh_dist.distance > 0. {
-                    self.writer_cache.times.push(now.as_u64());
-                    self.writer_cache.sources.push(source);
-                    self.writer_cache.destinations.push(destination);
-                    self.writer_cache.distances.push(neigh_dist.distance.sqrt());
+                    self.link_cache.times.push(now.as_u64());
+                    self.link_cache.sources.push(source);
+                    self.link_cache.destinations.push(destination);
+                    self.link_cache.distances.push(neigh_dist.distance.sqrt());
                 }
             });
             continue;
@@ -281,17 +281,17 @@ impl ReverseUnicastLinker {
     }
 
     fn write_to_file(&mut self) {
-        if self.writer_cache.is_full() {
+        if self.link_cache.is_full() {
             debug!("Cache full. Writing to files");
             self.writer
-                .record_batch_to_file(&self.writer_cache.as_record_batch());
+                .record_batch_to_file(&self.link_cache.as_record_batch());
         }
     }
 
     fn flush(&mut self) {
         debug!(r"Link calculation done. Flushing the cache to file");
         self.writer
-            .record_batch_to_file(&self.writer_cache.as_record_batch());
+            .record_batch_to_file(&self.link_cache.as_record_batch());
     }
 
     fn close(self) {
