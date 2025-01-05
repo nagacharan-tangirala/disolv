@@ -50,6 +50,9 @@ impl TimeMS {
     pub fn as_f32(&self) -> f32 {
         self.0 as f32
     }
+    pub fn as_f64(&self) -> f64 {
+        self.0 as f64
+    }
 }
 
 impl Mul for TimeMS {
