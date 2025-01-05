@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use std::thread;
 
 use clap::Parser;
-use log::{debug, info};
+use log::info;
 
 use disolv_core::bucket::TimeMS;
 use disolv_output::ui::Message;
@@ -15,6 +15,7 @@ use crate::produce::ui::SimRenderer;
 
 mod activation;
 mod produce;
+mod rsu;
 mod trace;
 
 #[derive(Parser, Debug)]
@@ -32,7 +33,7 @@ fn main() {
     let builder = TraceParser::new(config, file_path);
     generate_positions(builder);
     let elapsed = start.elapsed();
-    println!("Trace parsing finished in {} ms.", elapsed.as_millis());
+    info!("Trace parsing finished in {} ms.", elapsed.as_millis());
 }
 
 fn generate_positions(mut trace_parser: TraceParser) {
@@ -50,9 +51,9 @@ fn generate_positions(mut trace_parser: TraceParser) {
         s.spawn(move || {
             add_event_poller(&sender);
             trace_parser.initialize();
-            debug!("{} {}", trace_parser.duration, trace_parser.step_size);
             let mut now: TimeMS = TimeMS::from(0);
             while now < trace_parser.duration {
+                info!("Parsing traces for time {}", now);
                 trace_parser.parse_positions_at(now);
                 match terminal_sender.send(Message::CurrentTime(now.as_u64())) {
                     Ok(_) => {}

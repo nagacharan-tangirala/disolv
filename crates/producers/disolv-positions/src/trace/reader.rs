@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use hashbrown::HashMap;
-use log::debug;
 use quick_xml::{Reader, Writer};
 use quick_xml::events::{BytesStart, Event};
 
@@ -66,7 +65,6 @@ impl SumoReader {
                     if tag_begin.name().as_ref() == b"timestep" {
                         let time_ms = self.get_time_step(&tag_begin);
                         if time_ms == now {
-                            debug!("Found appropriate time stamp {}", time_ms);
                             return Some(self.read_vehicle_data(now.as_u64()));
                         }
                     }
