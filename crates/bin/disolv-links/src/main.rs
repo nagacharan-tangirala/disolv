@@ -11,6 +11,7 @@ use ratatui::backend::CrosstermBackend;
 
 use disolv_output::terminal::{handle_sim_key_events, TerminalUI};
 use disolv_output::ui::{Message, Renderer, SimContent};
+use disolv_runner::runner::{add_event_listener, add_event_poller};
 
 use crate::simulation::config::{Config, read_config};
 use crate::simulation::finder::LinkFinder;
@@ -42,54 +43,16 @@ fn generate_links(mut link_finder: LinkFinder) {
     let sender = sender_ui.clone();
     let terminal_sender = sender_ui.clone();
     let duration = link_finder.end.as_u64();
-    let ui_metadata = link_finder.build_link_metadata();
+    let metadata = link_finder.build_link_metadata();
+    let renderer = SimRenderer::new();
     thread::scope(|s| {
         s.spawn(move || {
-            let mut ui_content = SimContent::new(duration, ui_metadata);
-
-            let backend = CrosstermBackend::new(io::stderr());
-            let terminal = Terminal::new(backend).expect("failed to create terminal");
-            let mut tui = TerminalUI::new(terminal, SimRenderer::new());
-            tui.init().expect("failed to initialize the terminal");
-
-            while ui_content.running {
-                tui.draw_ui(&mut ui_content).expect("failed to draw");
-                match receiver_ui.recv() {
-                    Ok(message) => match message {
-                        Message::CurrentTime(now) => ui_content.update_now(now),
-                        Message::Quit => ui_content.quit(),
-                        Message::Key(key_event) => {
-                            handle_sim_key_events(key_event, &mut ui_content)
-                        }
-                        Message::Mouse(_) => {}
-                        Message::Resize(_, _) => {}
-                    },
-                    Err(_) => panic!("Error receiving message"),
-                }
-            }
-            tui.exit().expect("failed to exit");
+            add_event_listener(receiver_ui, duration, metadata, renderer);
         });
 
         s.spawn(move || {
             thread::scope(|s2| {
-                s2.spawn(move || {
-                    let tick_rate = Duration::from_millis(500);
-                    let mut message = None;
-                    if event::poll(tick_rate).expect("failed to poll new events") {
-                        match event::read().expect("unable to read event") {
-                            CrosstermEvent::Key(e) => message = Some(Message::Key(e)),
-                            CrosstermEvent::Mouse(e) => message = Some(Message::Mouse(e)),
-                            CrosstermEvent::Resize(w, h) => message = Some(Message::Resize(w, h)),
-                            CrosstermEvent::FocusGained => {}
-                            CrosstermEvent::FocusLost => {}
-                            CrosstermEvent::Paste(_) => {}
-                        };
-
-                        if let Some(m) = message {
-                            sender.send(m).expect("failed to send terminal events");
-                        }
-                    }
-                });
+                s2.spawn(move || add_event_poller(&sender));
             });
             link_finder.initialize();
             debug!("{} {}", link_finder.start, link_finder.end);

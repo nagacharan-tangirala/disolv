@@ -1,24 +1,21 @@
-use std::{io, thread};
 use std::path::PathBuf;
 use std::sync::mpsc;
-use std::time::Duration;
+use std::thread;
 
 use clap::Parser;
-use crossterm::event::{self, Event as CrosstermEvent};
 use log::{debug, info};
-use ratatui::backend::CrosstermBackend;
-use ratatui::Terminal;
 
 use disolv_core::bucket::TimeMS;
-use disolv_output::terminal::{handle_sim_key_events, TerminalUI};
-use disolv_output::ui::{Message, SimContent};
+use disolv_output::ui::Message;
+use disolv_runner::runner::{add_event_listener, add_event_poller};
 
 use crate::simulation::config::{Config, read_config};
 use crate::simulation::parser::TraceParser;
 use crate::simulation::ui::SimRenderer;
 
-mod positions;
+mod activation;
 mod simulation;
+mod trace;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]
@@ -35,7 +32,7 @@ fn main() {
     let builder = TraceParser::new(config, file_path);
     generate_positions(builder);
     let elapsed = start.elapsed();
-    println!("Link calculation finished in {} ms.", elapsed.as_millis());
+    println!("Trace parsing finished in {} ms.", elapsed.as_millis());
 }
 
 fn generate_positions(mut trace_parser: TraceParser) {
@@ -43,55 +40,15 @@ fn generate_positions(mut trace_parser: TraceParser) {
     let sender = sender_ui.clone();
     let terminal_sender = sender_ui.clone();
     let duration = trace_parser.duration.as_u64();
-    let ui_metadata = trace_parser.build_trace_metadata();
+    let metadata = trace_parser.build_trace_metadata();
+    let renderer = SimRenderer::new();
     thread::scope(|s| {
         s.spawn(move || {
-            let mut ui_content = SimContent::new(duration, ui_metadata);
-
-            let backend = CrosstermBackend::new(io::stderr());
-            let terminal = Terminal::new(backend).expect("failed to create terminal");
-            let mut tui = TerminalUI::new(terminal, SimRenderer::new());
-            tui.init().expect("failed to initialize the terminal");
-
-            while ui_content.running {
-                tui.draw_ui(&mut ui_content).expect("failed to draw");
-                match receiver_ui.recv() {
-                    Ok(message) => match message {
-                        Message::CurrentTime(now) => ui_content.update_now(now),
-                        Message::Quit => ui_content.quit(),
-                        Message::Key(key_event) => {
-                            handle_sim_key_events(key_event, &mut ui_content)
-                        }
-                        Message::Mouse(_) => {}
-                        Message::Resize(_, _) => {}
-                    },
-                    Err(_) => panic!("Error receiving message"),
-                }
-            }
-            tui.exit().expect("failed to exit");
+            add_event_listener(receiver_ui, duration, metadata, renderer);
         });
 
         s.spawn(move || {
-            thread::scope(|s2| {
-                s2.spawn(move || {
-                    let tick_rate = Duration::from_millis(500);
-                    let mut message = None;
-                    if event::poll(tick_rate).expect("failed to poll new events") {
-                        match event::read().expect("unable to read event") {
-                            CrosstermEvent::Key(e) => message = Some(Message::Key(e)),
-                            CrosstermEvent::Mouse(e) => message = Some(Message::Mouse(e)),
-                            CrosstermEvent::Resize(w, h) => message = Some(Message::Resize(w, h)),
-                            CrosstermEvent::FocusGained => {}
-                            CrosstermEvent::FocusLost => {}
-                            CrosstermEvent::Paste(_) => {}
-                        };
-
-                        if let Some(m) = message {
-                            sender.send(m).expect("failed to send terminal events");
-                        }
-                    }
-                });
-            });
+            add_event_poller(&sender);
             trace_parser.initialize();
             debug!("{} {}", trace_parser.duration, trace_parser.step_size);
             let mut now: TimeMS = TimeMS::from(0);
