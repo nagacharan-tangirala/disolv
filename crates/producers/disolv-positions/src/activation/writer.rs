@@ -11,7 +11,7 @@ use disolv_output::writer::WriterType;
 
 use crate::activation::cache::{ActivationCache, ActivationInfo};
 use crate::produce::config::ActivationSettings;
-use crate::trace::cache::TraceInfo;
+use crate::vehicles::cache::TraceInfo;
 
 pub(crate) struct ActivationWriter {
     writer: WriterType,

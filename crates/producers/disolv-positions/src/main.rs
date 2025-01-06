@@ -16,7 +16,7 @@ use crate::produce::ui::SimRenderer;
 mod activation;
 mod produce;
 mod rsu;
-mod trace;
+mod vehicles;
 
 #[derive(Parser, Debug)]
 #[command(author, version, long_about = None)]

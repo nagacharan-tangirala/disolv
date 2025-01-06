@@ -7,8 +7,8 @@ use disolv_output::ui::SimUIMetadata;
 
 use crate::activation::writer::ActivationWriter;
 use crate::produce::config::Config;
-use crate::trace::reader::TraceReader;
-use crate::trace::writer::TraceWriter;
+use crate::vehicles::trace::TraceReader;
+use crate::vehicles::writer::TraceWriter;
 
 pub(crate) struct TraceParser {
     pub(crate) step_size: TimeMS,
@@ -44,6 +44,7 @@ impl TraceParser {
 
     pub(crate) fn initialize(&mut self) {
         initiate_logger(&self.config_path, &self.config.log_settings, None);
+        self.trace_reader.initialize();
     }
 
     pub(crate) fn parse_positions_at(&mut self, time_ms: TimeMS) {

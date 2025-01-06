@@ -18,4 +18,5 @@ typed-builder.workspace = true
 crossterm.workspace = true
 ratatui.workspace = true
 arrow.workspace = true
+proj.workspace = true
 quick-xml = { workspace = true, features = ["serde-types", "serialize"] }

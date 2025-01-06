@@ -8,7 +8,7 @@ use disolv_output::result::ResultWriter;
 use disolv_output::writer::WriterType;
 
 use crate::produce::config::TraceSettings;
-use crate::trace::cache::{TraceCache, TraceInfo};
+use crate::vehicles::cache::{TraceCache, TraceInfo};
 
 pub(crate) struct TraceWriter {
     writer: WriterType,

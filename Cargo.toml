@@ -33,6 +33,7 @@ tikv-jemallocator = "0.6.0"
 toml = "0.8.19"
 uuid = "1.11.0"
 quick-xml = "0.37.2"
+proj = "0.28.0"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
