@@ -10,7 +10,8 @@ use quick_xml::events::{BytesStart, Event};
 use disolv_core::bucket::TimeMS;
 
 use crate::produce::config::TraceSettings;
-use crate::trace::cache::TraceInfo;
+use crate::vehicles::cache::TraceInfo;
+use crate::vehicles::network::NetworkReader;
 
 pub enum TraceReader {
     Sumo(SumoReader),
@@ -22,6 +23,13 @@ impl TraceReader {
         match trace_settings.trace_type.to_lowercase().as_str() {
             "sumo" => TraceReader::Sumo(SumoReader::new(trace_settings)),
             _ => unimplemented!("other readers not implemented"),
+        }
+    }
+
+    pub fn initialize(&mut self) {
+        match self {
+            TraceReader::Sumo(sumo) => sumo.initialize(),
+            _ => unimplemented!("only sumo trace files are supported"),
         }
     }
 
@@ -38,6 +46,7 @@ pub struct SumoReader {
     conversion_factor: TimeMS,
     agent_id_map: HashMap<String, u64>,
     current_id: u64,
+    network_reader: NetworkReader,
 }
 
 impl SumoReader {
@@ -47,12 +56,17 @@ impl SumoReader {
         Self {
             reader,
             conversion_factor: trace_settings.time_conversion,
+            network_reader: NetworkReader::new(&trace_settings),
             agent_id_map: HashMap::new(),
             current_id: trace_settings.starting_id,
         }
     }
 
-    pub fn read_positions_at(&mut self, now: TimeMS) -> Option<Vec<TraceInfo>> {
+    fn initialize(&mut self) {
+        self.network_reader.initialize();
+    }
+
+    fn read_positions_at(&mut self, now: TimeMS) -> Option<Vec<TraceInfo>> {
         let mut buffer = Vec::new();
         loop {
             match self.reader.read_event_into(&mut buffer) {
@@ -95,7 +109,7 @@ impl SumoReader {
                 .read_event_into(&mut temp_buffer)
                 .expect("failed to read vehicle info");
 
-            match &vehicle_tag_event.clone() {
+            match &vehicle_tag_event {
                 Event::Empty(_) => {
                     trace_data.push(self.parse_vehicle_event(vehicle_tag_event, time_ms))
                 }
@@ -141,6 +155,7 @@ impl SumoReader {
                 trace_info.y = f64::from_str(y_str).expect("failed to parse to float");
             }
         }
+        trace_info = self.handle_offsets(trace_info);
         trace_info
     }
 
@@ -163,5 +178,18 @@ impl SumoReader {
 
     fn remove_quotes(input: &str) -> &str {
         input.split("\"").take(2).last().expect("failed to split")
+    }
+
+    fn handle_offsets(&self, trace_info: TraceInfo) -> TraceInfo {
+        let mut modified_trace_info = TraceInfo::default();
+        modified_trace_info.x = self
+            .network_reader
+            .get_offsets()
+            .subtract_x_offset(trace_info.x);
+        modified_trace_info.y = self
+            .network_reader
+            .get_offsets()
+            .subtract_y_offset(trace_info.y);
+        modified_trace_info
     }
 }
