@@ -1,21 +1,24 @@
 use std::path::PathBuf;
 
 use burn::config::Config;
-use burn::data::dataloader::batcher::Batcher;
 use burn::data::dataloader::{DataLoaderBuilder, Dataset};
+use burn::data::dataloader::batcher::Batcher;
 use burn::data::dataset::vision::{MnistDataset, MnistItem};
 use burn::module::{Module, Param};
+use burn::nn::{
+    BatchNorm, BatchNormConfig, Dropout, DropoutConfig, Gelu, Linear, LinearConfig, PaddingConfig2d,
+};
 use burn::nn::conv::{Conv2d, Conv2dConfig};
-use burn::nn::loss::CrossEntropyLoss;
-use burn::nn::pool::{AdaptiveAvgPool2d, AdaptiveAvgPool2dConfig};
-use burn::nn::{Dropout, DropoutConfig, Linear, LinearConfig, Relu};
+use burn::nn::loss::CrossEntropyLossConfig;
 use burn::optim::AdamConfig;
+use burn::prelude::*;
 use burn::prelude::{Backend, Tensor, TensorData};
 use burn::record::CompactRecorder;
-use burn::tensor::backend::AutodiffBackend;
 use burn::tensor::{ElementConversion, Int};
-use burn::train::metric::{AccuracyMetric, LossMetric};
+use burn::tensor::backend::AutodiffBackend;
 use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, ValidStep};
+use burn::train::metric::{AccuracyMetric, LossMetric};
+use log::debug;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
@@ -74,8 +77,8 @@ impl<B: Backend> Batcher<MnistItem, MnistBatch<B>> for MnistBatcher<B> {
     fn batch(&self, items: Vec<MnistItem>) -> MnistBatch<B> {
         let images = items
             .iter()
-            .map(|item| TensorData::from(item.image).convert::<B::FloatElem>())
-            .map(|data| Tensor::<B, 2>::from_data(data, &self.device))
+            .map(|item| TensorData::from(item.image))
+            .map(|data| Tensor::<B, 2>::from_data(data.convert::<B::FloatElem>(), &self.device))
             .map(|tensor| tensor.reshape([1, 28, 28]))
             .map(|tensor| ((tensor / 255) - 0.1307) / 0.3081)
             .collect();
@@ -84,21 +87,21 @@ impl<B: Backend> Batcher<MnistItem, MnistBatch<B>> for MnistBatcher<B> {
             .iter()
             .map(|item| {
                 Tensor::<B, 1, Int>::from_data(
-                    [(item.label as i64).elem::<B::IntElem>()],
+                    TensorData::from([(item.label as i64).elem::<B::IntElem>()]),
                     &self.device,
                 )
             })
             .collect();
 
-        let images = Tensor::cat(images, 0).to_device(&self.device);
-        let targets = Tensor::cat(targets, 0).to_device(&self.device);
+        let images = Tensor::cat(images, 0);
+        let targets = Tensor::cat(targets, 0);
 
         MnistBatch { images, targets }
     }
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct MnistTrainConfigSettings {
+pub struct MnistInputConfigSettings {
     pub num_epochs: Option<usize>,
     pub batch_size: Option<usize>,
     pub num_workers: Option<usize>,
@@ -106,14 +109,13 @@ pub struct MnistTrainConfigSettings {
     pub learning_rate: Option<f64>,
     pub num_classes: usize,
     pub hidden_size: usize,
-    pub drop_out: Option<f64>,
+    pub drop_out: f64,
 }
 
-impl ModelSettings for MnistTrainConfigSettings {}
+impl ModelSettings for MnistInputConfigSettings {}
 
 #[derive(Config, TypedBuilder)]
 pub struct MnistTrainingConfig {
-    pub model: MnistModelConfig,
     pub optimizer: AdamConfig,
     #[config(default = 1)]
     pub num_epochs: usize,
@@ -128,15 +130,11 @@ pub struct MnistTrainingConfig {
 }
 
 impl Model for MnistTrainingConfig {
-    type Settings = MnistTrainConfigSettings;
+    type Settings = MnistInputConfigSettings;
 
     fn with_settings(settings: &Self::Settings) -> Self {
-        let mut model = MnistModelConfig::new(settings.num_classes, settings.hidden_size);
-        if let Some(val) = settings.drop_out {
-            model.dropout = val;
-        }
         let optimizer = AdamConfig::new();
-        let mut train_config = MnistTrainingConfig::new(model, optimizer);
+        let mut train_config = MnistTrainingConfig::new(optimizer);
         if let Some(num_epochs) = settings.num_epochs {
             train_config.num_epochs = num_epochs
         }
@@ -157,14 +155,69 @@ impl Model for MnistTrainingConfig {
 }
 
 #[derive(Module, Debug)]
+pub struct ConvBlock<B: Backend> {
+    conv: Conv2d<B>,
+    norm: BatchNorm<B, 2>,
+    activation: Gelu,
+}
+
+impl<B: Backend> ConvBlock<B> {
+    pub fn new(channels: [usize; 2], kernel_size: [usize; 2], device: &B::Device) -> Self {
+        let conv = Conv2dConfig::new(channels, kernel_size)
+            .with_padding(PaddingConfig2d::Valid)
+            .init(device);
+        let norm = BatchNormConfig::new(channels[1]).init(device);
+
+        Self {
+            conv,
+            norm,
+            activation: Gelu::new(),
+        }
+    }
+
+    pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
+        let x = self.conv.forward(input);
+        let x = self.norm.forward(x);
+
+        self.activation.forward(x)
+    }
+}
+
+#[derive(Config, Debug)]
+pub struct MnistModelConfig {
+    num_classes: usize,
+    hidden_size: usize,
+    #[config(default = "0.5")]
+    drop_out: f64,
+}
+
+impl MnistModelConfig {
+    pub(crate) fn init<B: Backend>(self, device: &B::Device) -> MnistModel<B> {
+        MnistModel {
+            conv1: ConvBlock::new([1, 8], [3, 3], device),
+            conv2: ConvBlock::new([8, 16], [3, 3], device),
+            conv3: ConvBlock::new([16, 24], [3, 3], device),
+            activation: Gelu::new(),
+            linear1: LinearConfig::new(self.hidden_size, 32)
+                .with_bias(false)
+                .init(device),
+            linear2: LinearConfig::new(32, self.num_classes)
+                .with_bias(false)
+                .init(device),
+            dropout: DropoutConfig::new(self.drop_out).init(),
+        }
+    }
+}
+
+#[derive(Module, Debug)]
 pub struct MnistModel<B: Backend> {
-    pub(crate) conv1: Conv2d<B>,
-    pub(crate) conv2: Conv2d<B>,
-    pub pool: AdaptiveAvgPool2d,
-    pub dropout: Dropout,
-    pub linear1: Linear<B>,
-    pub linear2: Linear<B>,
-    pub activation: Relu,
+    pub(crate) conv1: ConvBlock<B>,
+    pub(crate) conv2: ConvBlock<B>,
+    pub(crate) conv3: ConvBlock<B>,
+    pub(crate) dropout: Dropout,
+    pub(crate) linear1: Linear<B>,
+    pub(crate) linear2: Linear<B>,
+    pub(crate) activation: Gelu,
 }
 
 impl<B: Backend> MnistModel<B> {
@@ -189,22 +242,29 @@ impl<B: Backend> MnistModel<B> {
 
         let mut conv_weights = other_models
             .iter()
-            .map(|model| model.conv1.weight.val())
+            .map(|model| model.conv1.conv.weight.val())
             .collect();
         let mut avg_conv_tensor = Self::get_average_tensor(conv_weights);
-        global_model.conv1.weight = Param::from_data(avg_conv_tensor.into_data(), device);
+        global_model.conv1.conv.weight = Param::from_data(avg_conv_tensor.into_data(), device);
 
         conv_weights = other_models
             .iter()
-            .map(|model| model.conv2.weight.val())
+            .map(|model| model.conv2.conv.weight.val())
             .collect();
         avg_conv_tensor = Self::get_average_tensor(conv_weights);
-        global_model.conv2.weight = Param::from_data(avg_conv_tensor.into_data(), device);
+        global_model.conv2.conv.weight = Param::from_data(avg_conv_tensor.into_data(), device);
+
+        conv_weights = other_models
+            .iter()
+            .map(|model| model.conv3.conv.weight.val())
+            .collect();
+        avg_conv_tensor = Self::get_average_tensor(conv_weights);
+        global_model.conv3.conv.weight = Param::from_data(avg_conv_tensor.into_data(), device);
         global_model
     }
 
     fn get_average_tensor<const D: usize>(weights: Vec<Tensor<B, D>>) -> Tensor<B, D> {
-        let mut avg_tensor = weights.get(0).expect("empty weights not possible").clone();
+        let mut avg_tensor = weights.first().expect("empty weights not possible").clone();
         let total_weights = weights.len() as f32;
         weights
             .into_iter()
@@ -212,81 +272,56 @@ impl<B: Backend> MnistModel<B> {
             .for_each(|tensor| avg_tensor = avg_tensor.clone().add(tensor));
         avg_tensor.div_scalar(total_weights)
     }
-}
 
-#[derive(Config, Debug)]
-pub struct MnistModelConfig {
-    num_classes: usize,
-    hidden_size: usize,
-    #[config(default = "0.5")]
-    dropout: f64,
-}
-
-impl MnistModelConfig {
-    pub fn init<B: Backend>(&self, device: &B::Device) -> MnistModel<B> {
-        MnistModel {
-            conv1: Conv2dConfig::new([1, 8], [3, 3]).init(device),
-            conv2: Conv2dConfig::new([8, 16], [3, 3]).init(device),
-            pool: AdaptiveAvgPool2dConfig::new([8, 8]).init(),
-            activation: Relu::new(),
-            linear1: LinearConfig::new(16 * 8 * 8, self.hidden_size).init(device),
-            linear2: LinearConfig::new(self.hidden_size, self.num_classes).init(device),
-            dropout: DropoutConfig::new(self.dropout).init(),
-        }
-    }
-}
-
-impl<B: Backend> MnistModel<B> {
-    pub fn forward(&self, images: Tensor<B, 3>) -> Tensor<B, 2> {
+    pub(crate) fn forward(&self, images: Tensor<B, 3>) -> Tensor<B, 2> {
         let [batch_size, height, width] = images.dims();
-        // Create a channel at the second dimension.
+
         let x = images.reshape([batch_size, 1, height, width]);
-
         let x = self.conv1.forward(x); // [batch_size, 8, _, _]
-        let x = self.dropout.forward(x);
         let x = self.conv2.forward(x); // [batch_size, 16, _, _]
-        let x = self.dropout.forward(x);
-        let x = self.activation.forward(x);
+        let x = self.conv3.forward(x); // [batch_size, 16, _, _]
+                                       //let x = self.activation.forward(x);
 
-        let x = self.pool.forward(x); // [batch_size, 16, 8, 8]
-        let x = x.reshape([batch_size, 16 * 8 * 8]);
+        let [batch_size, channels, height, width] = x.dims();
+        let x = x.reshape([batch_size, channels * height * width]);
+
+        let x = self.dropout.forward(x);
         let x = self.linear1.forward(x);
-        let x = self.dropout.forward(x);
         let x = self.activation.forward(x);
 
-        self.linear2.forward(x) // [batch_size, num_classes]
+        self.linear2.forward(x)
     }
-}
 
-impl<B: Backend> MnistModel<B> {
-    pub fn forward_classification(
-        &self,
-        images: Tensor<B, 3>,
-        targets: Tensor<B, 1, Int>,
-    ) -> ClassificationOutput<B> {
-        let output = self.forward(images);
-        let loss =
-            CrossEntropyLoss::new(None, &output.device()).forward(output.clone(), targets.clone());
+    pub(crate) fn forward_classification(&self, item: MnistBatch<B>) -> ClassificationOutput<B> {
+        let targets = item.targets;
+        let output = self.forward(item.images);
+        let loss = CrossEntropyLossConfig::new()
+            .init(&output.device())
+            .forward(output.clone(), targets.clone());
 
-        ClassificationOutput::new(loss, output, targets)
+        ClassificationOutput {
+            loss,
+            output,
+            targets,
+        }
     }
 }
 
 impl<B: AutodiffBackend> TrainStep<MnistBatch<B>, ClassificationOutput<B>> for MnistModel<B> {
     fn step(&self, batch: MnistBatch<B>) -> TrainOutput<ClassificationOutput<B>> {
-        let item = self.forward_classification(batch.images, batch.targets);
+        let item = self.forward_classification(batch);
         TrainOutput::new(self, item.loss.backward(), item)
     }
 }
 
 impl<B: Backend> ValidStep<MnistBatch<B>, ClassificationOutput<B>> for MnistModel<B> {
     fn step(&self, batch: MnistBatch<B>) -> ClassificationOutput<B> {
-        self.forward_classification(batch.images, batch.targets)
+        self.forward_classification(batch)
     }
 }
 
 pub fn mnist_train<B: AutodiffBackend>(
-    output_path: &PathBuf,
+    output_path: PathBuf,
     config: MnistTrainingConfig,
     test_data: MnistFlDataset,
     train_data: MnistFlDataset,
@@ -308,16 +343,17 @@ pub fn mnist_train<B: AutodiffBackend>(
         .num_workers(config.num_workers)
         .build(test_data);
 
+    debug!("Training dataset size is {}", dataloader_train.num_items());
+
     let learner = LearnerBuilder::new(output_path.to_str().expect("invalid output path"))
         .metric_train_numeric(AccuracyMetric::new())
         .metric_valid_numeric(AccuracyMetric::new())
         .metric_train_numeric(LossMetric::new())
         .metric_valid_numeric(LossMetric::new())
         .with_file_checkpointer(CompactRecorder::new())
-        .devices(vec![device.clone()])
+        .devices(vec![device])
         .num_epochs(config.num_epochs)
         .renderer(CustomRenderer {})
-        .summary()
         .build(current_model, config.optimizer.init(), config.learning_rate);
 
     let updated_model = learner.fit(dataloader_train, dataloader_test);
