@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use burn::tensor::backend::AutodiffBackend;
-use log::debug;
+use log::{debug, info};
 use typed_builder::TypedBuilder;
 
 use disolv_core::agent::AgentClass;
@@ -77,6 +77,10 @@ impl<B: AutodiffBackend> Server<B> {
 
         self.fl_models.holder.allot_data();
         bucket.models.model_lake.global_model = Some(self.fl_models.trainer.model.clone());
+    }
+
+    pub(crate) fn update_step(&mut self, new_step: TimeMS) {
+        self.step = new_step;
     }
 
     pub(crate) fn draft_fl_message(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
@@ -175,7 +179,7 @@ impl<B: AutodiffBackend> Server<B> {
             return;
         }
 
-        debug!("Collecting local model of {}", client_info.id);
+        info!("Collecting local model of {}", client_info.id);
         let local_model = bucket.models.model_lake.local_model_of(client_info.id);
         self.fl_models
             .aggregator
@@ -312,20 +316,21 @@ impl<B: AutodiffBackend> Server<B> {
         debug!("Changing from aggregation to idle at {}", self.step);
         self.server_state = ServerState::Idle;
 
-        let current_global_model = self.fl_models.trainer.model.clone();
         self.fl_models.trainer.model = self
             .fl_models
             .aggregator
-            .aggregate(current_global_model, &bucket.models.device);
-        self.fl_models.aggregator.clear_local_models();
+            .aggregate(self.fl_models.trainer.model.clone(), &bucket.models.device);
 
-        self.fl_models.trainer.save_model_to_file(self.step);
+        self.fl_models.holder.allot_data();
+        self.fl_models.trainer.test_data = self.fl_models.holder.allotted_test_data();
+
+        let model_accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
+
         bucket
             .models
             .model_lake
             .update_global_model(self.fl_models.trainer.model.clone(), self.step);
-
-        let model_accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
+        self.fl_models.trainer.save_model_to_file(self.step);
 
         if let Some(writer) = &mut bucket.models.results.model {
             let model_update = ModelUpdate::builder()
