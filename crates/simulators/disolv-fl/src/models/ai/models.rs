@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+use burn::data::dataset::Dataset;
 use burn::data::dataset::vision::MnistItem;
 use burn::prelude::Backend;
 
@@ -62,6 +63,12 @@ impl DatasetType {
         }
     }
 
+    pub fn data_length(&self) -> usize {
+        match self {
+            DatasetType::Mnist(mnist) => mnist.len(),
+            _ => 0,
+        }
+    }
     pub fn dataset_type(&self) -> &str {
         match self {
             DatasetType::Mnist(_) => "mnist",
