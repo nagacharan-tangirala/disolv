@@ -3,3 +3,4 @@ pub mod result;
 pub mod tables;
 pub mod terminal;
 pub mod ui;
+pub mod writer;

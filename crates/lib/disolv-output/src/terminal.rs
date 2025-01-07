@@ -1,5 +1,5 @@
-use std::{error, io};
 use std::panic;
+use std::{error, io};
 
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};

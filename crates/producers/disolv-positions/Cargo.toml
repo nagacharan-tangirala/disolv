@@ -1,0 +1,22 @@
+[package]
+name = "disolv-positions"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+disolv-core = { version = "0.0.0", path = "../../lib/disolv-core" }
+disolv-input = { version = "0.0.0", path = "../../lib/disolv-input" }
+disolv-output = { version = "0.0.0", path = "../../lib/disolv-output" }
+disolv-runner = { version = "0.0.0", path = "../../lib/disolv-runner" }
+log.workspace = true
+parquet.workspace = true
+toml.workspace = true
+clap = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive"] }
+hashbrown.workspace = true
+typed-builder.workspace = true
+crossterm.workspace = true
+ratatui.workspace = true
+arrow.workspace = true
+proj.workspace = true
+quick-xml = { workspace = true, features = ["serde-types", "serialize"] }
