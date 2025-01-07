@@ -2,43 +2,9 @@ use std::fs::File;
 use std::io::BufReader;
 use std::str::FromStr;
 
-use log::debug;
 use quick_xml::{Reader, Writer};
 use quick_xml::events::Event;
 use typed_builder::TypedBuilder;
-
-use crate::produce::config::TraceSettings;
-
-pub enum NetworkReader {
-    Sumo(SumoNet),
-}
-
-impl NetworkReader {
-    pub fn new(trace_settings: &TraceSettings) -> Self {
-        match trace_settings.trace_type.as_str() {
-            "sumo" => NetworkReader::Sumo(SumoNet::new(trace_settings)),
-            _ => panic!("Other network files are not supported"),
-        }
-    }
-
-    pub fn initialize(&mut self) {
-        match self {
-            NetworkReader::Sumo(sumo_net) => sumo_net.initialize(),
-        }
-    }
-
-    pub fn get_offsets(&self) -> SumoOffsets {
-        match self {
-            NetworkReader::Sumo(sumo_net) => sumo_net.offsets,
-        }
-    }
-
-    pub fn projection_string(&self) -> &str {
-        match self {
-            NetworkReader::Sumo(sumo_net) => &sumo_net.projection_string,
-        }
-    }
-}
 
 #[derive(Copy, Clone, Default, TypedBuilder)]
 pub struct SumoOffsets {
@@ -56,24 +22,30 @@ impl SumoOffsets {
     }
 }
 
-pub struct SumoNet {
+pub struct OffsetReader {
     net_file: Reader<BufReader<File>>,
-    offsets: SumoOffsets,
+    offsets: Option<SumoOffsets>,
     projection_string: String,
 }
 
-impl SumoNet {
-    pub fn new(trace_settings: &TraceSettings) -> Self {
-        let net_file =
-            Reader::from_file(&trace_settings.input_network).expect("Failed to create XML reader");
+impl OffsetReader {
+    pub(crate) fn new(input_network: &str) -> Self {
+        let net_file = Reader::from_file(input_network).expect("Failed to create XML reader");
         Self {
             net_file,
-            offsets: SumoOffsets::default(),
+            offsets: None,
             projection_string: String::new(),
         }
     }
 
-    pub fn initialize(&mut self) {
+    pub(crate) fn peek_offsets(&self) -> SumoOffsets {
+        match self.offsets {
+            Some(offsets) => offsets,
+            None => panic!("Cannot peek offsets before reading the file"),
+        }
+    }
+
+    pub(crate) fn initialize(&mut self) {
         let mut buffer = Vec::new();
         loop {
             let event = self.net_file.read_event_into(&mut buffer);
@@ -88,7 +60,6 @@ impl SumoNet {
                         self.read_network_data(&event.expect("failed to extract event"));
                         return;
                     }
-                    debug!("tag_begin {:?}", tag_begin.name());
                 }
                 _ => {}
             }
@@ -96,7 +67,7 @@ impl SumoNet {
         }
     }
 
-    pub fn read_network_data(&mut self, location_event: &Event) {
+    fn read_network_data(&mut self, location_event: &Event) {
         match &location_event {
             Event::Empty(_) => {
                 let mut location_buffer = Vec::new();
@@ -113,8 +84,7 @@ impl SumoNet {
         }
     }
 
-    pub fn read_location_tag(&mut self, location: String) {
-        debug!("Location string {}", location);
+    fn read_location_tag(&mut self, location: String) {
         let pieces = location.split("convBoundary");
         for part in pieces {
             if part.contains("netOffset") {
@@ -127,8 +97,7 @@ impl SumoNet {
         }
     }
 
-    pub fn read_offsets(&mut self, offsets: String) {
-        debug!("offset string {}", offsets);
+    fn read_offsets(&mut self, offsets: String) {
         let offsets = offsets.split("=").last().expect("failed to read offset");
         let offsets = offsets.replace("\"", "");
 
@@ -142,15 +111,14 @@ impl SumoNet {
         let x = f64::from_str(x_offset).expect("failed to parse x");
         let y = f64::from_str(y_offset.trim()).expect("failed to parse y");
 
-        self.offsets = SumoOffsets::builder().x_offset(x).y_offset(y).build();
+        self.offsets = Some(SumoOffsets::builder().x_offset(x).y_offset(y).build());
     }
 
-    pub fn read_projection(&mut self, location_tag: String) {
+    fn read_projection(&mut self, location_tag: String) {
         let proj = location_tag
             .split("projParameter=")
             .last()
             .expect("failed to read proj");
         self.projection_string = proj.replace("/>", "");
-        debug!("{}", self.projection_string);
     }
 }

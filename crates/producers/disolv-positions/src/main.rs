@@ -13,7 +13,6 @@ use crate::produce::config::{Config, read_config};
 use crate::produce::parser::TraceParser;
 use crate::produce::ui::SimRenderer;
 
-mod activation;
 mod produce;
 mod rsu;
 mod vehicles;

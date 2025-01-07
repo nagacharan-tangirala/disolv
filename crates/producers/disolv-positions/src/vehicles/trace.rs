@@ -4,49 +4,57 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use hashbrown::HashMap;
+use log::debug;
 use quick_xml::{Reader, Writer};
 use quick_xml::events::{BytesStart, Event};
 
 use disolv_core::bucket::TimeMS;
+use disolv_output::result::ResultWriter;
 
 use crate::produce::config::TraceSettings;
-use crate::vehicles::cache::TraceInfo;
-use crate::vehicles::network::NetworkReader;
+use crate::vehicles::activation::VehicleActivations;
+use crate::vehicles::offset::OffsetReader;
+use crate::vehicles::writer::{TraceInfo, TraceWriter};
 
-pub enum TraceReader {
+pub enum TraceHelper {
     Sumo(SumoReader),
-    CityMoS,
 }
 
-impl TraceReader {
+impl TraceHelper {
     pub fn new(trace_settings: &TraceSettings) -> Self {
         match trace_settings.trace_type.to_lowercase().as_str() {
-            "sumo" => TraceReader::Sumo(SumoReader::new(trace_settings)),
+            "sumo" => TraceHelper::Sumo(SumoReader::new(trace_settings)),
             _ => unimplemented!("other readers not implemented"),
         }
     }
 
     pub fn initialize(&mut self) {
         match self {
-            TraceReader::Sumo(sumo) => sumo.initialize(),
-            _ => unimplemented!("only sumo trace files are supported"),
+            TraceHelper::Sumo(sumo) => sumo.initialize(),
         }
     }
 
-    pub fn read_data(&mut self, now: TimeMS) -> Option<Vec<TraceInfo>> {
+    pub fn read_data(&mut self, now: TimeMS) {
         match self {
-            TraceReader::Sumo(sumo) => sumo.read_positions_at(now),
-            _ => unimplemented!("only sumo trace files are supported"),
+            TraceHelper::Sumo(sumo) => sumo.read_positions_at(now),
+        }
+    }
+
+    pub(crate) fn complete(self) {
+        match self {
+            TraceHelper::Sumo(sumo) => sumo.complete(),
         }
     }
 }
 
 pub struct SumoReader {
-    reader: Reader<BufReader<File>>,
+    trace_reader: Reader<BufReader<File>>,
     conversion_factor: TimeMS,
     agent_id_map: HashMap<String, u64>,
     current_id: u64,
-    network_reader: NetworkReader,
+    offset_helper: OffsetReader,
+    trace_writer: TraceWriter,
+    activation_writer: VehicleActivations,
 }
 
 impl SumoReader {
@@ -54,39 +62,54 @@ impl SumoReader {
         let input_trace_file = PathBuf::from(trace_settings.input_trace.to_owned());
         let reader = Reader::from_file(input_trace_file).expect("Failed to create XML reader");
         Self {
-            reader,
+            trace_reader: reader,
             conversion_factor: trace_settings.time_conversion,
-            network_reader: NetworkReader::new(&trace_settings),
+            offset_helper: OffsetReader::new(&trace_settings.input_network),
             agent_id_map: HashMap::new(),
             current_id: trace_settings.starting_id,
+            trace_writer: TraceWriter::new(trace_settings),
+            activation_writer: VehicleActivations::new(trace_settings),
         }
     }
 
     fn initialize(&mut self) {
-        self.network_reader.initialize();
+        self.offset_helper.initialize();
     }
 
-    fn read_positions_at(&mut self, now: TimeMS) -> Option<Vec<TraceInfo>> {
+    fn read_positions_at(&mut self, now: TimeMS) {
         let mut buffer = Vec::new();
         loop {
-            match self.reader.read_event_into(&mut buffer) {
+            match self.trace_reader.read_event_into(&mut buffer) {
                 Err(error) => panic!(
                     "Failed to read xml at position {} with error {:?}",
-                    self.reader.buffer_position(),
+                    self.trace_reader.buffer_position(),
                     error
                 ),
                 Ok(Event::Start(tag_begin)) => {
                     if tag_begin.name().as_ref() == b"timestep" {
                         let time_ms = self.get_time_step(&tag_begin);
                         if time_ms == now {
-                            return Some(self.read_vehicle_data(now.as_u64()));
+                            self.process_xml(now.as_u64());
+                            break;
                         }
                     }
                 }
+                Ok(Event::Eof) => debug!("Completed reading the trace XML"),
                 _ => {}
             }
             buffer.clear();
         }
+    }
+
+    fn process_xml(&mut self, now: u64) {
+        let trace_data = self.read_vehicle_data(now);
+        self.activation_writer
+            .determine_activations(&trace_data, now);
+        trace_data
+            .into_iter()
+            .for_each(|trace_info| self.trace_writer.store_info(trace_info));
+        self.trace_writer.write_to_file();
+        self.activation_writer.write_to_file();
     }
 
     fn get_time_step(&self, time_step_event: &BytesStart) -> TimeMS {
@@ -105,7 +128,7 @@ impl SumoReader {
         let mut trace_data: Vec<TraceInfo> = Vec::new();
         loop {
             let vehicle_tag_event = self
-                .reader
+                .trace_reader
                 .read_event_into(&mut temp_buffer)
                 .expect("failed to read vehicle info");
 
@@ -176,20 +199,24 @@ impl SumoReader {
         }
     }
 
-    fn remove_quotes(input: &str) -> &str {
-        input.split("\"").take(2).last().expect("failed to split")
+    fn handle_offsets(&self, mut trace_info: TraceInfo) -> TraceInfo {
+        trace_info.x = self
+            .offset_helper
+            .peek_offsets()
+            .subtract_x_offset(trace_info.x);
+        trace_info.y = self
+            .offset_helper
+            .peek_offsets()
+            .subtract_y_offset(trace_info.y);
+        trace_info
     }
 
-    fn handle_offsets(&self, trace_info: TraceInfo) -> TraceInfo {
-        let mut modified_trace_info = TraceInfo::default();
-        modified_trace_info.x = self
-            .network_reader
-            .get_offsets()
-            .subtract_x_offset(trace_info.x);
-        modified_trace_info.y = self
-            .network_reader
-            .get_offsets()
-            .subtract_y_offset(trace_info.y);
-        modified_trace_info
+    fn complete(self) {
+        self.trace_writer.close_file();
+        self.activation_writer.close_file();
+    }
+
+    fn remove_quotes(input: &str) -> &str {
+        input.split("\"").take(2).last().expect("failed to split")
     }
 }
