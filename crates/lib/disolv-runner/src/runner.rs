@@ -39,13 +39,18 @@ where
             while now < end_time {
                 scheduler.activate();
                 now = scheduler.trigger().as_u64();
-                match terminal_sender.send(Message::CurrentTime(now)) {
-                    Ok(_) => {}
-                    Err(_) => {
-                        scheduler.terminate();
-                        return;
-                    }
-                };
+                if terminal_sender.send(Message::CurrentTime(now)).is_err() {
+                    scheduler.terminate();
+                    return;
+                }
+                if now % 50000 == 0
+                    && terminal_sender
+                        .send(Message::ActiveAgents(scheduler.active_agents()))
+                        .is_err()
+                {
+                    scheduler.terminate();
+                    return;
+                }
             }
             scheduler.terminate();
             sender_ui.send(Message::Quit).unwrap();
@@ -71,6 +76,7 @@ pub fn add_event_listener<R: Renderer>(
             Ok(message) => match message {
                 Message::CurrentTime(now) => ui_content.update_now(now),
                 Message::Quit => ui_content.quit(),
+                Message::ActiveAgents(agents) => ui_content.update_agents(agents),
                 Message::Key(key_event) => handle_sim_key_events(key_event, &mut ui_content),
                 Message::Mouse(_) => {}
                 Message::Resize(_, _) => {}
