@@ -73,7 +73,7 @@ impl Model for ClientTimes {
 
     fn with_settings(settings: &Self::Settings) -> Self {
         Self {
-            durations: settings.clone(),
+            durations: *settings,
             next_change_at: TimeMS::default(),
         }
     }

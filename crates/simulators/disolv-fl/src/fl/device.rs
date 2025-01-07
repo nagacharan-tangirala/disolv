@@ -1,6 +1,6 @@
 use burn::tensor::backend::AutodiffBackend;
 use hashbrown::HashMap;
-use log::debug;
+use log::{debug, trace};
 use typed_builder::TypedBuilder;
 
 use disolv_core::agent::{
@@ -218,7 +218,7 @@ impl<B: AutodiffBackend> Device<B> {
 
 impl<B: AutodiffBackend> Activatable<FlBucket<B>> for Device<B> {
     fn activate(&mut self, bucket: &mut FlBucket<B>) {
-        debug!("Starting agent: {}", self.device_info.id);
+        trace!("Starting agent: {}", self.device_info.id);
         self.power_state = PowerState::On;
         bucket.update_agent_data_of(self.device_info.id, self.device_info);
         self.fl_agent.init(bucket);
