@@ -1,17 +1,13 @@
-use std::error;
-
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::widgets::{Borders, Gauge};
 use ratatui::{
+    Frame,
     layout::Alignment,
     style::{Color, Modifier, Style},
     widgets::{Block, BorderType, Paragraph},
-    Frame,
 };
+use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::widgets::{Borders, Gauge};
 
 use disolv_output::ui::{Renderer, SimContent};
-
-pub type ContentResult<T> = Result<T, Box<dyn error::Error>>;
 
 pub struct SimRenderer {}
 
@@ -90,13 +86,11 @@ impl Renderer for SimRenderer {
         Output Path: {}\n\
         Log Path: {}\n\
         Active Agents: {}\n\
-        Total Agents: {}\n\
         ",
             content.metadata.input_file,
             content.metadata.output_path,
             content.metadata.log_path,
             content.active_agents,
-            content.total_agents
         );
         frame.render_widget(
             Paragraph::new(simulation_details)
