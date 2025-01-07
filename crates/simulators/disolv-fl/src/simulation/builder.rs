@@ -31,7 +31,7 @@ use crate::fl::server::{FlServerModels, Server};
 use crate::models::ai::aggregate::Aggregator;
 use crate::models::ai::compose::FlComposer;
 use crate::models::ai::data::DataHolder;
-use crate::models::ai::mnist::MnistTrainingConfig;
+use crate::models::ai::mnist::{MnistModelConfig, MnistTrainingConfig};
 use crate::models::ai::models::ModelType;
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::{ClientTimes, ServerTimes};
@@ -52,7 +52,6 @@ use crate::simulation::ui::SimRenderer;
 pub type WgpuBackend = Wgpu<f32, i32>;
 pub type WgpuAdBackend = Autodiff<WgpuBackend>;
 
-pub type FedAgent = FAgent<WgpuAdBackend>;
 pub type FedDevice = Device<WgpuAdBackend>;
 pub type FedBucket = FlBucket<WgpuAdBackend>;
 pub type FedClient = Client<WgpuAdBackend>;
@@ -244,7 +243,6 @@ impl SimulationBuilder {
         let client_models = ClientModels::builder()
             .holder(DataHolder::with_settings(&client_settings.data_holder))
             .times(ClientTimes::with_settings(&client_settings.durations))
-            .local_model(trainer.model.clone())
             .trainer(trainer)
             .build();
 
@@ -349,16 +347,20 @@ impl SimulationBuilder {
 
         match trainer_settings.model_type.to_lowercase().as_str() {
             "mnist" => {
-                let train_config = MnistTrainingConfig::with_settings(
-                    trainer_settings
-                        .mnist_config_settings
-                        .as_ref()
-                        .expect("mnist settings missing from the config file"),
-                );
+                let mnist_settings = trainer_settings
+                    .mnist_config_settings
+                    .as_ref()
+                    .expect("mnist settings missing from the config file");
+
+                let train_config = MnistTrainingConfig::with_settings(mnist_settings);
+                let mnist_model_config =
+                    MnistModelConfig::new(mnist_settings.num_classes, mnist_settings.hidden_size)
+                        .with_drop_out(mnist_settings.drop_out);
+
                 Trainer::builder()
                     .no_of_weights(trainer_settings.no_of_weights)
                     .output_path(output_path)
-                    .model(ModelType::Mnist(train_config.model.init(&device)))
+                    .model(ModelType::Mnist(mnist_model_config.init(&device)))
                     .config(train_config)
                     .build()
             }

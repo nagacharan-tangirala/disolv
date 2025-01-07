@@ -1,9 +1,8 @@
 use burn::prelude::Backend;
-use log::debug;
+use hashbrown::HashMap;
 
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
-use hashbrown::HashMap;
 
 use crate::models::ai::models::ModelType;
 
@@ -27,12 +26,6 @@ impl<B: Backend> ModelLake<B> {
     }
 
     pub(crate) fn update_global_model(&mut self, new_model: ModelType<B>, at: TimeMS) {
-        match new_model.clone() {
-            ModelType::Mnist(mnist) => {
-                debug!("new global model with linear1 {:?}", mnist.linear1.weight)
-            }
-            _ => {}
-        }
         self.global_model = Some(new_model);
         self.update_time = at;
     }
@@ -43,16 +36,10 @@ impl<B: Backend> ModelLake<B> {
 
     pub(crate) fn local_model_of(&mut self, agent_id: AgentId) -> ModelType<B> {
         if !self.model_map.contains_key(&agent_id) {
-            debug!("Local model of {} is not found", agent_id);
+            panic!("Local model of {} is not found", agent_id);
         }
         self.model_map
             .remove(&agent_id)
             .expect("failed to find local model")
-    }
-
-    pub(crate) fn local_models(&mut self) -> Vec<ModelType<B>> {
-        let local_models = self.model_map.clone().into_values().collect();
-        self.model_map.clear();
-        local_models
     }
 }

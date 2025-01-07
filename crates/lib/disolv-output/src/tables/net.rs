@@ -69,9 +69,6 @@ impl ResultWriter for NetStatWriter {
     }
 
     fn close_file(self) {
-        match self.to_output {
-            WriterType::Parquet(to_output) => to_output.close(),
-            WriterType::Csv(to_output) => to_output.close(),
-        }
+        self.to_output.close()
     }
 }

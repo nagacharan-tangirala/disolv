@@ -1,7 +1,8 @@
+use std::cmp::{max, min};
 use std::path::PathBuf;
 
-use burn::backend::wgpu::WgpuDevice;
 use burn::data::dataloader::batcher::Batcher;
+use burn::data::dataset::vision::MnistItem;
 use burn::data::dataset::Dataset;
 use burn::module::Module;
 use burn::prelude::Backend;
@@ -15,16 +16,15 @@ use typed_builder::TypedBuilder;
 use disolv_core::bucket::TimeMS;
 
 use crate::models::ai::mnist::{
-    mnist_train, MnistBatcher, MnistFlDataset, MnistModel, MnistTrainConfigSettings,
-    MnistTrainingConfig,
+    mnist_train, MnistBatcher, MnistInputConfigSettings, MnistModel, MnistTrainingConfig,
 };
-use crate::models::ai::models::{BatchType, DatasetType, ModelType};
+use crate::models::ai::models::{DatasetType, ModelType};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TrainerSettings {
     pub(crate) model_type: String,
     pub(crate) no_of_weights: u64,
-    pub(crate) mnist_config_settings: Option<MnistTrainConfigSettings>,
+    pub(crate) mnist_config_settings: Option<MnistInputConfigSettings>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -52,7 +52,7 @@ impl<B: AutodiffBackend> Trainer<B> {
                     _ => panic!("Expected mnist test dataset, found something else"),
                 };
                 mnist_train(
-                    &self.output_path,
+                    self.output_path.clone(),
                     self.config.clone(),
                     test_dataset.clone(),
                     train_dataset.clone(),
@@ -60,8 +60,9 @@ impl<B: AutodiffBackend> Trainer<B> {
                     device.clone(),
                 )
             }
-            ModelType::Cifar(cifar) => unimplemented!("cifar is unimplemented"),
+            ModelType::Cifar(_) => unimplemented!("cifar is unimplemented"),
         };
+        self.train_data.clear();
     }
 
     pub fn save_model_to_file(&self, step: TimeMS) {
@@ -98,9 +99,9 @@ impl<B: AutodiffBackend> Trainer<B> {
             _ => panic!("Expected mnist test dataset"),
         };
 
-        let total_tests = (test_dataset.len() as f32 * 0.1) as usize;
+        let total_tests = min(50, (test_dataset.len() as f32 * 0.1) as usize);
         let mut success = 0;
-        debug!("Validating with {} tests", test_dataset.len());
+        debug!("Validating with {} tests", total_tests);
 
         for i in 0..total_tests {
             let item = test_dataset.get(i).expect("failed to get item");
@@ -110,7 +111,7 @@ impl<B: AutodiffBackend> Trainer<B> {
             let output = mnist_model.forward(batch.images);
             let predicted = output.argmax(1).flatten::<1>(0, 1).into_scalar();
             if predicted.elem::<u8>() == item.label {
-                success = success + 1;
+                success += 1;
             }
         }
         (success as f32 / total_tests as f32) * 100.0

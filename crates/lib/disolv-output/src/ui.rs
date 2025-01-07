@@ -7,6 +7,7 @@ pub enum Message {
     Mouse(MouseEvent),
     Resize(u16, u16),
     CurrentTime(u64),
+    ActiveAgents(u64),
     Quit,
 }
 
@@ -24,8 +25,7 @@ pub struct SimContent {
     pub total_steps: u64,
     pub now: u64,
     pub metadata: SimUIMetadata,
-    pub total_agents: usize,
-    pub active_agents: usize,
+    pub active_agents: u64,
 }
 
 impl SimContent {
@@ -45,6 +45,10 @@ impl SimContent {
 
     pub fn update_now(&mut self, now: u64) {
         self.now = now;
+    }
+
+    pub fn update_agents(&mut self, agents: u64) {
+        self.active_agents = agents;
     }
 
     pub fn completion(&self) -> f64 {

@@ -1,6 +1,5 @@
 use std::error;
 
-use disolv_output::ui::{Renderer, SimContent};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::widgets::{Borders, Gauge};
 use ratatui::{
@@ -9,6 +8,8 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
     Frame,
 };
+
+use disolv_output::ui::{Renderer, SimContent};
 
 pub type ContentResult<T> = Result<T, Box<dyn error::Error>>;
 
@@ -89,8 +90,12 @@ impl Renderer for SimRenderer {
             "Input File: {}\n\
         Output Path: {}\n\
         Log Path: {}\n\
+        Active Agents:{}
         ",
-            content.metadata.input_file, content.metadata.output_path, content.metadata.log_path,
+            content.metadata.input_file,
+            content.metadata.output_path,
+            content.metadata.log_path,
+            content.active_agents,
         );
         frame.render_widget(
             Paragraph::new(simulation_details)

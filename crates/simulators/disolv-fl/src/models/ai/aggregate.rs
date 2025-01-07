@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use burn::tensor::backend::AutodiffBackend;
-use log::debug;
+use log::{debug, info};
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
@@ -40,7 +40,11 @@ impl<B: AutodiffBackend> Aggregator<B> {
         }
     }
 
-    pub(crate) fn aggregate(&self, global_model: ModelType<B>, device: &B::Device) -> ModelType<B> {
+    pub(crate) fn aggregate(
+        &mut self,
+        global_model: ModelType<B>,
+        device: &B::Device,
+    ) -> ModelType<B> {
         match self {
             Aggregator::FedAvg(aggregator) => aggregator.aggregate(global_model, device),
         }
@@ -49,12 +53,6 @@ impl<B: AutodiffBackend> Aggregator<B> {
     pub(crate) fn is_model_collected(&self, agent_id: AgentId) -> bool {
         match self {
             Aggregator::FedAvg(aggregator) => aggregator.is_model_collected(agent_id),
-        }
-    }
-
-    pub(crate) fn clear_local_models(&mut self) {
-        match self {
-            Aggregator::FedAvg(aggregator) => aggregator.clear_local_models(),
         }
     }
 }
@@ -79,8 +77,8 @@ impl<B: AutodiffBackend> FedAvgAggregator<B> {
         self.local_models.contains_key(&agent_id)
     }
 
-    fn aggregate(&self, global_model: ModelType<B>, device: &B::Device) -> ModelType<B> {
-        debug!("{} is the local model count.", self.local_models.len());
+    fn aggregate(&mut self, global_model: ModelType<B>, device: &B::Device) -> ModelType<B> {
+        info!("{} is the local model count.", self.local_models.len());
         match global_model {
             ModelType::Mnist(mnist_model) => {
                 let local_models = self
@@ -93,13 +91,10 @@ impl<B: AutodiffBackend> FedAvgAggregator<B> {
                     })
                     .collect();
                 let new_global_model = MnistModel::do_fedavg(mnist_model, local_models, device);
+                self.local_models.clear();
                 ModelType::Mnist(new_global_model)
             }
             _ => unimplemented!("cifar not implemented"),
         }
-    }
-
-    fn clear_local_models(&mut self) {
-        self.local_models.clear()
     }
 }

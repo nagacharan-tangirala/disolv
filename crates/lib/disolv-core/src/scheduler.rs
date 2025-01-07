@@ -17,6 +17,7 @@ pub trait Scheduler<B: Bucket>: Send {
     fn initialize(&mut self);
     fn activate(&mut self);
     fn trigger(&mut self) -> TimeMS;
+    fn active_agents(&self) -> u64;
     fn terminate(self);
 }
 
@@ -43,6 +44,8 @@ where
     #[builder(default = TimeMS::default())]
     pub output_step: TimeMS,
     #[builder(default)]
+    pub active_agents: u64,
+    #[builder(default)]
     pub _marker: std::marker::PhantomData<fn() -> B>,
 }
 
@@ -52,7 +55,7 @@ where
     B: Bucket,
 {
     pub fn agent_of(&self, agent_id: &AgentId) -> &A {
-        return &self.agents.get(agent_id).expect("Agent not found in core");
+        self.agents.get(agent_id).expect("Agent not found in core")
     }
 
     #[inline]
@@ -169,9 +172,11 @@ where
 
         self.bucket.after_agents();
 
+        self.active_agents = 0;
         for agent_id in agent_ids.into_iter() {
             // Reschedule the agent if not stopped.
             if !self.agent_of(&agent_id).is_deactivated() {
+                self.active_agents += 1;
                 self.add_to_queue(agent_id, self.agent_of(&agent_id).order());
             }
 
@@ -190,6 +195,10 @@ where
 
         self.now += self.step_size;
         self.now
+    }
+
+    fn active_agents(&self) -> u64 {
+        self.active_agents
     }
 
     fn terminate(self) {
@@ -383,6 +392,10 @@ where
 
         self.now += self.step_size;
         self.now
+    }
+
+    fn active_agents(&self) -> u64 {
+        self.active_agents.len() as u64
     }
 
     fn terminate(self) {

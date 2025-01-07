@@ -31,8 +31,8 @@ impl<B: AutodiffBackend> FAgent<B> {
 
     pub(crate) fn update_step(&mut self, new_step: TimeMS) {
         match self {
-            FAgent::FClient(client) => client.step = new_step,
-            FAgent::FServer(server) => server.step = new_step,
+            FAgent::FClient(client) => client.update_step(new_step),
+            FAgent::FServer(server) => server.update_step(new_step),
         }
     }
 

@@ -12,6 +12,7 @@ use crate::tables::payload::PayloadTraceWriter;
 use crate::tables::position::PositionWriter;
 use crate::tables::rx::RxCountWriter;
 use crate::tables::state::StateTrace;
+use crate::tables::train::FlTrainingTrace;
 use crate::tables::tx::TxDataWriter;
 
 #[derive(Deserialize, Debug, Clone, Copy, Eq, PartialEq)]
@@ -22,7 +23,8 @@ pub enum OutputType {
     NetStat,
     FlState,
     FlModel,
-    PayloadTx,
+    FlPayloadTx,
+    FlTraining,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -53,6 +55,7 @@ pub struct Results {
     pub payload_tx: Option<PayloadTraceWriter>,
     pub model: Option<ModelTrace>,
     pub state: Option<StateTrace>,
+    pub train: Option<FlTrainingTrace>,
 }
 
 impl Results {
@@ -91,7 +94,7 @@ impl Results {
         let payload_tx = output_settings
             .outputs
             .iter()
-            .filter(|output| output.output_type == OutputType::PayloadTx)
+            .filter(|output| output.output_type == OutputType::FlPayloadTx)
             .last()
             .map(|settings| PayloadTraceWriter::new(&output_path.join(&settings.output_filename)));
         let model = output_settings
@@ -106,6 +109,12 @@ impl Results {
             .filter(|output| output.output_type == OutputType::FlState)
             .last()
             .map(|settings| StateTrace::new(&output_path.join(&settings.output_filename)));
+        let train = output_settings
+            .outputs
+            .iter()
+            .filter(|output| output.output_type == OutputType::FlTraining)
+            .last()
+            .map(|settings| FlTrainingTrace::new(&output_path.join(&settings.output_filename)));
         Self {
             positions,
             rx_counts,
@@ -114,6 +123,7 @@ impl Results {
             payload_tx,
             model,
             state,
+            train,
         }
     }
 
@@ -139,6 +149,9 @@ impl Results {
         if let Some(writer) = &mut self.state {
             writer.write_to_file();
         }
+        if let Some(writer) = &mut self.train {
+            writer.write_to_file();
+        }
     }
 
     pub fn close_files(self) {
@@ -161,6 +174,9 @@ impl Results {
             writer.close_file();
         }
         if let Some(writer) = self.state {
+            writer.close_file();
+        }
+        if let Some(writer) = self.train {
             writer.close_file();
         }
     }

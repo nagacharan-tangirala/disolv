@@ -5,8 +5,8 @@ use std::str::FromStr;
 
 use hashbrown::HashMap;
 use log::debug;
-use quick_xml::{Reader, Writer};
 use quick_xml::events::{BytesStart, Event};
+use quick_xml::{Reader, Writer};
 
 use disolv_core::bucket::TimeMS;
 use disolv_output::result::ResultWriter;

@@ -1,19 +1,18 @@
 use burn::tensor::backend::AutodiffBackend;
-use log::debug;
+use log::{debug, trace};
 use typed_builder::TypedBuilder;
 
 use disolv_core::bucket::TimeMS;
 use disolv_core::message::DataUnit;
 use disolv_models::device::actions::am_i_target;
 use disolv_output::tables::model::ModelUpdate;
+use disolv_output::tables::train::FlTrainingData;
 
 use crate::fl::bucket::FlBucket;
 use crate::fl::device::DeviceInfo;
 use crate::models::ai::compose::FlMessageDraft;
 use crate::models::ai::data::DataHolder;
-use crate::models::ai::models::{
-    ClientState, ModelDirection, ModelLevel, ModelType, TrainingStatus,
-};
+use crate::models::ai::models::{ClientState, ModelDirection, ModelLevel, TrainingStatus};
 use crate::models::ai::times::ClientTimes;
 use crate::models::ai::trainer::Trainer;
 use crate::models::device::message::{FlContent, FlPayload, Message, MessageType};
@@ -21,7 +20,6 @@ use crate::models::device::message::{FlContent, FlPayload, Message, MessageType}
 #[derive(Clone, TypedBuilder)]
 pub(crate) struct ClientModels<B: AutodiffBackend> {
     pub(crate) trainer: Trainer<B>,
-    pub(crate) local_model: ModelType<B>,
     pub(crate) times: ClientTimes,
     pub(crate) holder: DataHolder,
 }
@@ -56,6 +54,11 @@ impl<B: AutodiffBackend> Client<B> {
         self.client_state = ClientState::Sensing;
     }
 
+    pub(crate) fn update_step(&mut self, new_step: TimeMS) {
+        self.step = new_step;
+        self.fl_models.holder.allot_data();
+    }
+
     pub(crate) fn handle_incoming(&mut self, bucket: &mut FlBucket<B>, payloads: &[FlPayload]) {
         for payload in payloads.iter() {
             for message_unit in payload.data_units.iter() {
@@ -64,10 +67,9 @@ impl<B: AutodiffBackend> Client<B> {
                 }
 
                 if !am_i_target(message_unit.action(), &self.client_info) {
-                    debug!("{:?} is not for me", message_unit);
                     continue;
                 }
-                debug!("Got an FL Message for agent {}", self.client_info.id);
+                trace!("Got an FL Message for agent {}", self.client_info.id);
                 match message_unit.fl_content {
                     FlContent::StateInfo => self.prepare_state_update(bucket),
                     FlContent::ClientSelected => self.initiate_preparation(bucket),
@@ -120,7 +122,7 @@ impl<B: AutodiffBackend> Client<B> {
         if self.client_state == ClientState::ReadyToTrain {
             return;
         }
-        self.fl_models.local_model = match bucket.models.model_lake.global_model.to_owned() {
+        self.fl_models.trainer.model = match bucket.models.model_lake.global_model.to_owned() {
             Some(val) => val,
             None => panic!("Global model not present"),
         };
@@ -162,9 +164,18 @@ impl<B: AutodiffBackend> Client<B> {
         self.fl_models.trainer.train_data = self.fl_models.holder.allotted_train_data();
         self.fl_models.trainer.test_data = self.fl_models.holder.allotted_test_data();
 
+        let train_data = FlTrainingData::builder()
+            .agent_id(self.client_info.id.as_u64())
+            .train_len(self.fl_models.trainer.train_data.data_length() as u32)
+            .test_len(self.fl_models.trainer.test_data.data_length() as u32)
+            .build();
+
+        if let Some(writer) = &mut bucket.models.results.train {
+            writer.add_data(self.step, train_data);
+        }
+
         self.fl_models.trainer.train(&bucket.models.device);
         self.fl_models.trainer.save_model_to_file(self.step);
-        self.fl_models.local_model = self.fl_models.trainer.model.to_owned();
 
         self.message_draft = FlMessageDraft::builder()
             .message(Message::FlMessage)
@@ -189,10 +200,10 @@ impl<B: AutodiffBackend> Client<B> {
         let model_level = ModelLevel::Local;
         let mut direction = ModelDirection::NA;
         let mut status = TrainingStatus::Failure;
-        let accuracy = -1.0;
+        let mut accuracy = -1.0;
 
         if self.is_training_complete() {
-            let accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
+            accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
 
             self.message_draft.message = Message::FlMessage;
             self.message_draft.fl_content = FlContent::LocalModel;

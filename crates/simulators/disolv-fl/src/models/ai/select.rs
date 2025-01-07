@@ -1,9 +1,11 @@
+use std::cmp::{max, min};
+
+use hashbrown::{HashMap, HashSet};
 use rand::seq::IteratorRandom;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
 use disolv_core::model::{Model, ModelSettings};
-use hashbrown::{HashMap, HashSet};
 
 use crate::fl::device::DeviceInfo;
 
@@ -87,13 +89,16 @@ impl RandomClients {
 
     fn select_clients(&mut self) {
         let mut rng = rand::thread_rng();
-        if self.all_clients.len() == 0 {
+        if self.all_clients.is_empty() {
             panic!("No client registered, cannot select clients");
         }
-        let client_count = (self.all_clients.len() as f64 * self.sample_size).ceil() as usize;
+        let client_count = max(
+            1,
+            (self.all_clients.len() as f64 * self.sample_size).ceil() as usize,
+        );
 
         let mut feasible_clients = Vec::new();
-        self.all_clients.keys().clone().into_iter().for_each(|key| {
+        self.all_clients.keys().clone().for_each(|key| {
             if !self.used_clients.contains(key) {
                 feasible_clients.push(*key);
             }
