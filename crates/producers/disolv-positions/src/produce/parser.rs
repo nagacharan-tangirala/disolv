@@ -2,22 +2,21 @@ pub use std::path::PathBuf;
 
 use disolv_core::bucket::TimeMS;
 use disolv_output::logger::initiate_logger;
-use disolv_output::result::ResultWriter;
 use disolv_output::ui::SimUIMetadata;
 
-use crate::activation::writer::ActivationWriter;
 use crate::produce::config::Config;
-use crate::vehicles::trace::TraceReader;
-use crate::vehicles::writer::TraceWriter;
+use crate::rsu::junctions::RSUPlacement;
+use crate::vehicles::trace::TraceHelper;
 
 pub(crate) struct TraceParser {
     pub(crate) step_size: TimeMS,
     pub(crate) duration: TimeMS,
     config_path: PathBuf,
     config: Config,
-    trace_reader: TraceReader,
-    trace_writer: TraceWriter,
-    activation_writer: ActivationWriter,
+    trace_helper: Option<TraceHelper>,
+    rsu_placement: Option<RSUPlacement>,
+    vehicles_flag: bool,
+    rsu_flag: bool,
 }
 
 impl TraceParser {
@@ -25,11 +24,12 @@ impl TraceParser {
         Self {
             duration: config.timing_settings.duration,
             step_size: config.timing_settings.step_size,
-            trace_reader: TraceReader::new(&config.trace_settings),
-            trace_writer: TraceWriter::new(&config.trace_settings),
-            activation_writer: ActivationWriter::new(&config.activation_settings),
-            config,
+            trace_helper: None,
+            rsu_placement: None,
             config_path,
+            vehicles_flag: config.parser_settings.vehicle_traces,
+            rsu_flag: config.parser_settings.rsu_placement,
+            config,
         }
     }
 
@@ -44,23 +44,35 @@ impl TraceParser {
 
     pub(crate) fn initialize(&mut self) {
         initiate_logger(&self.config_path, &self.config.log_settings, None);
-        self.trace_reader.initialize();
+        if self.vehicles_flag {
+            let mut trace_helper = TraceHelper::new(&self.config.trace_settings);
+            trace_helper.initialize();
+            self.trace_helper = Some(trace_helper);
+        }
+
+        if self.rsu_flag {
+            let mut rsu_placement =
+                RSUPlacement::new(&self.config.rsu_settings, &self.config.timing_settings);
+            rsu_placement.initialize();
+            self.rsu_placement = Some(rsu_placement);
+        }
     }
 
     pub(crate) fn parse_positions_at(&mut self, time_ms: TimeMS) {
-        if let Some(trace_data) = self.trace_reader.read_data(time_ms) {
-            self.activation_writer
-                .determine_activations(&trace_data, time_ms);
-            trace_data
-                .into_iter()
-                .for_each(|trace_info| self.trace_writer.store_info(trace_info));
+        if let Some(trace_helper) = &mut self.trace_helper {
+            trace_helper.read_data(time_ms);
         }
-        self.trace_writer.write_to_file();
-        self.activation_writer.write_to_file();
+        if let Some(rsu_placement) = &mut self.rsu_placement {
+            rsu_placement.read_data(time_ms);
+        }
     }
 
     pub(crate) fn complete(self) {
-        self.trace_writer.flush();
-        self.activation_writer.flush();
+        if let Some(trace_helper) = self.trace_helper {
+            trace_helper.complete();
+        }
+        if let Some(rsu_placement) = self.rsu_placement {
+            rsu_placement.complete();
+        }
     }
 }
