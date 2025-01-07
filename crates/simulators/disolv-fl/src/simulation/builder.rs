@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use burn::backend::{Autodiff, Wgpu};
 use burn::backend::wgpu::WgpuDevice;
+use burn::backend::{Autodiff, Wgpu};
 use hashbrown::HashMap;
 use indexmap::IndexMap;
 use log::info;
@@ -12,7 +12,7 @@ use disolv_core::metrics::Measurable;
 use disolv_core::model::Model;
 use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
 use disolv_input::links::LinkReader;
-use disolv_input::power::{PowerTimes, read_power_schedule};
+use disolv_input::power::{read_power_schedule, PowerTimes};
 use disolv_models::device::actor::Actor;
 use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;

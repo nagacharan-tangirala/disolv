@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
-use burn::data::dataset::Dataset;
 use burn::data::dataset::vision::MnistItem;
+use burn::data::dataset::Dataset;
 use burn::prelude::Backend;
 
 use crate::models::ai::cifar::{CifarFlDataset, CifarModel};

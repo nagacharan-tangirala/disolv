@@ -8,7 +8,7 @@ use log::{debug, info};
 use disolv_output::ui::Message;
 use disolv_runner::runner::{add_event_listener, add_event_poller};
 
-use crate::produce::config::{Config, read_config};
+use crate::produce::config::{read_config, Config};
 use crate::produce::finder::LinkFinder;
 use crate::produce::ui::SimRenderer;
 

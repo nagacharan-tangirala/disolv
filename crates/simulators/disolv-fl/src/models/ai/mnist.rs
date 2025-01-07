@@ -1,23 +1,23 @@
 use std::path::PathBuf;
 
 use burn::config::Config;
-use burn::data::dataloader::{DataLoaderBuilder, Dataset};
 use burn::data::dataloader::batcher::Batcher;
+use burn::data::dataloader::{DataLoaderBuilder, Dataset};
 use burn::data::dataset::vision::{MnistDataset, MnistItem};
 use burn::module::{Module, Param};
+use burn::nn::conv::{Conv2d, Conv2dConfig};
+use burn::nn::loss::CrossEntropyLossConfig;
 use burn::nn::{
     BatchNorm, BatchNormConfig, Dropout, DropoutConfig, Gelu, Linear, LinearConfig, PaddingConfig2d,
 };
-use burn::nn::conv::{Conv2d, Conv2dConfig};
-use burn::nn::loss::CrossEntropyLossConfig;
 use burn::optim::AdamConfig;
 use burn::prelude::*;
 use burn::prelude::{Backend, Tensor, TensorData};
 use burn::record::CompactRecorder;
-use burn::tensor::{ElementConversion, Int};
 use burn::tensor::backend::AutodiffBackend;
-use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, ValidStep};
+use burn::tensor::{ElementConversion, Int};
 use burn::train::metric::{AccuracyMetric, LossMetric};
+use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, ValidStep};
 use log::debug;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
