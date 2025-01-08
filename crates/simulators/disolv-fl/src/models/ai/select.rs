@@ -53,9 +53,21 @@ impl ClientSelector {
         }
     }
 
+    pub(crate) fn clear_states(&mut self) {
+        match self {
+            ClientSelector::Random(selector) => selector.clear_states(),
+        }
+    }
+
+    pub(crate) fn registered_count(&self) -> usize {
+        match self {
+            ClientSelector::Random(selector) => selector.all_clients.len(),
+        }
+    }
+
     pub(crate) fn has_clients(&self) -> bool {
         match self {
-            ClientSelector::Random(selector) => selector.all_clients.len() > 0,
+            ClientSelector::Random(selector) => !selector.all_clients.is_empty(),
         }
     }
 }
@@ -85,6 +97,10 @@ impl RandomClients {
     fn register_client(&mut self, client_info: &DeviceInfo) {
         self.all_clients
             .insert(client_info.id, client_info.to_owned());
+    }
+
+    fn clear_states(&mut self) {
+        self.all_clients.clear();
     }
 
     fn select_clients(&mut self) {
