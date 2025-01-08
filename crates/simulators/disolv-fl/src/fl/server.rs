@@ -7,6 +7,7 @@ use typed_builder::TypedBuilder;
 use disolv_core::agent::AgentClass;
 use disolv_core::bucket::TimeMS;
 use disolv_output::tables::model::ModelUpdate;
+use disolv_output::tables::select::{ClientSelectData, ClientSelectTrace};
 
 use crate::fl::bucket::FlBucket;
 use crate::fl::device::DeviceInfo;
@@ -101,9 +102,6 @@ impl<B: AutodiffBackend> Server<B> {
                 ServerState::TrainingRound => self.handle_training(bucket),
                 ServerState::Aggregation => self.handle_aggregation(bucket),
             };
-            self.fl_models
-                .times
-                .update_time(self.step, self.server_state);
             self.write_state_update(bucket);
         } else {
             match self.server_state {
@@ -203,6 +201,11 @@ impl<B: AutodiffBackend> Server<B> {
     fn handle_initiation(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
         debug!("Changing from idle to analysis at {}", self.step);
         self.server_state = ServerState::ClientAnalysis;
+        self.fl_models.client_selector.clear_states();
+
+        self.fl_models
+            .times
+            .update_time(self.step, self.server_state);
 
         FlMessageDraft::builder()
             .message(Message::FlMessage)
@@ -232,8 +235,20 @@ impl<B: AutodiffBackend> Server<B> {
                     .update_time(self.step, self.server_state);
 
                 self.server_state = ServerState::ClientSelection;
-
                 let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
+
+                if let Some(writer) = &mut bucket.models.results.select {
+                    let select_data = ClientSelectData::builder()
+                        .server_id(self.server_info.id.as_u64())
+                        .available(self.fl_models.client_selector.registered_count() as u32)
+                        .selected(selected_clients.len() as u32)
+                        .build();
+                    writer.add_data(self.step, select_data);
+                }
+
+                self.fl_models
+                    .times
+                    .update_time(self.step, self.server_state);
 
                 message_to_build.message_type = MessageType::KiloByte;
                 message_to_build.fl_content = FlContent::ClientSelected;
@@ -270,6 +285,9 @@ impl<B: AutodiffBackend> Server<B> {
                 writer.add_data(model_update);
             })
         }
+        self.fl_models
+            .times
+            .update_time(self.step, self.server_state);
 
         FlMessageDraft::builder()
             .message(Message::FlMessage)
@@ -284,6 +302,9 @@ impl<B: AutodiffBackend> Server<B> {
         debug!("Changing from preparation to training at {}", self.step);
         self.server_state = ServerState::TrainingRound;
 
+        self.fl_models
+            .times
+            .update_time(self.step, self.server_state);
         let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
         debug!("{} is the selected client count", selected_clients.len());
 
@@ -300,6 +321,9 @@ impl<B: AutodiffBackend> Server<B> {
         debug!("Changing from training to aggregation at {}", self.step);
         self.server_state = ServerState::Aggregation;
 
+        self.fl_models
+            .times
+            .update_time(self.step, self.server_state);
         let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
         debug!("Selected clients are {:?}", selected_clients);
 
@@ -315,6 +339,24 @@ impl<B: AutodiffBackend> Server<B> {
     fn handle_aggregation(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
         debug!("Changing from aggregation to idle at {}", self.step);
         self.server_state = ServerState::Idle;
+
+        self.fl_models
+            .times
+            .update_time(self.step, self.server_state);
+
+        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
+        let message_draft = FlMessageDraft::builder()
+            .message(Message::FlMessage)
+            .message_type(MessageType::KiloByte)
+            .quantity(1)
+            .fl_content(FlContent::None)
+            .selected_clients(Some(selected_clients))
+            .build();
+
+        // If there are no local models, return the draft without updating global model.
+        if !self.fl_models.aggregator.has_local_models() {
+            return message_draft;
+        }
 
         self.fl_models.trainer.model = self
             .fl_models
@@ -345,15 +387,7 @@ impl<B: AutodiffBackend> Server<B> {
                 .build();
             writer.add_data(model_update);
         }
-
-        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
-        FlMessageDraft::builder()
-            .message(Message::FlMessage)
-            .message_type(MessageType::KiloByte)
-            .quantity(1)
-            .fl_content(FlContent::None)
-            .selected_clients(Some(selected_clients))
-            .build()
+        message_draft
     }
 
     fn write_state_update(&self, bucket: &mut FlBucket<B>) {

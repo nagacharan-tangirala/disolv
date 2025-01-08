@@ -55,6 +55,12 @@ impl<B: AutodiffBackend> Aggregator<B> {
             Aggregator::FedAvg(aggregator) => aggregator.is_model_collected(agent_id),
         }
     }
+
+    pub(crate) fn has_local_models(&self) -> bool {
+        match self {
+            Aggregator::FedAvg(aggregator) => !aggregator.local_models.is_empty(),
+        }
+    }
 }
 
 #[derive(Clone)]
