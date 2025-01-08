@@ -3,6 +3,7 @@ pub mod net;
 pub mod payload;
 pub mod position;
 pub mod rx;
+pub mod select;
 pub mod state;
 pub mod train;
 pub mod tx;

@@ -11,6 +11,7 @@ use crate::tables::net::NetStatWriter;
 use crate::tables::payload::PayloadTraceWriter;
 use crate::tables::position::PositionWriter;
 use crate::tables::rx::RxCountWriter;
+use crate::tables::select::ClientSelectTrace;
 use crate::tables::state::StateTrace;
 use crate::tables::train::FlTrainingTrace;
 use crate::tables::tx::TxDataWriter;
@@ -25,6 +26,7 @@ pub enum OutputType {
     FlModel,
     FlPayloadTx,
     FlTraining,
+    FlSelection,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -56,6 +58,7 @@ pub struct Results {
     pub model: Option<ModelTrace>,
     pub state: Option<StateTrace>,
     pub train: Option<FlTrainingTrace>,
+    pub select: Option<ClientSelectTrace>,
 }
 
 impl Results {
@@ -115,6 +118,12 @@ impl Results {
             .filter(|output| output.output_type == OutputType::FlTraining)
             .last()
             .map(|settings| FlTrainingTrace::new(&output_path.join(&settings.output_filename)));
+        let select = output_settings
+            .outputs
+            .iter()
+            .filter(|output| output.output_type == OutputType::FlSelection)
+            .last()
+            .map(|settings| ClientSelectTrace::new(&output_path.join(&settings.output_filename)));
         Self {
             positions,
             rx_counts,
@@ -124,6 +133,7 @@ impl Results {
             model,
             state,
             train,
+            select,
         }
     }
 
@@ -152,6 +162,9 @@ impl Results {
         if let Some(writer) = &mut self.train {
             writer.write_to_file();
         }
+        if let Some(writer) = &mut self.select {
+            writer.write_to_file();
+        }
     }
 
     pub fn close_files(self) {
@@ -177,6 +190,9 @@ impl Results {
             writer.close_file();
         }
         if let Some(writer) = self.train {
+            writer.close_file();
+        }
+        if let Some(writer) = self.select {
             writer.close_file();
         }
     }
