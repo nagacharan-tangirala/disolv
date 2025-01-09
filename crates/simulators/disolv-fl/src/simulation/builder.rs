@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
+use burn::backend::{Autodiff, LibTorch, Wgpu};
+use burn::backend::libtorch::LibTorchDevice;
 use burn::backend::wgpu::WgpuDevice;
-use burn::backend::{Autodiff, Wgpu};
 use hashbrown::HashMap;
 use indexmap::IndexMap;
 use log::info;
@@ -12,7 +13,7 @@ use disolv_core::metrics::Measurable;
 use disolv_core::model::Model;
 use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
 use disolv_input::links::LinkReader;
-use disolv_input::power::{read_power_schedule, PowerTimes};
+use disolv_input::power::{PowerTimes, read_power_schedule};
 use disolv_models::device::actor::Actor;
 use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;
@@ -22,7 +23,6 @@ use disolv_output::logger::initiate_logger;
 use disolv_output::result::Results;
 use disolv_output::ui::SimUIMetadata;
 
-use crate::fl::agent::FAgent;
 use crate::fl::agent::FAgent::{FClient, FServer};
 use crate::fl::bucket::{FlBucket, FlBucketModels, FlDataLake, FlNetwork};
 use crate::fl::client::{Client, ClientModels};
@@ -49,13 +49,13 @@ use crate::simulation::config::{
 use crate::simulation::distribute::DataDistributor;
 use crate::simulation::ui::SimRenderer;
 
-pub type WgpuBackend = Wgpu<f32, i32>;
-pub type WgpuAdBackend = Autodiff<WgpuBackend>;
+pub type FlBackend = LibTorch<f32, i32>;
+pub type FlAdBackend = Autodiff<LibTorch>;
 
-pub type FedDevice = Device<WgpuAdBackend>;
-pub type FedBucket = FlBucket<WgpuAdBackend>;
-pub type FedClient = Client<WgpuAdBackend>;
-pub type FedServer = Server<WgpuAdBackend>;
+pub type FedDevice = Device<FlAdBackend>;
+pub type FedBucket = FlBucket<FlAdBackend>;
+pub type FedClient = Client<FlAdBackend>;
+pub type FedServer = Server<FlAdBackend>;
 
 pub type DScheduler = DefaultScheduler<FedDevice, FedBucket>;
 pub type MScheduler = MapScheduler<FedDevice, FedBucket>;
@@ -341,8 +341,8 @@ impl SimulationBuilder {
             .build()
     }
 
-    fn build_trainer(&self, trainer_settings: &TrainerSettings) -> Trainer<WgpuAdBackend> {
-        let device = WgpuDevice::default();
+    fn build_trainer(&self, trainer_settings: &TrainerSettings) -> Trainer<FlAdBackend> {
+        let device = LibTorchDevice::Cpu;
         let output_path = self.config_path.clone().join("train");
 
         match trainer_settings.model_type.to_lowercase().as_str() {
@@ -468,7 +468,7 @@ impl SimulationBuilder {
             .data_distributor(DataDistributor::with_settings(
                 &self.base_config.bucket_models.distributor,
             ))
-            .device(WgpuDevice::default())
+            .device(LibTorchDevice::Cpu)
             .build();
 
         FedBucket::builder()
