@@ -150,7 +150,7 @@ impl<B: AutodiffBackend> Device<B> {
             }
 
             if let Some(writer) = &mut bucket.models.results.payload_tx {
-                writer.add_data(self.build_update(target_link.target, &payload));
+                writer.add_data(self.build_update(target_link.target, &prepared_payload));
             }
 
             if target_class == &self.device_info.agent_class {
@@ -189,20 +189,25 @@ impl<B: AutodiffBackend> Device<B> {
 
     fn build_update(&self, target_id: AgentId, payload: &FlPayload) -> PayloadUpdate {
         let mut payload_types = String::new();
+        payload_types.push('|');
         payload.data_units.iter().for_each(|unit| {
             payload_types.push_str(unit.message_type.to_string().as_str());
+            payload_types.push('|');
         });
 
         let mut action_types_str = String::new();
+        action_types_str.push('|');
         payload.data_units.iter().for_each(|unit| {
-            action_types_str.push_str(unit.action.action_type.to_string().as_str())
+            action_types_str.push_str(unit.action.action_type.to_string().as_str());
+            action_types_str.push('|');
         });
 
         let mut fl_content_type_str = String::new();
-        payload
-            .data_units
-            .iter()
-            .for_each(|unit| fl_content_type_str.push_str(unit.fl_content.to_string().as_str()));
+        fl_content_type_str.push('|');
+        payload.data_units.iter().for_each(|unit| {
+            fl_content_type_str.push_str(unit.fl_action.to_string().as_str());
+            fl_content_type_str.push('|');
+        });
 
         PayloadUpdate::builder()
             .time_step(self.step)
@@ -211,7 +216,9 @@ impl<B: AutodiffBackend> Device<B> {
             .agent_state(self.fl_agent.agent_state())
             .payload_type(payload_types)
             .action_type(action_types_str)
-            .fl_content(payload.data_units.first().unwrap().fl_content.to_string())
+            .fl_content(payload.data_units.first().unwrap().fl_action.to_string())
+            .quantity(payload.metadata.total_count)
+            .payload_size(payload.metadata.total_size.as_u64())
             .build()
     }
 }
@@ -415,6 +422,7 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Device<B> {
         let mut target_classes = self.models.directions.stage_two.target_classes.to_vec();
         if !target_classes.is_empty() {
             let message_draft = self.fl_agent.draft_fl_message(bucket);
+            debug!("draft quantity is {}", message_draft.quantity);
             self.models.composer.update_draft(message_draft);
             self.send_fl_message(bucket, &target_classes, &rx_payloads);
         }
