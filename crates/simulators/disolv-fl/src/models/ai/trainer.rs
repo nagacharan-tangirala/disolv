@@ -1,8 +1,7 @@
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::path::PathBuf;
 
 use burn::data::dataloader::batcher::Batcher;
-use burn::data::dataset::vision::MnistItem;
 use burn::data::dataset::Dataset;
 use burn::module::Module;
 use burn::prelude::Backend;

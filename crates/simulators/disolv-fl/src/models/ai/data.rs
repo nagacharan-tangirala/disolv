@@ -1,6 +1,5 @@
 use std::cmp::min;
 
-use log::debug;
 use serde::Deserialize;
 
 use disolv_core::model::{Model, ModelSettings};
@@ -66,9 +65,6 @@ impl TimeStrategy {
         match total_data {
             DatasetType::Mnist(mnist) => {
                 let images_to_move = min(mnist.images.len(), self.units_per_step);
-                debug!("Moving images {}", images_to_move);
-                debug!("{:?}", allotted_data.dataset_type());
-
                 if self.to_clone {
                     let mut dataset = mnist.clone();
                     for _ in 0..images_to_move {

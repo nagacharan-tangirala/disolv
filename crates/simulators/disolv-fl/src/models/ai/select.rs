@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::cmp::max;
 
 use hashbrown::{HashMap, HashSet};
 use rand::seq::IteratorRandom;

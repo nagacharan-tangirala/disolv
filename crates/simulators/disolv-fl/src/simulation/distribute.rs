@@ -4,7 +4,7 @@ use serde::Deserialize;
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_core::model::{BucketModel, Model, ModelSettings};
-use disolv_models::dist::{DistParams, RngSampler};
+use disolv_models::dist::{DistParams, SeriesSampler, UnitSampler};
 
 use crate::models::ai::mnist::MnistFlDataset;
 use crate::models::ai::models::{BatchType, DatasetType};
@@ -161,8 +161,8 @@ impl UniformDistributor {
 #[derive(Clone)]
 pub(crate) struct NonIidDistributor {
     pub total_clients: u64,
-    pub label_skew: Option<RngSampler>,
-    pub data_skew: Option<RngSampler>,
+    pub label_skew: Option<SeriesSampler>,
+    pub data_skew: Option<SeriesSampler>,
     pub dataset_type: String,
     pub test_data: Vec<DatasetType>,
     pub train_data: Vec<DatasetType>,
@@ -172,17 +172,8 @@ impl Model for NonIidDistributor {
     type Settings = DistributorSettings;
 
     fn with_settings(settings: &Self::Settings) -> Self {
-        let label_skew = settings.label_skew.clone().map(RngSampler::new);
-        let data_skew = settings.data_skew.clone().map(RngSampler::new);
-        let mut train_data = DatasetType::Empty;
-        let mut test_data = DatasetType::Empty;
-        match settings.dataset_type.to_lowercase().as_str() {
-            "mnist" => {
-                train_data = DatasetType::Mnist(MnistFlDataset::new(BatchType::Train));
-                test_data = DatasetType::Mnist(MnistFlDataset::new(BatchType::Test));
-            }
-            _ => panic!("Invalid dataset type"),
-        }
+        let label_skew = settings.label_skew.clone().map(SeriesSampler::new);
+        let data_skew = settings.data_skew.clone().map(SeriesSampler::new);
         Self {
             total_clients: settings.total_clients,
             data_skew,
