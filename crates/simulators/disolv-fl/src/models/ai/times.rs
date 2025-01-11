@@ -56,8 +56,7 @@ impl ServerTimes {
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub(crate) struct ClientDurations {
-    pub(crate) training: TimeMS,
-    pub(crate) sensing: TimeMS,
+    pub(crate) informing: TimeMS,
 }
 
 impl ModelSettings for ClientDurations {}
@@ -66,6 +65,7 @@ impl ModelSettings for ClientDurations {}
 pub(crate) struct ClientTimes {
     pub(crate) durations: ClientDurations,
     pub(crate) next_change_at: TimeMS,
+    pub(crate) default_time: TimeMS,
 }
 
 impl Model for ClientTimes {
@@ -75,6 +75,7 @@ impl Model for ClientTimes {
         Self {
             durations: *settings,
             next_change_at: TimeMS::default(),
+            default_time: TimeMS::default(),
         }
     }
 }
@@ -83,8 +84,8 @@ impl ClientTimes {
     pub(crate) fn update_time(&mut self, now: TimeMS, current_state: ClientState) {
         self.next_change_at = now
             + match current_state {
-                ClientState::Sensing => self.durations.training,
-                _ => self.durations.sensing,
+                ClientState::Informing => self.durations.informing,
+                _ => self.default_time,
             }
     }
 
