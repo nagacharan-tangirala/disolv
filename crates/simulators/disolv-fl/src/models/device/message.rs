@@ -56,8 +56,6 @@ pub enum FlAction {
     GlobalModel,
     GlobalModelReceived,
     LocalModel,
-    ClientSelected,
-    ClientPreparing,
     InitiateTraining,
     CompleteTraining,
     TrainingFailed,
@@ -72,12 +70,10 @@ impl Display for FlAction {
             FlAction::GlobalModel => write!(f, "GlobalModel"),
             FlAction::GlobalModelReceived => write!(f, "GlobalModelReceived"),
             FlAction::LocalModel => write!(f, "LocalModel"),
-            FlAction::ClientSelected => write!(f, "Selected"),
             FlAction::InitiateTraining => write!(f, "InitiateTraining"),
             FlAction::CompleteTraining => write!(f, "CompleteTraining"),
             FlAction::Training => write!(f, "Training"),
             FlAction::TrainingFailed => write!(f, "TrainingFailed"),
-            FlAction::ClientPreparing => write!(f, "ClientPreparing"),
         }
     }
 }

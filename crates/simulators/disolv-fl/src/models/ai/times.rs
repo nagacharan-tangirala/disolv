@@ -43,7 +43,6 @@ impl ServerTimes {
                 ServerState::Idle => self.durations.initiation,
                 ServerState::ClientAnalysis => self.durations.analysis,
                 ServerState::ClientSelection => self.durations.selection,
-                ServerState::ClientPreparation => self.durations.preparation,
                 ServerState::TrainingRound => self.durations.round_length,
                 ServerState::Aggregation => self.durations.aggregation,
             }

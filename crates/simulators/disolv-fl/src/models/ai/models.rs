@@ -14,7 +14,6 @@ pub enum ClientState {
     #[default]
     Sensing,
     Informing,
-    Preparing,
     ReadyToTrain,
     Training,
 }
@@ -23,7 +22,6 @@ impl Display for ClientState {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ClientState::Sensing => write!(f, "Sensing"),
-            ClientState::Preparing => write!(f, "Preparing"),
             ClientState::Informing => write!(f, "Informing"),
             ClientState::ReadyToTrain => write!(f, "ReadyToTrain"),
             ClientState::Training => write!(f, "Training"),
