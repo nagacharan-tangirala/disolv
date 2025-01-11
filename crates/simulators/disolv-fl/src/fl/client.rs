@@ -16,7 +16,7 @@ use crate::models::ai::data::DataHolder;
 use crate::models::ai::models::{ClientState, ModelDirection, ModelLevel, TrainingStatus};
 use crate::models::ai::times::ClientTimes;
 use crate::models::ai::trainer::Trainer;
-use crate::models::device::message::{FlAction, FlPayload, Message, MessageType};
+use crate::models::device::message::{FlPayload, FlTask, Message, MessageType};
 
 #[derive(Clone, TypedBuilder)]
 pub(crate) struct ClientModels<B: AutodiffBackend> {
@@ -64,42 +64,49 @@ impl<B: AutodiffBackend> Client<B> {
 
     pub(crate) fn handle_incoming(&mut self, bucket: &mut FlBucket<B>, payloads: &[FlPayload]) {
         for payload in payloads.iter() {
-            for message_unit in payload.data_units.iter() {
-                if message_unit.fl_action == FlAction::None {
-                    continue;
-                }
+            if payload.query_type != Message::FlMessage {
+                continue;
+            }
 
-                if !am_i_target(message_unit.action(), &self.client_info) {
-                    continue;
+            payload.data_units.iter().for_each(|message_unit| {
+                if am_i_target(message_unit.action(), &self.client_info) {
+                    if let Some(ref fl_task) = message_unit.fl_task {
+                        self.do_fl_task(fl_task, bucket);
+                    }
                 }
-                trace!("Got an FL Message for agent {}", self.client_info.id);
-                match message_unit.fl_action {
-                    FlAction::StateInfo => self.prepare_state_update(bucket),
-                    FlAction::GlobalModel => self.collect_global_model(bucket),
-                    FlAction::RoundBegin => self.initiate_training(bucket),
-                    FlAction::RoundComplete => self.complete_training(bucket),
-                    _ => panic!("Client should not receive this message"),
-                };
-                // This is to ensure that client only listens to the first FL related instruction.
-                return;
+            });
+        }
+    }
+
+    pub(crate) fn do_fl_task(&mut self, fl_task: &FlTask, bucket: &mut FlBucket<B>) {
+        match (fl_task, self.client_state) {
+            (FlTask::StateInfo, ClientState::Sensing) => self.prepare_state_update(bucket),
+            (FlTask::GlobalModel, ClientState::Informing) => self.collect_global_model(bucket),
+            (FlTask::RoundBegin, ClientState::ReadyToTrain) => self.initiate_training(bucket),
+            (FlTask::RoundComplete, ClientState::Training) => self.complete_training(bucket),
+            _ => self.check_draft_validity(bucket),
+        };
+    }
+
+    pub(crate) fn draft_fl_message(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
+        self.message_draft.clone()
+    }
+
+    fn check_draft_validity(&mut self, bucket: &mut FlBucket<B>) {
+        if self.fl_models.times.is_time_to_change(self.step) {
+            match self.client_state {
+                ClientState::Informing | ClientState::Training => {
+                    self.reset_to_sensing();
+                    self.write_state_update(bucket);
+                }
+                _ => {}
             }
         }
     }
 
-    pub(crate) fn draft_fl_message(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
-        if self.client_state == ClientState::Informing
-            && self.fl_models.times.is_time_to_change(self.step)
-        {
-            self.reset_to_sensing();
-            self.write_state_update(bucket);
-        }
-        self.message_draft.clone()
-    }
-
     fn reset_to_sensing(&mut self) {
         self.message_draft = FlMessageDraft::builder()
-            .message_type(MessageType::SensorData)
-            .fl_action(FlAction::None)
+            .message_type(MessageType::KiloByte)
             .build();
         self.client_state = ClientState::Sensing;
     }
@@ -107,22 +114,17 @@ impl<B: AutodiffBackend> Client<B> {
     fn prepare_state_update(&mut self, bucket: &mut FlBucket<B>) {
         self.message_draft = FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .fl_action(FlAction::StateInfo)
+            .fl_task(Some(FlTask::StateInfo))
             .build();
 
-        if self.client_state != ClientState::Informing {
-            self.write_state_update(bucket);
-        }
         self.client_state = ClientState::Informing;
+        self.write_state_update(bucket);
         self.fl_models
             .times
             .update_time(self.step, self.client_state);
     }
 
     fn collect_global_model(&mut self, bucket: &mut FlBucket<B>) {
-        if self.client_state == ClientState::ReadyToTrain {
-            return;
-        }
         self.fl_models.trainer.model = match bucket.models.model_lake.global_model.to_owned() {
             Some(val) => val,
             None => panic!("Global model not present"),
@@ -131,7 +133,6 @@ impl<B: AutodiffBackend> Client<B> {
 
         self.message_draft = FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .fl_action(FlAction::None)
             .build();
 
         if let Some(writer) = &mut bucket.models.results.model {
@@ -147,10 +148,6 @@ impl<B: AutodiffBackend> Client<B> {
     }
 
     fn initiate_training(&mut self, bucket: &mut FlBucket<B>) {
-        if self.client_state == ClientState::Training {
-            return;
-        }
-
         self.client_state = ClientState::Training;
         self.fl_models.trainer.train_data = self.fl_models.holder.allotted_train_data();
         self.fl_models.trainer.test_data = self.fl_models.holder.allotted_test_data();
@@ -170,17 +167,14 @@ impl<B: AutodiffBackend> Client<B> {
 
         self.message_draft = FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .fl_action(FlAction::None)
             .build();
         self.write_state_update(bucket);
     }
 
     fn complete_training(&mut self, bucket: &mut FlBucket<B>) {
-        self.client_state = ClientState::Sensing;
         debug!("Completed training in {}", self.client_info.id);
 
         // Initiate variables in case of failure.
-        self.message_draft.fl_action = FlAction::None;
         self.message_draft.message_type = MessageType::KiloByte;
         self.message_draft.quantity = 1;
 
@@ -191,15 +185,7 @@ impl<B: AutodiffBackend> Client<B> {
 
         if self.is_training_complete() {
             accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
-
-            self.message_draft.fl_action = FlAction::LocalModel;
-            self.message_draft.message_type = MessageType::F64Weights;
-            self.message_draft.quantity = self.fl_models.trainer.no_of_weights;
-            bucket
-                .models
-                .model_lake
-                .add_local_model(self.client_info.id, self.fl_models.trainer.model.clone());
-
+            self.upload_local_model(bucket);
             direction = ModelDirection::Sent;
             status = TrainingStatus::Success;
         }
@@ -218,6 +204,24 @@ impl<B: AutodiffBackend> Client<B> {
 
             writer.add_data(model_update);
         }
+
+        self.fl_models
+            .times
+            .update_time(self.step, self.client_state);
+        self.client_state = ClientState::Sensing;
+    }
+
+    fn upload_local_model(&mut self, bucket: &mut FlBucket<B>) {
+        self.message_draft = FlMessageDraft::builder()
+            .fl_task(Some(FlTask::LocalModel))
+            .message_type(MessageType::F64Weight)
+            .quantity(self.fl_models.trainer.no_of_weights)
+            .build();
+
+        bucket
+            .models
+            .model_lake
+            .add_local_model(self.client_info.id, self.fl_models.trainer.model.clone());
     }
 
     fn is_training_complete(&self) -> bool {
