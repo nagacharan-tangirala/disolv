@@ -10,7 +10,7 @@ use disolv_core::radio::{Action, Link};
 
 use crate::fl::device::DeviceInfo;
 use crate::models::device::message::{
-    FlAction, FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit,
+    FlPayload, FlPayloadInfo, FlTask, Message, MessageType, MessageUnit,
 };
 
 /// Define a struct that contains details about the data sensors that a device can hold.
@@ -18,7 +18,15 @@ use crate::models::device::message::{
 pub struct V2XDataSource {
     pub agent_class: AgentClass,
     pub data_size: Bytes,
+    pub sensor_type: SensorType,
     pub source_step: TimeMS,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy)]
+pub enum SensorType {
+    Lidar,
+    Image,
+    Sound,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -36,10 +44,13 @@ pub enum FlComposer {
 }
 
 impl FlComposer {
-    pub fn update_metadata(&mut self, payload: &mut FlPayload, units: &[MessageUnit]) {
+    pub fn encapsulate_units(&mut self, payload: &mut FlPayload, units: &[MessageUnit]) {
         units.iter().for_each(|unit| {
             payload.metadata.total_size += unit.message_size;
             payload.metadata.total_count += 1;
+            if unit.fl_task.is_some() {
+                payload.query_type = Message::FlMessage;
+            }
         });
     }
 
@@ -57,7 +68,7 @@ impl FlComposer {
 
     pub(crate) fn peek_draft(&self) -> &Option<FlMessageDraft> {
         match self {
-            FlComposer::Simple(composer) => &composer.message_to_send,
+            FlComposer::Simple(composer) => &composer.message_draft,
         }
     }
 
@@ -87,7 +98,8 @@ impl Model for FlComposer {
 #[derive(Clone, Default, Debug, TypedBuilder)]
 pub struct FlMessageDraft {
     pub message_type: MessageType,
-    pub fl_action: FlAction,
+    #[builder(default = None)]
+    pub fl_task: Option<FlTask>,
     #[builder(default = None)]
     pub selected_clients: Option<Vec<AgentId>>,
     #[builder(default = 1)]
@@ -100,7 +112,7 @@ pub struct FlMessageDraft {
 pub struct SimpleComposer {
     pub data_sources: Vec<V2XDataSource>,
     pub size_map: HashMap<MessageType, Bytes>,
-    pub message_to_send: Option<FlMessageDraft>,
+    pub message_draft: Option<FlMessageDraft>,
     pub step: TimeMS,
 }
 
@@ -109,21 +121,25 @@ impl SimpleComposer {
         Self {
             data_sources: composer_settings.source_settings.to_owned(),
             size_map: composer_settings.size_map.to_owned(),
-            message_to_send: None,
+            message_draft: None,
             step: TimeMS::default(),
         }
     }
 
     fn update_draft(&mut self, message: FlMessageDraft) {
-        self.message_to_send = Some(message);
+        self.message_draft = Some(message);
     }
 
     fn reset_draft(&mut self) {
-        self.message_to_send = None;
+        self.message_draft = None;
     }
 
-    fn compose_message_units(&self, target_class: &AgentClass) -> Vec<MessageUnit> {
-        let message_units = Vec::new();
+    fn compose_message_units(
+        &self,
+        target_class: &AgentClass,
+        device_info: DeviceInfo,
+    ) -> Vec<MessageUnit> {
+        let mut message_units = Vec::new();
         for ds_settings in self.data_sources.iter() {
             if ds_settings.agent_class != *target_class {
                 continue;
@@ -131,15 +147,25 @@ impl SimpleComposer {
             if self.step.as_u64() % ds_settings.source_step.as_u64() != TimeMS::default().as_u64() {
                 continue;
             }
+
+            let message_unit = MessageUnit::builder()
+                .message_type(MessageType::Byte)
+                .message(Message::Sensor)
+                .message_size(ds_settings.data_size)
+                .action(Action::default())
+                .device_info(device_info)
+                .fl_task(None)
+                .build();
+            message_units.push(message_unit);
         }
         message_units
     }
 
-    fn compose_fl_message(
-        &self,
-        message_draft: FlMessageDraft,
-        agent_state: &DeviceInfo,
-    ) -> MessageUnit {
+    fn compose_fl_message(&self, agent_state: &DeviceInfo) -> MessageUnit {
+        let message_draft = self
+            .message_draft
+            .to_owned()
+            .expect("failed to unwrap message draft");
         let mut message_size = self
             .size_map
             .get(&message_draft.message_type)
@@ -148,10 +174,11 @@ impl SimpleComposer {
 
         message_size = Bytes::new(message_size.as_u64() * message_draft.quantity);
         MessageUnit::builder()
+            .message(Message::FlMessage)
             .message_type(message_draft.message_type)
             .message_size(message_size)
             .action(Action::default())
-            .fl_action(message_draft.fl_action)
+            .fl_task(message_draft.fl_task)
             .device_info(*agent_state)
             .build()
     }
@@ -173,23 +200,18 @@ impl SimpleComposer {
     ) -> FlPayload {
         let mut message_units = Vec::new();
         if !self.data_sources.is_empty() {
-            message_units = self.compose_message_units(target_class);
+            message_units = self.compose_message_units(target_class, *agent_state);
         }
 
-        let mut fl_message = MessageUnit::builder()
-            .message_type(MessageType::SensorData)
-            .message_size(*self.size_map.get(&MessageType::KiloByte).unwrap())
-            .action(Action::default())
-            .fl_action(FlAction::None)
-            .device_info(*agent_state)
-            .build();
+        let mut message = Message::Sensor;
 
-        if let Some(message) = &self.message_to_send {
-            if message.fl_action != FlAction::None {
-                fl_message = self.compose_fl_message(message.to_owned(), agent_state)
+        if let Some(message_draft) = &self.message_draft {
+            if message_draft.fl_task.is_some() {
+                let fl_message = self.compose_fl_message(agent_state);
+                message = Message::FlMessage;
+                message_units.push(fl_message);
             }
         }
-        message_units.push(fl_message);
 
         let payload_info = self.build_metadata(&message_units);
         FlPayload::builder()
@@ -197,7 +219,7 @@ impl SimpleComposer {
             .agent_state(*agent_state)
             .gathered_states(Vec::new())
             .data_units(message_units)
-            .query_type(Message::Sensor)
+            .query_type(message)
             .build()
     }
 }
