@@ -26,7 +26,6 @@ pub(crate) enum ServerState {
     Idle,
     ClientAnalysis,
     ClientSelection,
-    ClientPreparation,
     TrainingRound,
     Aggregation,
 }
@@ -37,7 +36,6 @@ impl Display for ServerState {
             ServerState::Idle => write!(f, "Idle"),
             ServerState::ClientAnalysis => write!(f, "ClientAnalysis"),
             ServerState::ClientSelection => write!(f, "ClientSelection"),
-            ServerState::ClientPreparation => write!(f, "ClientPreparation"),
             ServerState::TrainingRound => write!(f, "TrainingRound"),
             ServerState::Aggregation => write!(f, "Aggregation"),
         }
@@ -97,7 +95,6 @@ impl<B: AutodiffBackend> Server<B> {
                 ServerState::Idle => self.handle_initiation(bucket),
                 ServerState::ClientAnalysis => self.handle_analysis(bucket),
                 ServerState::ClientSelection => self.handle_selection(bucket),
-                ServerState::ClientPreparation => self.handle_preparation(bucket),
                 ServerState::TrainingRound => self.handle_training(bucket),
                 ServerState::Aggregation => self.handle_aggregation(bucket),
             };
@@ -107,12 +104,6 @@ impl<B: AutodiffBackend> Server<B> {
                 ServerState::Idle => {}
                 ServerState::ClientAnalysis => message_draft.fl_action = FlAction::StateInfo,
                 ServerState::ClientSelection => {
-                    message_draft.message_type = MessageType::KiloByte;
-                    message_draft.fl_action = FlAction::ClientSelected;
-                    message_draft.selected_clients =
-                        Some(self.fl_models.client_selector.selected_clients().clone());
-                }
-                ServerState::ClientPreparation => {
                     message_draft.message_type = MessageType::F64Weights;
                     message_draft.fl_action = FlAction::GlobalModel;
                     message_draft.selected_clients =
@@ -137,9 +128,6 @@ impl<B: AutodiffBackend> Server<B> {
                         self.collect_local_model(bucket, &data_unit.device_info)
                     }
                     FlAction::TrainingFailed => debug!("Client failed to train"),
-                    FlAction::ClientPreparing => {
-                        self.acknowledge(&data_unit.device_info, FlAction::ClientPreparing);
-                    }
                     FlAction::GlobalModelReceived => {
                         self.acknowledge(&data_unit.device_info, FlAction::GlobalModelReceived);
                     }
@@ -247,9 +235,10 @@ impl<B: AutodiffBackend> Server<B> {
                     .times
                     .update_time(self.step, self.server_state);
 
-                message_to_build.message_type = MessageType::KiloByte;
-                message_to_build.fl_action = FlAction::ClientSelected;
+                message_to_build.message_type = MessageType::F64Weights;
+                message_to_build.fl_action = FlAction::GlobalModel;
                 message_to_build.selected_clients = Some(selected_clients);
+                message_to_build.quantity = self.fl_models.trainer.no_of_weights;
             }
         } else {
             debug!(
@@ -261,41 +250,7 @@ impl<B: AutodiffBackend> Server<B> {
     }
 
     fn handle_selection(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
-        debug!("Changing from selection to preparation at {}", self.step);
-        self.server_state = ServerState::ClientPreparation;
-
-        let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
-        debug!("{} is the selected client count", selected_clients.len());
-
-        if let Some(writer) = &mut bucket.models.results.model {
-            selected_clients.iter().for_each(|client_id| {
-                let model_update = ModelUpdate::builder()
-                    .time_step(self.step.as_u64())
-                    .agent_id(self.server_info.id.as_u64())
-                    .target_id(client_id.as_u64())
-                    .agent_state(self.server_state.to_string())
-                    .model(ModelLevel::Global.to_string())
-                    .direction(ModelDirection::Sent.to_string())
-                    .status(TrainingStatus::NA.to_string())
-                    .accuracy(-1.0)
-                    .build();
-                writer.add_data(model_update);
-            })
-        }
-        self.fl_models
-            .times
-            .update_time(self.step, self.server_state);
-
-        FlMessageDraft::builder()
-            .message_type(MessageType::KiloByte)
-            .quantity(1)
-            .fl_action(FlAction::GlobalModel)
-            .selected_clients(Some(selected_clients))
-            .build()
-    }
-
-    fn handle_preparation(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
-        debug!("Changing from preparation to training at {}", self.step);
+        debug!("Changing from selection to training at {}", self.step);
         self.server_state = ServerState::TrainingRound;
 
         self.fl_models

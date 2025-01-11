@@ -72,7 +72,6 @@ impl<B: AutodiffBackend> Client<B> {
                 trace!("Got an FL Message for agent {}", self.client_info.id);
                 match message_unit.fl_action {
                     FlAction::StateInfo => self.prepare_state_update(bucket),
-                    FlAction::ClientSelected => self.initiate_preparation(bucket),
                     FlAction::InitiateTraining => self.initiate_training(bucket),
                     FlAction::GlobalModel => self.collect_global_model(bucket),
                     FlAction::CompleteTraining => self.complete_training(bucket),
@@ -119,20 +118,6 @@ impl<B: AutodiffBackend> Client<B> {
         self.fl_models
             .times
             .update_time(self.step, self.client_state);
-    }
-
-    fn initiate_preparation(&mut self, bucket: &mut FlBucket<B>) {
-        self.message_draft = FlMessageDraft::builder()
-            .message_type(MessageType::KiloByte)
-            .quantity(1)
-            .fl_action(FlAction::ClientPreparing)
-            .selected_clients(None)
-            .build();
-
-        if self.client_state != ClientState::Preparing {
-            self.write_state_update(bucket);
-        }
-        self.client_state = ClientState::Preparing;
     }
 
     fn collect_global_model(&mut self, bucket: &mut FlBucket<B>) {
