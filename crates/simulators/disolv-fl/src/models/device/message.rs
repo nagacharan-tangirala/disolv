@@ -54,12 +54,9 @@ pub enum FlAction {
     None,
     StateInfo,
     GlobalModel,
-    GlobalModelReceived,
     LocalModel,
-    InitiateTraining,
-    CompleteTraining,
-    TrainingFailed,
-    Training,
+    RoundBegin,
+    RoundComplete,
 }
 
 impl Display for FlAction {
@@ -68,12 +65,9 @@ impl Display for FlAction {
             FlAction::None => write!(f, "None"),
             FlAction::StateInfo => write!(f, "StateInfo"),
             FlAction::GlobalModel => write!(f, "GlobalModel"),
-            FlAction::GlobalModelReceived => write!(f, "GlobalModelReceived"),
             FlAction::LocalModel => write!(f, "LocalModel"),
-            FlAction::InitiateTraining => write!(f, "InitiateTraining"),
-            FlAction::CompleteTraining => write!(f, "CompleteTraining"),
-            FlAction::Training => write!(f, "Training"),
-            FlAction::TrainingFailed => write!(f, "TrainingFailed"),
+            FlAction::RoundBegin => write!(f, "RoundBegin"),
+            FlAction::RoundComplete => write!(f, "RoundComplete"),
         }
     }
 }

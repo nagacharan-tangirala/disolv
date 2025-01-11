@@ -12,7 +12,6 @@ pub(crate) struct ServerDurations {
     pub(crate) initiation: TimeMS,
     pub(crate) analysis: TimeMS,
     pub(crate) selection: TimeMS,
-    pub(crate) preparation: TimeMS,
     pub(crate) aggregation: TimeMS,
     pub(crate) round_length: TimeMS,
 }

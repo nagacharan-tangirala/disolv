@@ -14,7 +14,7 @@ use crate::fl::device::DeviceInfo;
 use crate::models::ai::aggregate::Aggregator;
 use crate::models::ai::compose::FlMessageDraft;
 use crate::models::ai::data::DataHolder;
-use crate::models::ai::models::{ModelDirection, ModelLevel, TrainingStatus};
+use crate::models::ai::models::{ModelDirection, ModelLevel};
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::Trainer;
@@ -85,9 +85,7 @@ impl<B: AutodiffBackend> Server<B> {
     pub(crate) fn draft_fl_message(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
         let mut message_draft = FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .quantity(1)
             .fl_action(FlAction::None)
-            .selected_clients(None)
             .build();
 
         if self.fl_models.times.is_time_to_change(self.step) {
@@ -127,23 +125,9 @@ impl<B: AutodiffBackend> Server<B> {
                     FlAction::LocalModel => {
                         self.collect_local_model(bucket, &data_unit.device_info)
                     }
-                    FlAction::TrainingFailed => debug!("Client failed to train"),
-                    FlAction::GlobalModelReceived => {
-                        self.acknowledge(&data_unit.device_info, FlAction::GlobalModelReceived);
-                    }
-                    FlAction::Training => {
-                        self.acknowledge(&data_unit.device_info, FlAction::Training);
-                    }
                     _ => panic!("Server should not receive this message"),
                 });
         }
-    }
-
-    fn acknowledge(&self, agent_info: &DeviceInfo, message: FlAction) {
-        debug!(
-            "Client {} acknowledged: {} at step {}",
-            agent_info.id, message, self.step
-        );
     }
 
     fn register_client(&mut self, agent_info: &DeviceInfo) {
@@ -178,8 +162,6 @@ impl<B: AutodiffBackend> Server<B> {
                 .agent_state(self.server_state.to_string())
                 .model(ModelLevel::Local.to_string())
                 .direction(ModelDirection::Received.to_string())
-                .status(TrainingStatus::NA.to_string())
-                .accuracy(-1.0)
                 .build();
             writer.add_data(model_update);
         }
@@ -196,18 +178,14 @@ impl<B: AutodiffBackend> Server<B> {
 
         FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .quantity(1)
             .fl_action(FlAction::StateInfo)
-            .selected_clients(None)
             .build()
     }
 
     fn handle_analysis(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
         let mut message_to_build = FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .quantity(1)
             .fl_action(FlAction::StateInfo)
-            .selected_clients(None)
             .build();
 
         if self.fl_models.client_selector.has_clients() {
@@ -261,8 +239,7 @@ impl<B: AutodiffBackend> Server<B> {
 
         FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .quantity(1)
-            .fl_action(FlAction::InitiateTraining)
+            .fl_action(FlAction::RoundBegin)
             .selected_clients(Some(selected_clients))
             .build()
     }
@@ -279,8 +256,7 @@ impl<B: AutodiffBackend> Server<B> {
 
         FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .quantity(1)
-            .fl_action(FlAction::CompleteTraining)
+            .fl_action(FlAction::RoundComplete)
             .selected_clients(Some(selected_clients))
             .build()
     }
@@ -296,7 +272,6 @@ impl<B: AutodiffBackend> Server<B> {
         let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
         let message_draft = FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .quantity(1)
             .fl_action(FlAction::None)
             .selected_clients(Some(selected_clients))
             .build();
@@ -328,9 +303,6 @@ impl<B: AutodiffBackend> Server<B> {
                 .agent_id(self.server_info.id.as_u64())
                 .target_id(self.server_info.id.as_u64())
                 .agent_state(self.server_state.to_string())
-                .model(ModelLevel::Global.to_string())
-                .direction(ModelDirection::NA.to_string())
-                .status(TrainingStatus::NA.to_string())
                 .accuracy(model_accuracy)
                 .build();
             writer.add_data(model_update);
