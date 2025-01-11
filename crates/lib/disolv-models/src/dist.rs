@@ -1,14 +1,15 @@
-use rand_distr::{Distribution, Exp, Gamma, LogNormal, Normal, Uniform};
+use rand_distr::{Dirichlet, Distribution, Exp, Gamma, LogNormal, Normal, Uniform};
 use rand_pcg::Pcg64Mcg;
 use serde::Deserialize;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum DistType {
     Uniform(Uniform<f64>),
     Normal(Normal<f64>),
     LogNormal(LogNormal<f64>),
     Exponential(Exp<f64>),
     Gamma(Gamma<f64>),
+    Dirichlet(Dirichlet<f64>),
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -23,6 +24,7 @@ pub struct DistParams {
     pub rate: Option<f64>,
     pub min: Option<f64>,
     pub max: Option<f64>,
+    pub weights: Option<Vec<f64>>,
 }
 
 impl DistType {
@@ -30,27 +32,31 @@ impl DistType {
         match params.dist_name.to_lowercase().as_str() {
             "uniform" => match Self::build_uniform(params) {
                 Ok(dist) => dist,
-                Err(_) => panic!("Invalid distribution parameters"),
+                Err(_) => panic!("Invalid uniform distribution parameters"),
             },
             "normal" => match Self::build_normal(params) {
                 Ok(dist) => dist,
-                Err(_) => panic!("Invalid distribution parameters"),
+                Err(_) => panic!("Invalid normal distribution parameters"),
             },
             "lognormal" => match Self::build_log_normal(params) {
                 Ok(dist) => dist,
-                Err(_) => panic!("Invalid distribution parameters"),
+                Err(_) => panic!("Invalid lognormal distribution parameters"),
             },
             "exponential" => match Self::build_exponential(params) {
                 Ok(dist) => dist,
-                Err(_) => panic!("Invalid distribution parameters"),
+                Err(_) => panic!("Invalid exp. distribution parameters"),
             },
             "gamma" => match Self::build_gamma(params) {
                 Ok(dist) => dist,
-                Err(_) => panic!("Invalid distribution parameters"),
+                Err(_) => panic!("Invalid gamma distribution parameters"),
+            },
+            "dirichlet" => match Self::build_dirichlet(params) {
+                Ok(dist) => dist,
+                Err(_) => panic!("Invalid dirichlet distribution parameters"),
             },
             _ => panic!(
                 "Invalid distribution name. Supported values are:\
-                     uniform, normal, lognormal, exponential, gamma"
+                     uniform, normal, lognormal, exponential, gamma, dirichlet"
             ),
         }
     }
@@ -83,15 +89,20 @@ impl DistType {
         let scale = dist_params.scale.ok_or("Missing scale")?;
         Ok(Self::Gamma(Gamma::new(shape, scale)?))
     }
+
+    fn build_dirichlet(dist_params: DistParams) -> Result<Self, Box<dyn std::error::Error>> {
+        let alpha = dist_params.weights.ok_or("Missing weights")?;
+        Ok(Self::Dirichlet(Dirichlet::new(alpha.as_slice())?))
+    }
 }
 
 #[derive(Debug, Clone)]
-pub struct RngSampler {
+pub struct UnitSampler {
     pub dist: DistType,
     pub rng: Pcg64Mcg,
 }
 
-impl RngSampler {
+impl UnitSampler {
     pub fn new(params: DistParams) -> Self {
         let seed: u128 = params.seed.unwrap_or(0) as u128;
         let dist = DistType::new(params);
@@ -108,6 +119,33 @@ impl RngSampler {
             DistType::LogNormal(ref mut dist) => dist.sample(&mut self.rng),
             DistType::Exponential(ref mut dist) => dist.sample(&mut self.rng),
             DistType::Gamma(ref mut dist) => dist.sample(&mut self.rng),
+            DistType::Dirichlet(_) => {
+                panic!("Cannot sample single values from Dirichlet")
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SeriesSampler {
+    pub dist: DistType,
+    pub rng: Pcg64Mcg,
+}
+
+impl SeriesSampler {
+    pub fn new(params: DistParams) -> Self {
+        let seed: u128 = params.seed.unwrap_or(0) as u128;
+        let dist = DistType::new(params);
+        Self {
+            dist,
+            rng: Pcg64Mcg::new(seed),
+        }
+    }
+
+    pub fn sample(&mut self) -> Vec<f64> {
+        match self.dist {
+            DistType::Dirichlet(ref mut dirichlet) => dirichlet.sample(&mut self.rng),
+            _ => unimplemented!("Only dirichlet series can be sampled"),
         }
     }
 }

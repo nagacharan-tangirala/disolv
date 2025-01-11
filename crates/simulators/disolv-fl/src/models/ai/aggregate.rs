@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use burn::tensor::backend::AutodiffBackend;
-use log::{debug, info};
+use log::info;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;

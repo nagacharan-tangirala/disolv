@@ -1,5 +1,6 @@
 use std::cmp::min;
 
+use log::debug;
 use serde::Deserialize;
 
 use disolv_core::model::{Model, ModelSettings};
@@ -174,14 +175,12 @@ impl DataHolder {
     }
 
     pub fn allotted_train_data(&mut self) -> DatasetType {
-        let dataset = self.allotted_train.clone();
-        self.allotted_train.clear();
-        dataset
+        let dataset_type = self.allotted_train.dataset_type().to_owned();
+        std::mem::replace(&mut self.allotted_train, DatasetType::blank(&dataset_type))
     }
 
     pub fn allotted_test_data(&mut self) -> DatasetType {
-        let dataset = self.allotted_test.clone();
-        self.allotted_test.clear();
-        dataset
+        let dataset_type = self.allotted_test.dataset_type().to_owned();
+        std::mem::replace(&mut self.allotted_test, DatasetType::blank(&dataset_type))
     }
 }
