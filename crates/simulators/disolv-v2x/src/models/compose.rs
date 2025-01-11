@@ -1,9 +1,8 @@
-use log::{debug, error};
+use log::error;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentClass;
 use disolv_core::bucket::TimeMS;
-use disolv_core::message::Payload;
 use disolv_core::metrics::Bytes;
 use disolv_core::model::{Model, ModelSettings};
 use disolv_core::radio::{Action, Link};
