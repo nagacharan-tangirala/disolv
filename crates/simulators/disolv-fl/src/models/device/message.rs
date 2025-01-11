@@ -49,7 +49,7 @@ impl Display for MessageType {
 impl ContentType for MessageType {}
 
 #[derive(Deserialize, Default, Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub enum FlContent {
+pub enum FlAction {
     #[default]
     None,
     StateInfo,
@@ -64,20 +64,20 @@ pub enum FlContent {
     Training,
 }
 
-impl Display for FlContent {
+impl Display for FlAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FlContent::None => write!(f, "None"),
-            FlContent::StateInfo => write!(f, "StateInfo"),
-            FlContent::GlobalModel => write!(f, "GlobalModel"),
-            FlContent::GlobalModelReceived => write!(f, "GlobalModelReceived"),
-            FlContent::LocalModel => write!(f, "LocalModel"),
-            FlContent::ClientSelected => write!(f, "Selected"),
-            FlContent::InitiateTraining => write!(f, "InitiateTraining"),
-            FlContent::CompleteTraining => write!(f, "CompleteTraining"),
-            FlContent::Training => write!(f, "Training"),
-            FlContent::TrainingFailed => write!(f, "TrainingFailed"),
-            FlContent::ClientPreparing => write!(f, "ClientPreparing"),
+            FlAction::None => write!(f, "None"),
+            FlAction::StateInfo => write!(f, "StateInfo"),
+            FlAction::GlobalModel => write!(f, "GlobalModel"),
+            FlAction::GlobalModelReceived => write!(f, "GlobalModelReceived"),
+            FlAction::LocalModel => write!(f, "LocalModel"),
+            FlAction::ClientSelected => write!(f, "Selected"),
+            FlAction::InitiateTraining => write!(f, "InitiateTraining"),
+            FlAction::CompleteTraining => write!(f, "CompleteTraining"),
+            FlAction::Training => write!(f, "Training"),
+            FlAction::TrainingFailed => write!(f, "TrainingFailed"),
+            FlAction::ClientPreparing => write!(f, "ClientPreparing"),
         }
     }
 }
@@ -88,7 +88,7 @@ impl Display for FlContent {
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct MessageUnit {
     pub action: Action,
-    pub fl_content: FlContent,
+    pub fl_action: FlAction,
     pub message_type: MessageType,
     pub message_size: Bytes,
     pub device_info: DeviceInfo,

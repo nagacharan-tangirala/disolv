@@ -18,7 +18,7 @@ use crate::models::ai::models::{ModelDirection, ModelLevel, TrainingStatus};
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::Trainer;
-use crate::models::device::message::{FlContent, FlPayload, Message, MessageType};
+use crate::models::device::message::{FlAction, FlPayload, Message, MessageType};
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ServerState {
@@ -86,10 +86,9 @@ impl<B: AutodiffBackend> Server<B> {
 
     pub(crate) fn draft_fl_message(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
         let mut message_draft = FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::None)
+            .fl_action(FlAction::None)
             .selected_clients(None)
             .build();
 
@@ -106,16 +105,16 @@ impl<B: AutodiffBackend> Server<B> {
         } else {
             match self.server_state {
                 ServerState::Idle => {}
-                ServerState::ClientAnalysis => message_draft.fl_content = FlContent::StateInfo,
+                ServerState::ClientAnalysis => message_draft.fl_action = FlAction::StateInfo,
                 ServerState::ClientSelection => {
                     message_draft.message_type = MessageType::KiloByte;
-                    message_draft.fl_content = FlContent::ClientSelected;
+                    message_draft.fl_action = FlAction::ClientSelected;
                     message_draft.selected_clients =
                         Some(self.fl_models.client_selector.selected_clients().clone());
                 }
                 ServerState::ClientPreparation => {
                     message_draft.message_type = MessageType::F64Weights;
-                    message_draft.fl_content = FlContent::GlobalModel;
+                    message_draft.fl_action = FlAction::GlobalModel;
                     message_draft.selected_clients =
                         Some(self.fl_models.client_selector.selected_clients().clone());
                 }
@@ -131,28 +130,28 @@ impl<B: AutodiffBackend> Server<B> {
             payload
                 .data_units
                 .iter()
-                .for_each(|data_unit| match data_unit.fl_content {
-                    FlContent::None => {}
-                    FlContent::StateInfo => self.register_client(&data_unit.device_info),
-                    FlContent::LocalModel => {
+                .for_each(|data_unit| match data_unit.fl_action {
+                    FlAction::None => {}
+                    FlAction::StateInfo => self.register_client(&data_unit.device_info),
+                    FlAction::LocalModel => {
                         self.collect_local_model(bucket, &data_unit.device_info)
                     }
-                    FlContent::TrainingFailed => debug!("Client failed to train"),
-                    FlContent::ClientPreparing => {
-                        self.acknowledge(&data_unit.device_info, FlContent::ClientPreparing);
+                    FlAction::TrainingFailed => debug!("Client failed to train"),
+                    FlAction::ClientPreparing => {
+                        self.acknowledge(&data_unit.device_info, FlAction::ClientPreparing);
                     }
-                    FlContent::GlobalModelReceived => {
-                        self.acknowledge(&data_unit.device_info, FlContent::GlobalModelReceived);
+                    FlAction::GlobalModelReceived => {
+                        self.acknowledge(&data_unit.device_info, FlAction::GlobalModelReceived);
                     }
-                    FlContent::Training => {
-                        self.acknowledge(&data_unit.device_info, FlContent::Training);
+                    FlAction::Training => {
+                        self.acknowledge(&data_unit.device_info, FlAction::Training);
                     }
                     _ => panic!("Server should not receive this message"),
                 });
         }
     }
 
-    fn acknowledge(&self, agent_info: &DeviceInfo, message: FlContent) {
+    fn acknowledge(&self, agent_info: &DeviceInfo, message: FlAction) {
         debug!(
             "Client {} acknowledged: {} at step {}",
             agent_info.id, message, self.step
@@ -208,20 +207,18 @@ impl<B: AutodiffBackend> Server<B> {
             .update_time(self.step, self.server_state);
 
         FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::StateInfo)
+            .fl_action(FlAction::StateInfo)
             .selected_clients(None)
             .build()
     }
 
     fn handle_analysis(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
         let mut message_to_build = FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::StateInfo)
+            .fl_action(FlAction::StateInfo)
             .selected_clients(None)
             .build();
 
@@ -251,7 +248,7 @@ impl<B: AutodiffBackend> Server<B> {
                     .update_time(self.step, self.server_state);
 
                 message_to_build.message_type = MessageType::KiloByte;
-                message_to_build.fl_content = FlContent::ClientSelected;
+                message_to_build.fl_action = FlAction::ClientSelected;
                 message_to_build.selected_clients = Some(selected_clients);
             }
         } else {
@@ -290,10 +287,9 @@ impl<B: AutodiffBackend> Server<B> {
             .update_time(self.step, self.server_state);
 
         FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::GlobalModel)
+            .fl_action(FlAction::GlobalModel)
             .selected_clients(Some(selected_clients))
             .build()
     }
@@ -309,10 +305,9 @@ impl<B: AutodiffBackend> Server<B> {
         debug!("{} is the selected client count", selected_clients.len());
 
         FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::InitiateTraining)
+            .fl_action(FlAction::InitiateTraining)
             .selected_clients(Some(selected_clients))
             .build()
     }
@@ -328,10 +323,9 @@ impl<B: AutodiffBackend> Server<B> {
         debug!("Selected clients are {:?}", selected_clients);
 
         FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::CompleteTraining)
+            .fl_action(FlAction::CompleteTraining)
             .selected_clients(Some(selected_clients))
             .build()
     }
@@ -346,10 +340,9 @@ impl<B: AutodiffBackend> Server<B> {
 
         let selected_clients = self.fl_models.client_selector.selected_clients().to_owned();
         let message_draft = FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::None)
+            .fl_action(FlAction::None)
             .selected_clients(Some(selected_clients))
             .build();
 

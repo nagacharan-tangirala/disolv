@@ -15,7 +15,7 @@ use crate::models::ai::data::DataHolder;
 use crate::models::ai::models::{ClientState, ModelDirection, ModelLevel, TrainingStatus};
 use crate::models::ai::times::ClientTimes;
 use crate::models::ai::trainer::Trainer;
-use crate::models::device::message::{FlContent, FlPayload, Message, MessageType};
+use crate::models::device::message::{FlAction, FlPayload, Message, MessageType};
 
 #[derive(Clone, TypedBuilder)]
 pub(crate) struct ClientModels<B: AutodiffBackend> {
@@ -62,7 +62,7 @@ impl<B: AutodiffBackend> Client<B> {
     pub(crate) fn handle_incoming(&mut self, bucket: &mut FlBucket<B>, payloads: &[FlPayload]) {
         for payload in payloads.iter() {
             for message_unit in payload.data_units.iter() {
-                if message_unit.fl_content == FlContent::None {
+                if message_unit.fl_action == FlAction::None {
                     continue;
                 }
 
@@ -70,12 +70,12 @@ impl<B: AutodiffBackend> Client<B> {
                     continue;
                 }
                 trace!("Got an FL Message for agent {}", self.client_info.id);
-                match message_unit.fl_content {
-                    FlContent::StateInfo => self.prepare_state_update(bucket),
-                    FlContent::ClientSelected => self.initiate_preparation(bucket),
-                    FlContent::InitiateTraining => self.initiate_training(bucket),
-                    FlContent::GlobalModel => self.collect_global_model(bucket),
-                    FlContent::CompleteTraining => self.complete_training(bucket),
+                match message_unit.fl_action {
+                    FlAction::StateInfo => self.prepare_state_update(bucket),
+                    FlAction::ClientSelected => self.initiate_preparation(bucket),
+                    FlAction::InitiateTraining => self.initiate_training(bucket),
+                    FlAction::GlobalModel => self.collect_global_model(bucket),
+                    FlAction::CompleteTraining => self.complete_training(bucket),
                     _ => panic!("Client should not receive this message"),
                 };
                 // This is to ensure that client only listens to the first FL related instruction.
@@ -90,10 +90,9 @@ impl<B: AutodiffBackend> Client<B> {
 
     fn prepare_state_update(&mut self, bucket: &mut FlBucket<B>) {
         self.message_draft = FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::StateInfo)
+            .fl_action(FlAction::StateInfo)
             .selected_clients(None)
             .build();
 
@@ -105,10 +104,9 @@ impl<B: AutodiffBackend> Client<B> {
 
     fn initiate_preparation(&mut self, bucket: &mut FlBucket<B>) {
         self.message_draft = FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::ClientPreparing)
+            .fl_action(FlAction::ClientPreparing)
             .selected_clients(None)
             .build();
 
@@ -129,10 +127,9 @@ impl<B: AutodiffBackend> Client<B> {
         self.client_state = ClientState::ReadyToTrain;
 
         self.message_draft = FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::GlobalModelReceived)
+            .fl_action(FlAction::GlobalModelReceived)
             .selected_clients(None)
             .build();
 
@@ -178,10 +175,9 @@ impl<B: AutodiffBackend> Client<B> {
         self.fl_models.trainer.save_model_to_file(self.step);
 
         self.message_draft = FlMessageDraft::builder()
-            .message(Message::FlMessage)
             .message_type(MessageType::KiloByte)
             .quantity(1)
-            .fl_content(FlContent::Training)
+            .fl_action(FlAction::Training)
             .selected_clients(None)
             .build();
         self.write_state_update(bucket);
@@ -192,8 +188,7 @@ impl<B: AutodiffBackend> Client<B> {
         debug!("Completed training in {}", self.client_info.id);
 
         // Initiate variables in case of failure.
-        self.message_draft.message = Message::FlMessage;
-        self.message_draft.fl_content = FlContent::TrainingFailed;
+        self.message_draft.fl_action = FlAction::TrainingFailed;
         self.message_draft.message_type = MessageType::KiloByte;
         self.message_draft.quantity = 1;
 
@@ -205,8 +200,7 @@ impl<B: AutodiffBackend> Client<B> {
         if self.is_training_complete() {
             accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
 
-            self.message_draft.message = Message::FlMessage;
-            self.message_draft.fl_content = FlContent::LocalModel;
+            self.message_draft.fl_action = FlAction::LocalModel;
             self.message_draft.message_type = MessageType::F64Weights;
             self.message_draft.quantity = self.fl_models.trainer.no_of_weights;
             bucket
