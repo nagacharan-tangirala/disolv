@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
-use burn::data::dataset::vision::MnistItem;
 use burn::data::dataset::Dataset;
+use burn::data::dataset::vision::MnistItem;
 use burn::prelude::Backend;
 
 use crate::models::ai::cifar::{CifarFlDataset, CifarModel};
@@ -29,16 +29,6 @@ impl Display for ClientState {
             ClientState::Training => write!(f, "Training"),
         }
     }
-}
-
-/// A trait that represents the server state while carrying a federated learning training session.
-#[derive(Copy, Clone, Debug)]
-pub enum ServerState {
-    Sampling,
-    Selecting,
-    Broadcasting,
-    Waiting,
-    Aggregating,
 }
 
 #[derive(Clone)]
@@ -80,7 +70,7 @@ impl DatasetType {
     pub fn has_data(&self) -> bool {
         match self {
             DatasetType::Mnist(mnist) => !mnist.images.is_empty(),
-            DatasetType::Cifar(cifar) => false,
+            DatasetType::Cifar(_) => false,
             DatasetType::Empty => false,
         }
     }
