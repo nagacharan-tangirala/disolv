@@ -1,3 +1,4 @@
+use hashbrown::HashMap;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
@@ -6,11 +7,10 @@ use disolv_core::bucket::TimeMS;
 use disolv_core::metrics::Bytes;
 use disolv_core::model::{Model, ModelSettings};
 use disolv_core::radio::{Action, Link};
-use hashbrown::HashMap;
 
 use crate::fl::device::DeviceInfo;
 use crate::models::device::message::{
-    FlContent, FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit,
+    FlAction, FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit,
 };
 
 /// Define a struct that contains details about the data sensors that a device can hold.
@@ -25,7 +25,7 @@ pub struct V2XDataSource {
 pub struct ComposerSettings {
     pub name: String,
     pub source_settings: Vec<V2XDataSource>,
-    pub size_map: HashMap<FlContent, Bytes>,
+    pub size_map: HashMap<MessageType, Bytes>,
 }
 
 impl ModelSettings for ComposerSettings {}
@@ -86,17 +86,20 @@ impl Model for FlComposer {
 
 #[derive(Clone, Default, Debug, TypedBuilder)]
 pub struct FlMessageDraft {
-    pub message: Message,
     pub message_type: MessageType,
-    pub fl_content: FlContent,
+    pub fl_action: FlAction,
+    #[builder(default = None)]
     pub selected_clients: Option<Vec<AgentId>>,
+    #[builder(default = 1)]
     pub quantity: u64,
+    #[builder(default)]
+    pub action_until: TimeMS,
 }
 
 #[derive(Debug, Clone)]
 pub struct SimpleComposer {
     pub data_sources: Vec<V2XDataSource>,
-    pub size_map: HashMap<FlContent, Bytes>,
+    pub size_map: HashMap<MessageType, Bytes>,
     pub message_to_send: Option<FlMessageDraft>,
     pub step: TimeMS,
 }
@@ -139,7 +142,7 @@ impl SimpleComposer {
     ) -> MessageUnit {
         let mut message_size = self
             .size_map
-            .get(&message_draft.fl_content)
+            .get(&message_draft.message_type)
             .expect("Invalid message")
             .to_owned();
 
@@ -148,7 +151,7 @@ impl SimpleComposer {
             .message_type(message_draft.message_type)
             .message_size(message_size)
             .action(Action::default())
-            .fl_content(message_draft.fl_content)
+            .fl_action(message_draft.fl_action)
             .device_info(*agent_state)
             .build()
     }
@@ -175,14 +178,16 @@ impl SimpleComposer {
 
         let mut fl_message = MessageUnit::builder()
             .message_type(MessageType::SensorData)
-            .message_size(*self.size_map.get(&FlContent::None).unwrap())
+            .message_size(*self.size_map.get(&MessageType::KiloByte).unwrap())
             .action(Action::default())
-            .fl_content(FlContent::None)
+            .fl_action(FlAction::None)
             .device_info(*agent_state)
             .build();
 
         if let Some(message) = &self.message_to_send {
-            fl_message = self.compose_fl_message(message.to_owned(), agent_state)
+            if message.fl_action != FlAction::None {
+                fl_message = self.compose_fl_message(message.to_owned(), agent_state)
+            }
         }
         message_units.push(fl_message);
 
