@@ -7,7 +7,7 @@ use typed_builder::TypedBuilder;
 use disolv_core::agent::AgentClass;
 use disolv_core::bucket::TimeMS;
 use disolv_output::tables::model::ModelUpdate;
-use disolv_output::tables::select::{ClientSelectData, ClientSelectTrace};
+use disolv_output::tables::select::ClientSelectData;
 
 use crate::fl::bucket::FlBucket;
 use crate::fl::device::DeviceInfo;
@@ -18,7 +18,7 @@ use crate::models::ai::models::{ModelDirection, ModelLevel, TrainingStatus};
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::Trainer;
-use crate::models::device::message::{FlAction, FlPayload, Message, MessageType};
+use crate::models::device::message::{FlAction, FlPayload, MessageType};
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ServerState {

@@ -84,8 +84,24 @@ impl<B: AutodiffBackend> Client<B> {
         }
     }
 
-    pub(crate) fn draft_fl_message(&self, _bucket: &mut FlBucket<B>) -> FlMessageDraft {
+    pub(crate) fn draft_fl_message(&mut self, bucket: &mut FlBucket<B>) -> FlMessageDraft {
+        if self.client_state == ClientState::Informing
+            && self.fl_models.times.is_time_to_change(self.step)
+        {
+            self.reset_to_sensing();
+            self.write_state_update(bucket);
+        }
         self.message_draft.clone()
+    }
+
+    fn reset_to_sensing(&mut self) {
+        self.message_draft = FlMessageDraft::builder()
+            .message_type(MessageType::SensorData)
+            .quantity(1)
+            .fl_action(FlAction::None)
+            .selected_clients(None)
+            .build();
+        self.client_state = ClientState::Sensing;
     }
 
     fn prepare_state_update(&mut self, bucket: &mut FlBucket<B>) {
@@ -100,6 +116,9 @@ impl<B: AutodiffBackend> Client<B> {
             self.write_state_update(bucket);
         }
         self.client_state = ClientState::Informing;
+        self.fl_models
+            .times
+            .update_time(self.step, self.client_state);
     }
 
     fn initiate_preparation(&mut self, bucket: &mut FlBucket<B>) {
@@ -154,10 +173,6 @@ impl<B: AutodiffBackend> Client<B> {
         }
 
         self.client_state = ClientState::Training;
-        self.fl_models
-            .times
-            .update_time(self.step, self.client_state);
-
         self.fl_models.trainer.train_data = self.fl_models.holder.allotted_train_data();
         self.fl_models.trainer.test_data = self.fl_models.holder.allotted_test_data();
 
