@@ -1,5 +1,5 @@
 use burn::tensor::backend::AutodiffBackend;
-use log::{debug, trace};
+use log::debug;
 use typed_builder::TypedBuilder;
 
 use disolv_core::agent::AgentId;
@@ -14,14 +14,12 @@ use crate::fl::device::DeviceInfo;
 use crate::models::ai::compose::FlMessageDraft;
 use crate::models::ai::data::DataHolder;
 use crate::models::ai::models::{ClientState, ModelDirection, ModelLevel, TrainingStatus};
-use crate::models::ai::times::ClientTimes;
 use crate::models::ai::trainer::Trainer;
 use crate::models::device::message::{FlPayload, FlTask, Message, MessageType};
 
 #[derive(Clone, TypedBuilder)]
 pub(crate) struct ClientModels<B: AutodiffBackend> {
     pub(crate) trainer: Trainer<B>,
-    pub(crate) times: ClientTimes,
     pub(crate) holder: DataHolder,
 }
 
@@ -58,11 +56,12 @@ impl<B: AutodiffBackend> Client<B> {
             .holder
             .set_test_data(self.fl_models.trainer.test_data.to_owned());
         self.client_state = ClientState::Sensing;
+        self.write_state_update(bucket);
     }
 
     pub(crate) fn update_step(&mut self, new_step: TimeMS) {
         self.step = new_step;
-        self.fl_models.holder.allot_data();
+        self.fl_models.holder.allot_data(self.step);
     }
 
     pub(crate) fn handle_incoming(&mut self, bucket: &mut FlBucket<B>, payloads: &[FlPayload]) {
@@ -137,6 +136,7 @@ impl<B: AutodiffBackend> Client<B> {
             None => panic!("Global model not present"),
         };
         self.client_state = ClientState::ReadyToTrain;
+        self.write_state_update(bucket);
 
         self.message_draft = FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
