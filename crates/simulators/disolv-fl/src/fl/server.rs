@@ -74,7 +74,7 @@ impl<B: AutodiffBackend> Server<B> {
             .holder
             .set_test_data(self.fl_models.trainer.test_data.to_owned());
 
-        self.fl_models.holder.allot_data();
+        self.fl_models.holder.allot_data(self.step);
         bucket.models.model_lake.global_model = Some(self.fl_models.trainer.model.clone());
     }
 
@@ -99,10 +99,14 @@ impl<B: AutodiffBackend> Server<B> {
         } else {
             match self.server_state {
                 ServerState::Idle => {}
-                ServerState::ClientAnalysis => message_draft.fl_task = Some(FlTask::StateInfo),
+                ServerState::ClientAnalysis => {
+                    message_draft.fl_task = Some(FlTask::StateRequest(
+                        self.step + self.fl_models.times.durations.analysis,
+                    ))
+                }
                 ServerState::ClientSelection => {
                     message_draft.message_type = MessageType::F64Weight;
-                    message_draft.fl_task = Some(FlTask::GlobalModel);
+                    message_draft.fl_task = Some(FlTask::GlobalModel(self.server_info.id));
                     message_draft.selected_clients =
                         Some(self.fl_models.client_selector.selected_clients().clone());
                 }
@@ -177,7 +181,9 @@ impl<B: AutodiffBackend> Server<B> {
 
         FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .fl_task(Some(FlTask::StateInfo))
+            .fl_task(Some(FlTask::StateRequest(
+                self.step + self.fl_models.times.durations.analysis,
+            )))
             .build()
     }
 
@@ -212,7 +218,7 @@ impl<B: AutodiffBackend> Server<B> {
                     .update_time(self.step, self.server_state);
 
                 message_to_build.message_type = MessageType::F64Weight;
-                message_to_build.fl_task = Some(FlTask::GlobalModel);
+                message_to_build.fl_task = Some(FlTask::GlobalModel(self.server_info.id));
                 message_to_build.selected_clients = Some(selected_clients);
                 message_to_build.quantity = self.fl_models.trainer.no_of_weights;
             } else {
@@ -256,7 +262,9 @@ impl<B: AutodiffBackend> Server<B> {
 
         FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
-            .fl_task(Some(FlTask::RoundComplete))
+            .fl_task(Some(FlTask::RoundComplete(
+                self.step + self.fl_models.times.durations.aggregation,
+            )))
             .selected_clients(Some(selected_clients))
             .build()
     }
@@ -285,7 +293,7 @@ impl<B: AutodiffBackend> Server<B> {
             .aggregator
             .aggregate(self.fl_models.trainer.model.clone(), &bucket.models.device);
 
-        self.fl_models.holder.allot_data();
+        self.fl_models.holder.allot_data(self.step);
         self.fl_models.trainer.test_data = self.fl_models.holder.allotted_test_data();
 
         let model_accuracy = self.fl_models.trainer.test_model(&bucket.models.device);

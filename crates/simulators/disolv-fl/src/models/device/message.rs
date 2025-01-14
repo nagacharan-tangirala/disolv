@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, write};
 
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
@@ -51,20 +51,22 @@ impl ContentType for MessageType {}
 #[derive(Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum FlTask {
     StateInfo,
-    GlobalModel,
+    StateRequest(TimeMS),
+    GlobalModel(AgentId),
     LocalModel,
     RoundBegin,
-    RoundComplete,
+    RoundComplete(TimeMS),
 }
 
 impl Display for FlTask {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FlTask::StateInfo => write!(f, "StateInfo"),
-            FlTask::GlobalModel => write!(f, "GlobalModel"),
+            FlTask::StateRequest(_) => write!(f, "StateRequest"),
+            FlTask::GlobalModel(_) => write!(f, "GlobalModel"),
             FlTask::LocalModel => write!(f, "LocalModel"),
             FlTask::RoundBegin => write!(f, "RoundBegin"),
-            FlTask::RoundComplete => write!(f, "RoundComplete"),
+            FlTask::RoundComplete(_) => write!(f, "RoundComplete"),
         }
     }
 }
@@ -75,7 +77,6 @@ impl Display for FlTask {
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct MessageUnit {
     pub action: Action,
-    pub message: Message,
     pub fl_task: Option<FlTask>,
     pub message_type: MessageType,
     pub message_size: Bytes,
