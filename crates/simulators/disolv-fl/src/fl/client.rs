@@ -37,10 +37,13 @@ pub(crate) struct Client<B: AutodiffBackend> {
     pub(crate) step: TimeMS,
     #[builder(default)]
     pub(crate) server_id: AgentId,
+    #[builder(default)]
+    pub(crate) draft_change_at: TimeMS,
 }
 
 impl<B: AutodiffBackend> Client<B> {
     pub(crate) fn init(&mut self, bucket: &mut FlBucket<B>) {
+        self.step = bucket.step;
         self.fl_models.trainer.train_data = bucket
             .training_data_for(self.client_info.id)
             .expect("no training data set for this agent");
