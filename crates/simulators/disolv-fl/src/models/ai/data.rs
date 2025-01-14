@@ -1,8 +1,6 @@
-use std::cmp::min;
-
-use log::debug;
 use serde::Deserialize;
 
+use disolv_core::bucket::TimeMS;
 use disolv_core::model::{Model, ModelSettings};
 
 use crate::models::ai::models::DatasetType;
@@ -11,8 +9,7 @@ use crate::models::ai::models::DatasetType;
 pub struct DataStrategySettings {
     pub variant: String,
     #[serde(default)]
-    pub units_per_step: Option<usize>,
-    pub test_train_split: f64,
+    pub steps_per_unit: Option<TimeMS>,
     pub to_clone: bool,
 }
 
@@ -39,9 +36,16 @@ impl Model for DataStrategy {
 }
 
 impl DataStrategy {
-    pub fn allot_data(&self, allotted_data: &mut DatasetType, total_data: &mut DatasetType) {
+    pub fn allot_data(
+        &mut self,
+        allotted_data: &mut DatasetType,
+        total_data: &mut DatasetType,
+        step: TimeMS,
+    ) {
         match self {
-            DataStrategy::Time(time_strat) => time_strat.allot_data(allotted_data, total_data),
+            DataStrategy::Time(time_strat) => {
+                time_strat.allot_data(allotted_data, total_data, step)
+            }
             DataStrategy::All(all_strat) => all_strat.allot_data(allotted_data, total_data),
             DataStrategy::Location(_) => unimplemented!("location pending"),
         }
@@ -50,22 +54,30 @@ impl DataStrategy {
 
 #[derive(Clone)]
 pub struct TimeStrategy {
-    pub(crate) units_per_step: usize,
+    pub(crate) steps_per_unit: TimeMS,
     pub(crate) to_clone: bool,
 }
 
 impl TimeStrategy {
     pub fn new(settings: &DataStrategySettings) -> Self {
         Self {
-            units_per_step: settings.units_per_step.expect("Units per step is missing"),
+            steps_per_unit: settings.steps_per_unit.expect("Units per step is missing"),
             to_clone: settings.to_clone,
         }
     }
 
-    pub fn allot_data(&self, allotted_data: &mut DatasetType, total_data: &mut DatasetType) {
+    pub fn allot_data(
+        &mut self,
+        allotted_data: &mut DatasetType,
+        total_data: &mut DatasetType,
+        step: TimeMS,
+    ) {
+        if step.as_u64() % self.steps_per_unit.as_u64() != 0 {
+            return;
+        }
         match total_data {
             DatasetType::Mnist(mnist) => {
-                let images_to_move = min(mnist.images.len(), self.units_per_step);
+                let images_to_move = 1;
                 if self.to_clone {
                     let mut dataset = mnist.clone();
                     for _ in 0..images_to_move {
@@ -163,14 +175,14 @@ impl DataHolder {
         self.usable_test = dataset;
     }
 
-    pub fn allot_data(&mut self) {
+    pub fn allot_data(&mut self, step: TimeMS) {
         if self.usable_train.has_data() {
             self.strategy
-                .allot_data(&mut self.allotted_train, &mut self.usable_train);
+                .allot_data(&mut self.allotted_train, &mut self.usable_train, step);
         }
         if self.usable_test.has_data() {
             self.strategy
-                .allot_data(&mut self.allotted_test, &mut self.usable_test);
+                .allot_data(&mut self.allotted_test, &mut self.usable_test, step);
         }
     }
 
