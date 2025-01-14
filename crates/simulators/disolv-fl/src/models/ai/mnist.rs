@@ -43,6 +43,28 @@ impl MnistFlDataset {
     pub fn with_images(images: Vec<MnistItem>) -> Self {
         Self { images }
     }
+
+    pub fn split_with_ratios(ratios: Vec<f64>, batch_type: BatchType) -> Vec<MnistFlDataset> {
+        let all_data = MnistFlDataset::new(batch_type).to_owned();
+        let total_samples = all_data.len();
+        let mut data_chunks = Vec::new();
+        let chunk_sizes: Vec<usize> = ratios
+            .iter()
+            .map(|r| (r * total_samples as f64).round() as usize)
+            .collect();
+
+        let mut start = 0;
+        for size in chunk_sizes {
+            if start >= total_samples {
+                break;
+            }
+            let end = usize::min(start + size, total_samples);
+            let chunk = all_data.images[start..end].to_vec();
+            data_chunks.push(MnistFlDataset::with_images(chunk));
+            start = end;
+        }
+        data_chunks
+    }
 }
 
 impl Dataset<MnistItem> for MnistFlDataset {
@@ -279,7 +301,6 @@ impl<B: Backend> MnistModel<B> {
         let x = self.conv1.forward(x); // [batch_size, 8, _, _]
         let x = self.conv2.forward(x); // [batch_size, 16, _, _]
         let x = self.conv3.forward(x); // [batch_size, 16, _, _]
-                                       //let x = self.activation.forward(x);
 
         let [batch_size, channels, height, width] = x.dims();
         let x = x.reshape([batch_size, channels * height * width]);
