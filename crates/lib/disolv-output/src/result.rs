@@ -34,7 +34,7 @@ pub struct OutputSettings {
     pub output_interval: TimeMS,
     pub output_path: String,
     pub outputs: Vec<Outputs>,
-    pub scenario_id: u32,
+    pub scenario_id: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -64,7 +64,7 @@ pub struct Results {
 impl Results {
     pub fn new(output_settings: &OutputSettings) -> Self {
         let output_path = Path::new(&output_settings.output_path)
-            .join(output_settings.scenario_id.to_string())
+            .join(&output_settings.scenario_id)
             .join("files");
         if !output_path.exists() {
             fs::create_dir_all(&output_path).expect("Failed to create output directory");

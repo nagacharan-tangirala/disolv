@@ -106,7 +106,7 @@ impl SimulationBuilder {
         initiate_logger(
             &self.config_path,
             &self.base_config.log_settings,
-            Some(self.base_config.output_settings.scenario_id),
+            Some(&self.base_config.output_settings.scenario_id),
         );
 
         info!("Building devices and device pools...");
