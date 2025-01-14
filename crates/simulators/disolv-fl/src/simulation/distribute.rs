@@ -1,3 +1,5 @@
+use burn::data::dataset::Dataset;
+use burn::data::dataset::vision::MnistItem;
 use log::debug;
 use serde::Deserialize;
 
@@ -32,6 +34,7 @@ impl Model for DataDistributor {
     fn with_settings(settings: &Self::Settings) -> Self {
         match settings.variant.to_lowercase().as_str() {
             "uniform" => DataDistributor::Uniform(UniformDistributor::with_settings(settings)),
+            "noniid" => DataDistributor::NonIid(NonIidDistributor::with_settings(settings)),
             _ => unimplemented!("other distributions to be implemented"),
         }
     }
@@ -78,7 +81,7 @@ impl DataDistributor {
     pub fn server_test_data(&mut self) -> DatasetType {
         match self {
             DataDistributor::Uniform(uniform) => uniform.server_test_data("mnist"),
-            _ => unimplemented!("only mnist supported"),
+            DataDistributor::NonIid(non_iid) => non_iid.server_test_data("mnist"),
         }
     }
 }
@@ -189,21 +192,30 @@ impl BucketModel for NonIidDistributor {
     fn init(&mut self, _step: TimeMS) {
         match self.dataset_type.to_lowercase().as_str() {
             "mnist" => {
-                let train_data = MnistFlDataset::new(BatchType::Train);
-                let partition_size = train_data.images.len() / self.total_clients as usize;
-                // todo: partition the data according to the skews.
+                if let Some(data_skew) = &mut self.data_skew {
+                    let ratios = data_skew.sample();
+                    if ratios.len() != self.total_clients as usize {
+                        panic!("total clients should be same as data skew distribution parameters");
+                    }
+                    let mnist_chunks =
+                        MnistFlDataset::split_with_ratios(ratios.clone(), BatchType::Train);
+                    mnist_chunks
+                        .into_iter()
+                        .for_each(|dataset| self.train_data.push(DatasetType::Mnist(dataset)));
+
+                    let mnist_chunks = MnistFlDataset::split_with_ratios(ratios, BatchType::Test);
+                    mnist_chunks
+                        .into_iter()
+                        .for_each(|dataset| self.test_data.push(DatasetType::Mnist(dataset)));
+                }
             }
             _ => panic!("Invalid dataset type"),
         }
     }
 
-    fn stream_data(&mut self, step: TimeMS) {
-        todo!()
-    }
+    fn stream_data(&mut self, step: TimeMS) {}
 
-    fn before_agent_step(&mut self, step: TimeMS) {
-        todo!()
-    }
+    fn before_agent_step(&mut self, step: TimeMS) {}
 }
 
 impl NonIidDistributor {
@@ -213,5 +225,12 @@ impl NonIidDistributor {
 
     fn test_data(&mut self, _agent_id: AgentId) -> Option<DatasetType> {
         self.test_data.pop()
+    }
+
+    fn server_test_data(&mut self, dataset_type: &str) -> DatasetType {
+        match dataset_type {
+            "mnist" => DatasetType::Mnist(MnistFlDataset::new(BatchType::Test)),
+            _ => panic!("Invalid dataset type"),
+        }
     }
 }
