@@ -150,7 +150,6 @@ impl SimpleComposer {
 
             let message_unit = MessageUnit::builder()
                 .message_type(MessageType::Byte)
-                .message(Message::Sensor)
                 .message_size(ds_settings.data_size)
                 .action(Action::default())
                 .device_info(device_info)
@@ -174,7 +173,6 @@ impl SimpleComposer {
 
         message_size = Bytes::new(message_size.as_u64() * message_draft.quantity);
         MessageUnit::builder()
-            .message(Message::FlMessage)
             .message_type(message_draft.message_type)
             .message_size(message_size)
             .action(Action::default())
