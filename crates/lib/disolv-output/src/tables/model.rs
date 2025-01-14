@@ -15,9 +15,13 @@ pub struct ModelUpdate {
     agent_id: u64,
     target_id: u64,
     agent_state: String,
+    #[builder(default = String::from("Global"))]
     model: String,
+    #[builder(default = String::from("NA"))]
     direction: String,
+    #[builder(default = String::from("NA"))]
     status: String,
+    #[builder(default = -1.0)]
     accuracy: f32,
 }
 

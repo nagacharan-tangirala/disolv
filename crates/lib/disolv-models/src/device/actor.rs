@@ -1,7 +1,8 @@
+use hashbrown::HashMap;
+
 use disolv_core::agent::AgentClass;
 use disolv_core::message::ContentType;
 use disolv_core::radio::Action;
-use hashbrown::HashMap;
 
 use crate::net::radio::ActionSettings;
 

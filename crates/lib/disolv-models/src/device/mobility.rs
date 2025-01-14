@@ -1,8 +1,10 @@
-use crate::device::mobility::road::RoadId;
-use crate::device::mobility::velocity::Velocity;
-use disolv_core::agent::MobilityInfo;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
+
+use disolv_core::agent::MobilityInfo;
+
+use crate::device::mobility::road::RoadId;
+use crate::device::mobility::velocity::Velocity;
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub enum MobilityType {

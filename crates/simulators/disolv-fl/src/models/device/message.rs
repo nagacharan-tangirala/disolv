@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, write};
 
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
@@ -27,57 +27,46 @@ impl QueryType for Message {}
 #[derive(Deserialize, Default, Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum MessageType {
     #[default]
+    Byte,
     KiloByte, // Could be state requests, selection acknowledgement etc.
-    SensorData,
-    U32Weights,
-    F32Weights,
-    F64Weights,
+    U32Weight,
+    F32Weight,
+    F64Weight,
 }
 
 impl Display for MessageType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            MessageType::Byte => write!(f, "Byte"),
             MessageType::KiloByte => write!(f, "KiloByte"),
-            MessageType::SensorData => write!(f, "SensorData"),
-            MessageType::U32Weights => write!(f, "U32Weights"),
-            MessageType::F32Weights => write!(f, "F32Weights"),
-            MessageType::F64Weights => write!(f, "F64Weights"),
+            MessageType::U32Weight => write!(f, "U32Weights"),
+            MessageType::F32Weight => write!(f, "F32Weights"),
+            MessageType::F64Weight => write!(f, "F64Weights"),
         }
     }
 }
 
 impl ContentType for MessageType {}
 
-#[derive(Deserialize, Default, Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub enum FlAction {
-    #[default]
-    None,
+#[derive(Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub enum FlTask {
     StateInfo,
-    GlobalModel,
-    GlobalModelReceived,
+    StateRequest(TimeMS),
+    GlobalModel(AgentId),
     LocalModel,
-    ClientSelected,
-    ClientPreparing,
-    InitiateTraining,
-    CompleteTraining,
-    TrainingFailed,
-    Training,
+    RoundBegin,
+    RoundComplete(TimeMS),
 }
 
-impl Display for FlAction {
+impl Display for FlTask {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FlAction::None => write!(f, "None"),
-            FlAction::StateInfo => write!(f, "StateInfo"),
-            FlAction::GlobalModel => write!(f, "GlobalModel"),
-            FlAction::GlobalModelReceived => write!(f, "GlobalModelReceived"),
-            FlAction::LocalModel => write!(f, "LocalModel"),
-            FlAction::ClientSelected => write!(f, "Selected"),
-            FlAction::InitiateTraining => write!(f, "InitiateTraining"),
-            FlAction::CompleteTraining => write!(f, "CompleteTraining"),
-            FlAction::Training => write!(f, "Training"),
-            FlAction::TrainingFailed => write!(f, "TrainingFailed"),
-            FlAction::ClientPreparing => write!(f, "ClientPreparing"),
+            FlTask::StateInfo => write!(f, "StateInfo"),
+            FlTask::StateRequest(_) => write!(f, "StateRequest"),
+            FlTask::GlobalModel(_) => write!(f, "GlobalModel"),
+            FlTask::LocalModel => write!(f, "LocalModel"),
+            FlTask::RoundBegin => write!(f, "RoundBegin"),
+            FlTask::RoundComplete(_) => write!(f, "RoundComplete"),
         }
     }
 }
@@ -88,10 +77,19 @@ impl Display for FlAction {
 #[derive(Debug, Clone, Default, TypedBuilder)]
 pub struct MessageUnit {
     pub action: Action,
-    pub fl_action: FlAction,
+    pub fl_task: Option<FlTask>,
     pub message_type: MessageType,
     pub message_size: Bytes,
     pub device_info: DeviceInfo,
+}
+
+impl MessageUnit {
+    pub fn fl_task_string(&self) -> String {
+        match self.fl_task {
+            Some(val) => val.to_string(),
+            None => String::from("None"),
+        }
+    }
 }
 
 impl DataUnit<MessageType> for MessageUnit {

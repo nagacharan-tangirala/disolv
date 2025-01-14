@@ -1,8 +1,9 @@
+use hashbrown::HashMap;
+use log::{debug, error};
+
 use disolv_core::agent::{AgentId, AgentProperties};
 use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 use disolv_core::radio::{Action, ActionType};
-use hashbrown::HashMap;
-use log::{debug, error};
 
 /// Prepares a list of data units that the payload should consider forwarding.
 ///

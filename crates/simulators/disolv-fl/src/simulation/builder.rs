@@ -32,7 +32,7 @@ use crate::models::ai::data::DataHolder;
 use crate::models::ai::mnist::{MnistModelConfig, MnistTrainingConfig};
 use crate::models::ai::models::ModelType;
 use crate::models::ai::select::ClientSelector;
-use crate::models::ai::times::{ClientTimes, ServerTimes};
+use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::{Trainer, TrainerSettings};
 use crate::models::device::energy::EnergyType;
 use crate::models::device::hardware::Hardware;
@@ -228,7 +228,6 @@ impl SimulationBuilder {
         let trainer = self.build_trainer(&client_settings.trainer_settings);
         let client_models = ClientModels::builder()
             .holder(DataHolder::with_settings(&client_settings.data_holder))
-            .times(ClientTimes::with_settings(&client_settings.durations))
             .trainer(trainer)
             .build();
 

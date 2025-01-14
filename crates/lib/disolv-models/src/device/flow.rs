@@ -1,6 +1,7 @@
+use hashbrown::HashMap;
+
 use disolv_core::agent::{AgentClass, AgentId, AgentProperties};
 use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
-use hashbrown::HashMap;
 
 use crate::net::radio::CommStats;
 
