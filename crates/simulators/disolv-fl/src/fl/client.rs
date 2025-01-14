@@ -102,13 +102,13 @@ impl<B: AutodiffBackend> Client<B> {
     }
 
     fn check_draft_validity(&mut self, bucket: &mut FlBucket<B>) {
-        if self.fl_models.times.is_time_to_change(self.step) {
-            match self.client_state {
-                ClientState::Informing | ClientState::Training => {
-                    self.reset_to_sensing();
-                    self.write_state_update(bucket);
-                }
-                _ => {}
+        if self.step > self.draft_change_at {
+            self.message_draft = FlMessageDraft::builder()
+                .message_type(MessageType::KiloByte)
+                .build();
+            if self.client_state == ClientState::Informing {
+                self.client_state = ClientState::Sensing;
+                self.write_state_update(bucket);
             }
         }
     }
