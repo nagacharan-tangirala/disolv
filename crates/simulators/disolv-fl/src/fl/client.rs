@@ -80,10 +80,19 @@ impl<B: AutodiffBackend> Client<B> {
 
     pub(crate) fn do_fl_task(&mut self, fl_task: &FlTask, bucket: &mut FlBucket<B>) {
         match (fl_task, self.client_state) {
-            (FlTask::StateInfo, ClientState::Sensing) => self.prepare_state_update(bucket),
-            (FlTask::GlobalModel, ClientState::Informing) => self.collect_global_model(bucket),
+            (FlTask::StateRequest(time_limit), ClientState::Sensing) => {
+                self.draft_change_at = *time_limit;
+                self.prepare_state_update(bucket);
+            }
+            (FlTask::GlobalModel(server_id), ClientState::Informing) => {
+                self.server_id = *server_id;
+                self.collect_global_model(bucket);
+            }
             (FlTask::RoundBegin, ClientState::ReadyToTrain) => self.initiate_training(bucket),
-            (FlTask::RoundComplete, ClientState::Training) => self.complete_training(bucket),
+            (FlTask::RoundComplete(time_limit), ClientState::Training) => {
+                self.draft_change_at = *time_limit;
+                self.complete_training(bucket);
+            }
             _ => self.check_draft_validity(bucket),
         };
     }
