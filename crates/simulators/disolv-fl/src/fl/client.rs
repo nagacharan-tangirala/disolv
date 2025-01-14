@@ -152,7 +152,7 @@ impl<B: AutodiffBackend> Client<B> {
         if let Some(writer) = &mut bucket.models.results.model {
             let model_update = ModelUpdate::builder()
                 .time_step(self.step.as_u64())
-                .agent_id(99999999999)
+                .agent_id(self.server_id.as_u64())
                 .target_id(self.client_info.id.as_u64())
                 .agent_state(self.client_state.to_string())
                 .direction(ModelDirection::Received.to_string())
@@ -208,7 +208,7 @@ impl<B: AutodiffBackend> Client<B> {
             let model_update = ModelUpdate::builder()
                 .time_step(self.step.as_u64())
                 .agent_id(self.client_info.id.as_u64())
-                .target_id(9999999999)
+                .target_id(self.server_id.as_u64())
                 .agent_state(self.client_state.to_string())
                 .model(model_level.to_string())
                 .direction(direction.to_string())
