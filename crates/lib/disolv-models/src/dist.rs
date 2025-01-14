@@ -24,7 +24,8 @@ pub struct DistParams {
     pub rate: Option<f64>,
     pub min: Option<f64>,
     pub max: Option<f64>,
-    pub weights: Option<Vec<f64>>,
+    pub alpha: Option<f64>,
+    pub size: Option<usize>,
 }
 
 impl DistType {
@@ -91,8 +92,9 @@ impl DistType {
     }
 
     fn build_dirichlet(dist_params: DistParams) -> Result<Self, Box<dyn std::error::Error>> {
-        let alpha = dist_params.weights.ok_or("Missing weights")?;
-        Ok(Self::Dirichlet(Dirichlet::new(alpha.as_slice())?))
+        let alpha = dist_params.alpha.ok_or("Missing alpha")?;
+        let size = dist_params.size.ok_or("Missing size")?;
+        Ok(Self::Dirichlet(Dirichlet::new_with_size(alpha, size)?))
     }
 }
 
