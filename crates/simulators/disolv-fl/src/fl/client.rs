@@ -118,13 +118,6 @@ impl<B: AutodiffBackend> Client<B> {
         }
     }
 
-    fn reset_to_sensing(&mut self) {
-        self.message_draft = FlMessageDraft::builder()
-            .message_type(MessageType::KiloByte)
-            .build();
-        self.client_state = ClientState::Sensing;
-    }
-
     fn prepare_state_update(&mut self, bucket: &mut FlBucket<B>) {
         self.message_draft = FlMessageDraft::builder()
             .message_type(MessageType::KiloByte)
@@ -133,9 +126,6 @@ impl<B: AutodiffBackend> Client<B> {
 
         self.client_state = ClientState::Informing;
         self.write_state_update(bucket);
-        self.fl_models
-            .times
-            .update_time(self.step, self.client_state);
     }
 
     fn collect_global_model(&mut self, bucket: &mut FlBucket<B>) {
@@ -219,10 +209,8 @@ impl<B: AutodiffBackend> Client<B> {
             writer.add_data(model_update);
         }
 
-        self.fl_models
-            .times
-            .update_time(self.step, self.client_state);
         self.client_state = ClientState::Sensing;
+        self.write_state_update(bucket);
     }
 
     fn upload_local_model(&mut self, bucket: &mut FlBucket<B>) {
