@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
+use uuid::Uuid;
 
 use disolv_core::agent::{AgentId, AgentProperties};
 use disolv_core::bucket::TimeMS;
@@ -12,7 +13,6 @@ use disolv_core::metrics::Bytes;
 use disolv_core::radio::{Action, Link};
 use disolv_models::net::metrics::{Bandwidth, Latency};
 use disolv_models::net::radio::LinkProperties;
-use uuid::Uuid;
 
 use crate::v2x::device::DeviceInfo;
 

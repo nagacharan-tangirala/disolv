@@ -1,4 +1,4 @@
-use burn::train::renderer::{MetricState, MetricsRenderer, TrainingProgress};
+use burn::train::renderer::{MetricsRenderer, MetricState, TrainingProgress};
 use log::debug;
 
 pub(crate) struct CustomRenderer {}

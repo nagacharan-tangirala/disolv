@@ -1,6 +1,6 @@
+use disolv_models::device::mobility::{MapState, Point2D};
 use disolv_models::device::mobility::road::RoadId;
 use disolv_models::device::mobility::velocity::Velocity;
-use disolv_models::device::mobility::{MapState, Point2D};
 
 #[test]
 fn map_state_builder() {

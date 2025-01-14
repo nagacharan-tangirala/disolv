@@ -1,7 +1,7 @@
+use std::{io, thread};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, SyncSender};
 use std::time::Duration;
-use std::{io, thread};
 
 use crossterm::event::{self, Event as CrosstermEvent};
 use ratatui::backend::CrosstermBackend;

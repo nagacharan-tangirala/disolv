@@ -3,8 +3,8 @@ use std::fmt::{Debug, Display, Formatter};
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
-use crate::agent::AgentProperties;
 use crate::agent::{AgentClass, AgentId, AgentKind};
+use crate::agent::AgentProperties;
 use crate::bucket::Bucket;
 use crate::message::{ContentType, DataUnit, Metadata, Payload, QueryType};
 

@@ -1,7 +1,7 @@
+use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout};
 use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, Gauge, Paragraph};
-use ratatui::Frame;
 
 use disolv_output::ui::{Renderer, SimContent};
 

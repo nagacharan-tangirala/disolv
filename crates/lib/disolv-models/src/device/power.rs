@@ -1,6 +1,8 @@
-use disolv_core::bucket::TimeMS;
 use std::collections::VecDeque;
+
 use typed_builder::TypedBuilder;
+
+use disolv_core::bucket::TimeMS;
 
 #[derive(Clone, Default, Copy, Debug, PartialEq)]
 pub enum PowerState {

@@ -1,3 +1,4 @@
+use hashbrown::HashMap;
 use log::{debug, info};
 use typed_builder::TypedBuilder;
 
@@ -13,10 +14,9 @@ use disolv_models::net::network::{Network, SliceType};
 use disolv_models::net::radio::{CommStats, LinkProperties};
 use disolv_output::result::Results;
 use disolv_output::tables::net::NetStats;
-use hashbrown::HashMap;
 
-use crate::models::message::PayloadInfo;
 use crate::models::message::{DataBlob, DataType, MessageType, TxMetrics};
+use crate::models::message::PayloadInfo;
 use crate::models::network::{Slice, V2XSlice};
 use crate::v2x::device::DeviceInfo;
 use crate::v2x::linker::Linker;

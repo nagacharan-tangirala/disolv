@@ -2,11 +2,11 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use arrow::record_batch::RecordBatch;
+use log::{debug, error};
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::file::statistics::Statistics;
 
 use disolv_core::bucket::TimeMS;
-use log::{debug, error};
 
 use crate::columns::TIME_STEP;
 

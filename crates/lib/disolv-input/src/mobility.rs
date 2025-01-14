@@ -9,9 +9,9 @@ use typed_builder::TypedBuilder;
 
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
+use disolv_models::device::mobility::{MapState, Point2D};
 use disolv_models::device::mobility::road::RoadId;
 use disolv_models::device::mobility::velocity::Velocity;
-use disolv_models::device::mobility::{MapState, Point2D};
 
 use crate::batch::{get_row_groups_for_time, read_f64_column, read_u32_column, read_u64_column};
 use crate::columns::{AGENT_ID, COORD_X, COORD_Y, COORD_Z, ROAD_ID, TIME_STEP, VELOCITY};

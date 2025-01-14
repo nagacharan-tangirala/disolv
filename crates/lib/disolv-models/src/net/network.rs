@@ -2,10 +2,11 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use disolv_core::agent::AgentProperties;
-use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType, TxReport};
 use hashbrown::HashMap;
 use typed_builder::TypedBuilder;
+
+use disolv_core::agent::AgentProperties;
+use disolv_core::message::{ContentType, DataUnit, Metadata, Payload, QueryType, TxReport};
 
 /// Mark an enum with this trait to contain the various slice type configurations.
 pub trait SliceType: Default + Copy + Clone + Eq + Hash + Debug {}

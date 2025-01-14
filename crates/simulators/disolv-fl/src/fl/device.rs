@@ -422,7 +422,6 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Device<B> {
         let mut target_classes = self.models.directions.stage_two.target_classes.to_vec();
         if !target_classes.is_empty() {
             let message_draft = self.fl_agent.draft_fl_message(bucket);
-            debug!("draft quantity is {}", message_draft.quantity);
             self.models.composer.update_draft(message_draft);
             self.send_fl_message(bucket, &target_classes, &rx_payloads);
         }

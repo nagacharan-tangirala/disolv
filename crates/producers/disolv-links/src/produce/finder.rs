@@ -10,7 +10,7 @@ use disolv_output::logger::initiate_logger;
 use disolv_output::result::ResultWriter;
 use disolv_output::ui::SimUIMetadata;
 
-use crate::links::linker::{LinkType, LinkerImpl};
+use crate::links::linker::{LinkerImpl, LinkType};
 use crate::links::reader::{Reader, TraceType};
 use crate::produce::config::Config;
 

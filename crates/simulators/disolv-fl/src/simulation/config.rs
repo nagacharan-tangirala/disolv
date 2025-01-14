@@ -13,7 +13,7 @@ use crate::models::ai::aggregate::AggregationSettings;
 use crate::models::ai::compose::ComposerSettings;
 use crate::models::ai::data::DataHolderSettings;
 use crate::models::ai::select::ClientSelectionSettings;
-use crate::models::ai::times::{ClientDurations, ServerDurations};
+use crate::models::ai::times::ServerDurations;
 use crate::models::ai::trainer::TrainerSettings;
 use crate::models::device::energy::EnergySettings;
 use crate::models::device::hardware::HardwareSettings;
@@ -52,7 +52,6 @@ pub struct AgentClassSettings {
 #[derive(Deserialize, Debug, Clone)]
 pub struct ClientClassSettings {
     pub fl_composer: ComposerSettings,
-    pub durations: ClientDurations,
     pub hardware: HardwareSettings,
     pub data_holder: DataHolderSettings,
     pub trainer_settings: TrainerSettings,
