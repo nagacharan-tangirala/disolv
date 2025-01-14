@@ -63,11 +63,13 @@ impl<B: AutodiffBackend> Client<B> {
     }
 
     pub(crate) fn handle_incoming(&mut self, bucket: &mut FlBucket<B>, payloads: &[FlPayload]) {
+        let mut got_fl_message = false;
         for payload in payloads.iter() {
             if payload.query_type != Message::FlMessage {
                 continue;
             }
 
+            got_fl_message = true;
             payload.data_units.iter().for_each(|message_unit| {
                 if am_i_target(message_unit.action(), &self.client_info) {
                     if let Some(ref fl_task) = message_unit.fl_task {
@@ -75,6 +77,9 @@ impl<B: AutodiffBackend> Client<B> {
                     }
                 }
             });
+        }
+        if !got_fl_message {
+            self.check_draft_validity(bucket);
         }
     }
 
@@ -93,7 +98,7 @@ impl<B: AutodiffBackend> Client<B> {
                 self.draft_change_at = *time_limit;
                 self.complete_training(bucket);
             }
-            _ => self.check_draft_validity(bucket),
+            _ => {}
         };
     }
 
