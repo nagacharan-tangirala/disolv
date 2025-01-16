@@ -14,7 +14,6 @@ use disolv_models::net::radio::{CommStats, LinkProperties};
 use disolv_output::result::Results;
 
 use crate::fl::device::DeviceInfo;
-use crate::models::ai::models::DatasetType;
 use crate::models::device::lake::ModelLake;
 use crate::models::device::linker::Linker;
 use crate::models::device::mapper::{GeoMap, GeoMapper};

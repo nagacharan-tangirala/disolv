@@ -11,10 +11,10 @@ use disolv_output::tables::train::FlTrainingData;
 
 use crate::fl::bucket::FlBucket;
 use crate::fl::device::DeviceInfo;
+use crate::models::ai::common::{ClientState, ModelDirection, ModelLevel, TrainingStatus};
 use crate::models::ai::compose::FlMessageDraft;
-use crate::models::ai::data::DataHolder;
-use crate::models::ai::models::{ClientState, ModelDirection, ModelLevel, TrainingStatus};
 use crate::models::ai::trainer::Trainer;
+use crate::models::data::allot::DataHolder;
 use crate::models::device::message::{FlPayload, FlTask, Message, MessageType};
 
 #[derive(Clone, TypedBuilder)]

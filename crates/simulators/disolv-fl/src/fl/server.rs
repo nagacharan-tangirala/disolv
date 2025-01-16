@@ -12,12 +12,12 @@ use disolv_output::tables::select::ClientSelectData;
 use crate::fl::bucket::FlBucket;
 use crate::fl::device::DeviceInfo;
 use crate::models::ai::aggregate::Aggregator;
+use crate::models::ai::common::{ModelDirection, ModelLevel};
 use crate::models::ai::compose::FlMessageDraft;
-use crate::models::ai::data::DataHolder;
-use crate::models::ai::models::{ModelDirection, ModelLevel};
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::Trainer;
+use crate::models::data::allot::DataHolder;
 use crate::models::device::message::{FlPayload, FlTask, MessageType};
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq)]
@@ -288,10 +288,9 @@ impl<B: AutodiffBackend> Server<B> {
             return message_draft;
         }
 
-        self.fl_models.trainer.model = self
-            .fl_models
+        self.fl_models
             .aggregator
-            .aggregate(self.fl_models.trainer.model.clone(), &bucket.models.device);
+            .aggregate(&mut self.fl_models.trainer.model, &bucket.models.device);
 
         self.fl_models.holder.allot_data(self.step);
         self.fl_models.trainer.test_data = self.fl_models.holder.allotted_test_data();

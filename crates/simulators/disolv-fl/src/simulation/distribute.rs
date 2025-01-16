@@ -1,15 +1,13 @@
-use burn::data::dataset::Dataset;
-use burn::data::dataset::vision::MnistItem;
 use log::debug;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_core::model::{BucketModel, Model, ModelSettings};
-use disolv_models::dist::{DistParams, SeriesSampler, UnitSampler};
+use disolv_models::dist::{DistParams, SeriesSampler};
 
-use crate::models::ai::mnist::MnistFlDataset;
-use crate::models::ai::models::{BatchType, DatasetType};
+use crate::models::ai::common::{BatchType, DatasetType};
+use crate::models::data::mnist::MnistFlDataset;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DistributorSettings {
