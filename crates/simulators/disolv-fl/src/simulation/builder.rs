@@ -27,13 +27,13 @@ use crate::fl::client::{Client, ClientModels};
 use crate::fl::device::{Device, DeviceInfo, DeviceModels};
 use crate::fl::server::{FlServerModels, Server};
 use crate::models::ai::aggregate::Aggregator;
+use crate::models::ai::common::ModelType;
 use crate::models::ai::compose::FlComposer;
-use crate::models::ai::data::DataHolder;
 use crate::models::ai::mnist::{MnistModelConfig, MnistTrainingConfig};
-use crate::models::ai::models::ModelType;
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::{Trainer, TrainerSettings};
+use crate::models::data::allot::DataHolder;
 use crate::models::device::energy::EnergyType;
 use crate::models::device::hardware::Hardware;
 use crate::models::device::lake::ModelLake;
@@ -332,7 +332,7 @@ impl SimulationBuilder {
         match trainer_settings.model_type.to_lowercase().as_str() {
             "mnist" => {
                 let mnist_settings = trainer_settings
-                    .mnist_config_settings
+                    .mnist_hyper_parameters
                     .as_ref()
                     .expect("mnist settings missing from the config file");
 
@@ -578,10 +578,6 @@ impl SimulationBuilder {
 
     fn step_size(&self) -> TimeMS {
         self.base_config.simulation_settings.step_size
-    }
-
-    fn sim_seed(&self) -> u128 {
-        u128::from(self.base_config.simulation_settings.seed)
     }
 
     pub(crate) fn metadata(&self) -> SimUIMetadata {

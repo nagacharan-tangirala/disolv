@@ -11,10 +11,10 @@ use disolv_output::result::OutputSettings;
 
 use crate::models::ai::aggregate::AggregationSettings;
 use crate::models::ai::compose::ComposerSettings;
-use crate::models::ai::data::DataHolderSettings;
 use crate::models::ai::select::ClientSelectionSettings;
 use crate::models::ai::times::ServerDurations;
 use crate::models::ai::trainer::TrainerSettings;
+use crate::models::data::allot::DataHolderSettings;
 use crate::models::device::energy::EnergySettings;
 use crate::models::device::hardware::HardwareSettings;
 use crate::models::device::link::LinkSelectionSettings;
@@ -30,7 +30,6 @@ pub struct SimSettings {
     pub duration: TimeMS,
     pub step_size: TimeMS,
     pub streaming_interval: TimeMS,
-    pub seed: u64,
 }
 
 #[derive(Deserialize, Debug, Clone)]
