@@ -7,8 +7,7 @@ use serde::Deserialize;
 use disolv_core::agent::AgentId;
 use disolv_core::model::{Model, ModelSettings};
 
-use crate::models::ai::mnist::MnistModel;
-use crate::models::ai::models::ModelType;
+use crate::models::ai::model::ModelType;
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct AggregationSettings {
@@ -40,11 +39,7 @@ impl<B: AutodiffBackend> Aggregator<B> {
         }
     }
 
-    pub(crate) fn aggregate(
-        &mut self,
-        global_model: ModelType<B>,
-        device: &B::Device,
-    ) -> ModelType<B> {
+    pub(crate) fn aggregate(&mut self, global_model: &mut ModelType<B>, device: &B::Device) {
         match self {
             Aggregator::FedAvg(aggregator) => aggregator.aggregate(global_model, device),
         }
@@ -83,24 +78,9 @@ impl<B: AutodiffBackend> FedAvgAggregator<B> {
         self.local_models.contains_key(&agent_id)
     }
 
-    fn aggregate(&mut self, global_model: ModelType<B>, device: &B::Device) -> ModelType<B> {
+    fn aggregate(&mut self, global_model: &mut ModelType<B>, device: &B::Device) {
         info!("{} is the local model count.", self.local_models.len());
-        match global_model {
-            ModelType::Mnist(mnist_model) => {
-                let local_models = self
-                    .local_models
-                    .clone()
-                    .into_values()
-                    .map(|model| match model {
-                        ModelType::Mnist(mnist) => mnist,
-                        _ => panic!("wrong local model sent to aggregate"),
-                    })
-                    .collect();
-                let new_global_model = MnistModel::do_fedavg(mnist_model, local_models, device);
-                self.local_models.clear();
-                ModelType::Mnist(new_global_model)
-            }
-            _ => unimplemented!("cifar not implemented"),
-        }
+        global_model.do_fedavg(self.local_models.clone().into_values().collect(), &device);
+        self.local_models.clear();
     }
 }
