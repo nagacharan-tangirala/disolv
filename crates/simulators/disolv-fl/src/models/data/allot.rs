@@ -3,12 +3,11 @@ use serde::Deserialize;
 use disolv_core::bucket::TimeMS;
 use disolv_core::model::{Model, ModelSettings};
 
-use crate::models::ai::models::DatasetType;
+use crate::models::data::dataset::DatasetType;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DataStrategySettings {
     pub variant: String,
-    #[serde(default)]
     pub steps_per_unit: Option<TimeMS>,
     pub to_clone: bool,
 }
@@ -76,18 +75,26 @@ impl TimeStrategy {
             return;
         }
         match total_data {
-            DatasetType::Mnist(mnist) => {
+            DatasetType::Mnist(total_mnist) => {
                 let images_to_move = 1;
+
                 if self.to_clone {
-                    let mut dataset = mnist.clone();
+                    let mut dataset = total_mnist.clone();
                     for _ in 0..images_to_move {
                         let mnist_image = dataset.images.pop().expect("failed to read image");
-                        allotted_data.append_mnist(mnist_image);
+
+                        match allotted_data {
+                            DatasetType::Mnist(mnist) => mnist.images.push(mnist_image),
+                            _ => panic!("allotted and total datasets are mismatched"),
+                        }
                     }
                 } else {
                     for _ in 0..images_to_move {
-                        let mnist_image = mnist.images.pop().expect("failed to read image");
-                        allotted_data.append_mnist(mnist_image);
+                        let mnist_image = total_mnist.images.pop().expect("failed to read image");
+                        match allotted_data {
+                            DatasetType::Mnist(mnist) => mnist.images.push(mnist_image),
+                            _ => panic!("allotted and total datasets are mismatched"),
+                        }
                     }
                 }
             }
@@ -111,10 +118,10 @@ impl AllStrategy {
     pub fn allot_data(&self, allotted_data: &mut DatasetType, total_data: &mut DatasetType) {
         match total_data {
             DatasetType::Mnist(mnist) => {
-                mnist
-                    .images
-                    .iter()
-                    .for_each(|item| allotted_data.append_mnist(item.to_owned()));
+                mnist.images.iter().for_each(|item| match allotted_data {
+                    DatasetType::Mnist(mnist) => mnist.images.push(item.to_owned()),
+                    _ => panic!("Total and allotted datasets are mismatched"),
+                });
             }
             _ => unimplemented!("only mnist is valid"),
         }
@@ -135,6 +142,7 @@ impl LocationStrategy {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DataHolderSettings {
+    dataset_name: String,
     strategy: DataStrategySettings,
 }
 
@@ -155,10 +163,10 @@ impl Model for DataHolder {
     fn with_settings(settings: &Self::Settings) -> Self {
         let strategy = DataStrategy::with_settings(&settings.strategy);
         Self {
-            allotted_test: DatasetType::Empty,
-            allotted_train: DatasetType::Empty,
-            usable_test: DatasetType::Empty,
-            usable_train: DatasetType::Empty,
+            allotted_test: DatasetType::from_str(&settings.dataset_name),
+            allotted_train: DatasetType::from_str(&settings.dataset_name),
+            usable_test: DatasetType::from_str(&settings.dataset_name),
+            usable_train: DatasetType::from_str(&settings.dataset_name),
             strategy,
         }
     }
@@ -166,12 +174,12 @@ impl Model for DataHolder {
 
 impl DataHolder {
     pub fn set_train_data(&mut self, dataset: DatasetType) {
-        self.allotted_train = DatasetType::blank(dataset.dataset_type());
+        self.allotted_train.clear();
         self.usable_train = dataset;
     }
 
     pub fn set_test_data(&mut self, dataset: DatasetType) {
-        self.allotted_test = DatasetType::blank(dataset.dataset_type());
+        self.allotted_test.clear();
         self.usable_test = dataset;
     }
 
@@ -188,11 +196,17 @@ impl DataHolder {
 
     pub fn allotted_train_data(&mut self) -> DatasetType {
         let dataset_type = self.allotted_train.dataset_type().to_owned();
-        std::mem::replace(&mut self.allotted_train, DatasetType::blank(&dataset_type))
+        std::mem::replace(
+            &mut self.allotted_train,
+            DatasetType::from_str(&dataset_type),
+        )
     }
 
     pub fn allotted_test_data(&mut self) -> DatasetType {
         let dataset_type = self.allotted_test.dataset_type().to_owned();
-        std::mem::replace(&mut self.allotted_test, DatasetType::blank(&dataset_type))
+        std::mem::replace(
+            &mut self.allotted_test,
+            DatasetType::from_str(&dataset_type),
+        )
     }
 }
