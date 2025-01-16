@@ -1,29 +1,35 @@
 use std::cmp::min;
 use std::path::PathBuf;
 
-use burn::data::dataloader::batcher::Batcher;
 use burn::data::dataset::Dataset;
 use burn::module::Module;
 use burn::prelude::Backend;
 use burn::record::CompactRecorder;
 use burn::tensor::backend::AutodiffBackend;
-use burn::tensor::ElementConversion;
 use log::debug;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
 use disolv_core::bucket::TimeMS;
 
+use crate::models::ai::cifar::CifarTrainingConfig;
 use crate::models::ai::mnist::{
-    mnist_train, MnistBatcher, MnistInputConfigSettings, MnistModel, MnistTrainingConfig,
+    mnist_train, mnist_validate, MnistHyperParameters, MnistTrainingConfig,
 };
-use crate::models::ai::models::{DatasetType, ModelType};
+use crate::models::ai::model::ModelType;
+use crate::models::data::dataset::DatasetType;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TrainerSettings {
     pub(crate) model_type: String,
     pub(crate) no_of_weights: u64,
-    pub(crate) mnist_config_settings: Option<MnistInputConfigSettings>,
+    pub(crate) mnist_hyper_parameters: Option<MnistHyperParameters>,
+}
+
+#[derive(Clone)]
+pub enum TrainingConfig {
+    MnistTrain(MnistTrainingConfig),
+    CifarTrain(CifarTrainingConfig),
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -31,7 +37,7 @@ pub(crate) struct Trainer<B: Backend> {
     pub(crate) model: ModelType<B>,
     pub(crate) no_of_weights: u64,
     pub(crate) output_path: PathBuf,
-    pub(crate) config: MnistTrainingConfig,
+    pub(crate) config: TrainingConfig,
     #[builder(default)]
     pub(crate) test_data: DatasetType,
     #[builder(default)]
@@ -40,7 +46,7 @@ pub(crate) struct Trainer<B: Backend> {
 
 impl<B: AutodiffBackend> Trainer<B> {
     pub fn train(&mut self, device: &B::Device) {
-        self.model = match &self.model {
+        self.model = match self.model.clone() {
             ModelType::Mnist(mnist) => {
                 let test_dataset = match &self.test_data {
                     DatasetType::Mnist(mnist_test) => mnist_test,
@@ -50,14 +56,19 @@ impl<B: AutodiffBackend> Trainer<B> {
                     DatasetType::Mnist(mnist_test) => mnist_test,
                     _ => panic!("Expected mnist test dataset, found something else"),
                 };
-                mnist_train(
+                let train_config = match &self.config {
+                    TrainingConfig::MnistTrain(mnist_config) => mnist_config,
+                    _ => panic!("Expected mnist training config, found something else"),
+                };
+                let mnist_model = mnist_train(
                     self.output_path.clone(),
-                    self.config.clone(),
+                    train_config,
                     test_dataset.clone(),
                     train_dataset.clone(),
                     mnist.clone(),
                     device.clone(),
-                )
+                );
+                ModelType::Mnist(mnist_model)
             }
             ModelType::Cifar(_) => unimplemented!("cifar is unimplemented"),
         };
