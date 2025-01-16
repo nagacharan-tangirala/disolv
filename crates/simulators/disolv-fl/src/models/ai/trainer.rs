@@ -87,32 +87,16 @@ impl<B: AutodiffBackend> Trainer<B> {
 
     pub fn test_model(&self, device: &B::Device) -> f32 {
         match &self.model {
-            ModelType::Mnist(mnist) => self.mnist_validation(mnist, device),
+            ModelType::Mnist(mnist) => {
+                let test_dataset = match &self.test_data {
+                    DatasetType::Mnist(mnist_test) => mnist_test,
+                    _ => panic!("Expected mnist test dataset"),
+                };
+                let total_tests = min(50, (test_dataset.len() as f32 * 0.1) as usize);
+                debug!("Validating with {} tests", total_tests);
+                mnist_validate(mnist, test_dataset.clone(), total_tests, device.clone())
+            }
             _ => unimplemented!("other models not supported"),
         }
-    }
-
-    fn mnist_validation(&self, mnist_model: &MnistModel<B>, device: &B::Device) -> f32 {
-        let test_dataset = match &self.test_data {
-            DatasetType::Mnist(mnist_test) => mnist_test,
-            _ => panic!("Expected mnist test dataset"),
-        };
-
-        let total_tests = min(50, (test_dataset.len() as f32 * 0.1) as usize);
-        let mut success = 0;
-        debug!("Validating with {} tests", total_tests);
-
-        for i in 0..total_tests {
-            let item = test_dataset.get(i).expect("failed to get item");
-            let batcher = MnistBatcher::new(device.clone());
-            let batch = batcher.batch(vec![item.clone()]);
-
-            let output = mnist_model.forward(batch.images);
-            let predicted = output.argmax(1).flatten::<1>(0, 1).into_scalar();
-            if predicted.elem::<u8>() == item.label {
-                success += 1;
-            }
-        }
-        (success as f32 / total_tests as f32) * 100.0
     }
 }

@@ -150,10 +150,10 @@ pub struct MnistModel<B: Backend> {
 
 impl<B: Backend> MnistModel<B> {
     pub(crate) fn do_fedavg(
-        mut global_model: MnistModel<B>,
+        global_model: &mut MnistModel<B>,
         other_models: Vec<MnistModel<B>>,
         device: &B::Device,
-    ) -> MnistModel<B> {
+    ) {
         let mut linear_weights = other_models
             .iter()
             .map(|model| model.linear1.weight.val())
@@ -188,7 +188,6 @@ impl<B: Backend> MnistModel<B> {
             .collect();
         avg_conv_tensor = Self::get_average_tensor(conv_weights);
         global_model.conv3.conv.weight = Param::from_data(avg_conv_tensor.into_data(), device);
-        global_model
     }
 
     fn get_average_tensor<const D: usize>(weights: Vec<Tensor<B, D>>) -> Tensor<B, D> {
@@ -249,14 +248,14 @@ impl<B: Backend> ValidStep<MnistBatch<B>, ClassificationOutput<B>> for MnistMode
 
 pub fn mnist_train<B: AutodiffBackend>(
     output_path: PathBuf,
-    config: MnistTrainingConfig,
+    config: &MnistTrainingConfig,
     test_data: MnistFlDataset,
     train_data: MnistFlDataset,
     current_model: MnistModel<B>,
     device: B::Device,
-) -> ModelType<B> {
-    let batcher_train = MnistBatcher::<B>::new(device.clone());
-    let batcher_valid = MnistBatcher::<B::InnerBackend>::new(device.clone());
+) -> MnistModel<B> {
+    let batcher_train = SampleBatcher::<B>::new(device.clone());
+    let batcher_valid = SampleBatcher::<B::InnerBackend>::new(device.clone());
 
     let dataloader_train = DataLoaderBuilder::new(batcher_train)
         .batch_size(config.batch_size)
@@ -283,6 +282,30 @@ pub fn mnist_train<B: AutodiffBackend>(
         .renderer(CustomRenderer {})
         .build(current_model, config.optimizer.init(), config.learning_rate);
 
-    let updated_model = learner.fit(dataloader_train, dataloader_test);
-    ModelType::Mnist(updated_model)
+    let updated_model = learner.fit(dataloader_train, dataloader_test).to_owned();
+    updated_model
+}
+
+pub(crate) fn mnist_validate<B: AutodiffBackend>(
+    mnist_model: &MnistModel<B>,
+    test_dataset: MnistFlDataset,
+    total_tests: usize,
+    device: B::Device,
+) -> f32 {
+    let mut success = 0;
+
+    // TODO: Check if this should be inside the loop
+    let batcher = SampleBatcher::new(device);
+
+    for i in 0..total_tests {
+        let item = test_dataset.get(i).expect("failed to get item");
+        let batch = batcher.batch(vec![item.clone()]);
+
+        let output = mnist_model.forward(batch.images);
+        let predicted = output.argmax(1).flatten::<1>(0, 1).into_scalar();
+        if predicted.elem::<u8>() == item.label {
+            success += 1;
+        }
+    }
+    (success as f32 / total_tests as f32) * 100.0
 }
