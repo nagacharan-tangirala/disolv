@@ -1,11 +1,9 @@
 use std::fmt::{Display, Formatter};
 
-use burn::data::dataset::Dataset;
-use burn::data::dataset::vision::MnistItem;
 use burn::prelude::Backend;
 
-use crate::models::ai::cifar::{CifarFlDataset, CifarModel};
-use crate::models::ai::mnist::{MnistFlDataset, MnistModel};
+use crate::models::ai::cifar::CifarModel;
+use crate::models::ai::mnist::MnistModel;
 
 /// A trait that represents the training state if the agent is participating in federated
 /// learning training process.
@@ -33,59 +31,6 @@ impl Display for ClientState {
 pub enum ModelType<B: Backend> {
     Mnist(MnistModel<B>),
     Cifar(CifarModel<B>),
-}
-
-#[derive(Clone, Default, Debug)]
-pub enum DatasetType {
-    #[default]
-    Empty,
-    Mnist(MnistFlDataset),
-    Cifar(CifarFlDataset),
-}
-
-impl DatasetType {
-    pub fn blank(dataset_type: &str) -> Self {
-        match dataset_type.to_lowercase().as_str() {
-            "mnist" => DatasetType::Mnist(MnistFlDataset::default()),
-            _ => unimplemented!("{} datasets are not implemented", dataset_type),
-        }
-    }
-
-    pub fn data_length(&self) -> usize {
-        match self {
-            DatasetType::Mnist(mnist) => mnist.len(),
-            _ => 0,
-        }
-    }
-    pub fn dataset_type(&self) -> &str {
-        match self {
-            DatasetType::Mnist(_) => "mnist",
-            DatasetType::Cifar(_) => "cifar",
-            DatasetType::Empty => "empty",
-        }
-    }
-
-    pub fn has_data(&self) -> bool {
-        match self {
-            DatasetType::Mnist(mnist) => !mnist.images.is_empty(),
-            DatasetType::Cifar(_) => false,
-            DatasetType::Empty => false,
-        }
-    }
-
-    pub fn append_mnist(&mut self, new_item: MnistItem) {
-        match self {
-            DatasetType::Mnist(mnist) => mnist.images.push(new_item),
-            _ => panic!("Trying to push mnist data to wrong dataset"),
-        }
-    }
-
-    pub fn clear(&mut self) {
-        match self {
-            DatasetType::Mnist(mnist) => mnist.images.clear(),
-            _ => unimplemented!("Unable to clear dataset"),
-        }
-    }
 }
 
 /// A simple enum to define test and train data types.
