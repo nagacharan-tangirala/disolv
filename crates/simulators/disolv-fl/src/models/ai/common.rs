@@ -1,10 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-use burn::prelude::Backend;
-
-use crate::models::ai::cifar::CifarModel;
-use crate::models::ai::mnist::MnistModel;
-
 /// A trait that represents the training state if the agent is participating in federated
 /// learning training process.
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq)]
@@ -25,12 +20,6 @@ impl Display for ClientState {
             ClientState::Training => write!(f, "Training"),
         }
     }
-}
-
-#[derive(Clone)]
-pub enum ModelType<B: Backend> {
-    Mnist(MnistModel<B>),
-    Cifar(CifarModel<B>),
 }
 
 /// A simple enum to define test and train data types.
