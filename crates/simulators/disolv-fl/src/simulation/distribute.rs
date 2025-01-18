@@ -6,7 +6,9 @@ use disolv_core::bucket::TimeMS;
 use disolv_core::model::{BucketModel, Model, ModelSettings};
 use disolv_models::dist::{DistParams, SeriesSampler};
 
-use crate::models::ai::common::{BatchType, DatasetType};
+use crate::models::ai::common::BatchType;
+use crate::models::data::cifar::CifarFlDataset;
+use crate::models::data::dataset::DatasetType;
 use crate::models::data::mnist::MnistFlDataset;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -78,8 +80,8 @@ impl DataDistributor {
 
     pub fn server_test_data(&mut self) -> DatasetType {
         match self {
-            DataDistributor::Uniform(uniform) => uniform.server_test_data("mnist"),
-            DataDistributor::NonIid(non_iid) => non_iid.server_test_data("mnist"),
+            DataDistributor::Uniform(uniform) => uniform.server_test_data(),
+            DataDistributor::NonIid(non_iid) => non_iid.server_test_data(),
         }
     }
 }
@@ -133,6 +135,30 @@ impl BucketModel for UniformDistributor {
                             )))
                     });
             }
+            "cifar" => {
+                let train_data = CifarFlDataset::new(BatchType::Train);
+                let mut partition_size = train_data.images.len() / self.total_clients as usize;
+                train_data
+                    .images
+                    .chunks(partition_size)
+                    .for_each(|image_chunk| {
+                        self.train_data
+                            .push(DatasetType::Cifar(CifarFlDataset::with_images(
+                                image_chunk.to_vec(),
+                            )))
+                    });
+                let test_data = CifarFlDataset::new(BatchType::Test);
+                partition_size = test_data.images.len() / self.total_clients as usize;
+                test_data
+                    .images
+                    .chunks(partition_size)
+                    .for_each(|image_chunk| {
+                        self.test_data
+                            .push(DatasetType::Cifar(CifarFlDataset::with_images(
+                                image_chunk.to_vec(),
+                            )))
+                    });
+            }
             _ => panic!("Invalid dataset type"),
         }
     }
@@ -151,9 +177,10 @@ impl UniformDistributor {
         self.test_data.pop()
     }
 
-    fn server_test_data(&mut self, dataset_type: &str) -> DatasetType {
-        match dataset_type {
+    fn server_test_data(&mut self) -> DatasetType {
+        match self.dataset_type.to_lowercase().as_str() {
             "mnist" => DatasetType::Mnist(MnistFlDataset::new(BatchType::Test)),
+            "cifar" => DatasetType::Cifar(CifarFlDataset::new(BatchType::Test)),
             _ => panic!("Invalid dataset type"),
         }
     }
@@ -188,27 +215,7 @@ impl Model for NonIidDistributor {
 
 impl BucketModel for NonIidDistributor {
     fn init(&mut self, _step: TimeMS) {
-        match self.dataset_type.to_lowercase().as_str() {
-            "mnist" => {
-                if let Some(data_skew) = &mut self.data_skew {
-                    let ratios = data_skew.sample();
-                    if ratios.len() != self.total_clients as usize {
-                        panic!("total clients should be same as data skew distribution parameters");
-                    }
-                    let mnist_chunks =
-                        MnistFlDataset::split_with_ratios(ratios.clone(), BatchType::Train);
-                    mnist_chunks
-                        .into_iter()
-                        .for_each(|dataset| self.train_data.push(DatasetType::Mnist(dataset)));
-
-                    let mnist_chunks = MnistFlDataset::split_with_ratios(ratios, BatchType::Test);
-                    mnist_chunks
-                        .into_iter()
-                        .for_each(|dataset| self.test_data.push(DatasetType::Mnist(dataset)));
-                }
-            }
-            _ => panic!("Invalid dataset type"),
-        }
+        self.apply_data_skew();
     }
 
     fn stream_data(&mut self, step: TimeMS) {}
@@ -225,10 +232,47 @@ impl NonIidDistributor {
         self.test_data.pop()
     }
 
-    fn server_test_data(&mut self, dataset_type: &str) -> DatasetType {
-        match dataset_type {
+    fn server_test_data(&mut self) -> DatasetType {
+        match self.dataset_type.to_lowercase().as_str() {
             "mnist" => DatasetType::Mnist(MnistFlDataset::new(BatchType::Test)),
+            "cifar" => DatasetType::Cifar(CifarFlDataset::new(BatchType::Test)),
             _ => panic!("Invalid dataset type"),
+        }
+    }
+
+    fn apply_data_skew(&mut self) {
+        if let Some(data_skew) = &mut self.data_skew {
+            let ratios = data_skew.sample();
+            if ratios.len() != self.total_clients as usize {
+                panic!("total clients should be same as data skew distribution parameters");
+            }
+            match self.dataset_type.to_lowercase().as_str() {
+                "mnist" => {
+                    let mnist_chunks =
+                        MnistFlDataset::split_with_ratios(ratios.clone(), BatchType::Train);
+                    mnist_chunks
+                        .into_iter()
+                        .for_each(|dataset| self.train_data.push(DatasetType::Mnist(dataset)));
+
+                    let mnist_chunks = MnistFlDataset::split_with_ratios(ratios, BatchType::Test);
+                    mnist_chunks
+                        .into_iter()
+                        .for_each(|dataset| self.test_data.push(DatasetType::Mnist(dataset)));
+                }
+                "cifar" => {
+                    let cifar_chunks =
+                        CifarFlDataset::split_with_ratios(ratios.clone(), BatchType::Train);
+                    cifar_chunks
+                        .into_iter()
+                        .for_each(|dataset| self.train_data.push(DatasetType::Cifar(dataset)));
+
+                    let mnist_chunks = CifarFlDataset::split_with_ratios(ratios, BatchType::Test);
+                    mnist_chunks
+                        .into_iter()
+                        .for_each(|dataset| self.test_data.push(DatasetType::Cifar(dataset)));
+                }
+                _ => panic!("Invalid dataset type"),
+            }
         }
     }
 }
