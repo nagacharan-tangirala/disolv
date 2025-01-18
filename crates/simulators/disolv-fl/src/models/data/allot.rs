@@ -98,6 +98,29 @@ impl TimeStrategy {
                     }
                 }
             }
+            DatasetType::Cifar(total_cifar) => {
+                let images_to_move = 1;
+
+                if self.to_clone {
+                    let mut dataset = total_cifar.clone();
+                    for _ in 0..images_to_move {
+                        let cifar_image = dataset.images.pop().expect("failed to read image");
+
+                        match allotted_data {
+                            DatasetType::Cifar(cifar) => cifar.images.push(cifar_image),
+                            _ => panic!("allotted and total datasets are mismatched"),
+                        }
+                    }
+                } else {
+                    for _ in 0..images_to_move {
+                        let cifar_image = total_cifar.images.pop().expect("failed to read image");
+                        match allotted_data {
+                            DatasetType::Cifar(cifar) => cifar.images.push(cifar_image),
+                            _ => panic!("allotted and total datasets are mismatched"),
+                        }
+                    }
+                }
+            }
             _ => unimplemented!("only mnist is valid"),
         }
     }
@@ -117,11 +140,23 @@ impl AllStrategy {
 
     pub fn allot_data(&self, allotted_data: &mut DatasetType, total_data: &mut DatasetType) {
         match total_data {
-            DatasetType::Mnist(mnist) => {
-                mnist.images.iter().for_each(|item| match allotted_data {
-                    DatasetType::Mnist(mnist) => mnist.images.push(item.to_owned()),
-                    _ => panic!("Total and allotted datasets are mismatched"),
-                });
+            DatasetType::Mnist(mnist_total) => {
+                mnist_total
+                    .images
+                    .iter()
+                    .for_each(|item| match allotted_data {
+                        DatasetType::Mnist(mnist) => mnist.images.push(item.to_owned()),
+                        _ => panic!("Total and allotted datasets are mismatched"),
+                    });
+            }
+            DatasetType::Cifar(cifar_total) => {
+                cifar_total
+                    .images
+                    .iter()
+                    .for_each(|item| match allotted_data {
+                        DatasetType::Cifar(cifar) => cifar.images.push(item.to_owned()),
+                        _ => panic!("Total and allotted datasets are mismatched"),
+                    });
             }
             _ => unimplemented!("only mnist is valid"),
         }
