@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
 use burn::config::Config;
+use burn::data::dataloader::batcher::Batcher;
 use burn::data::dataloader::DataLoaderBuilder;
+use burn::data::dataset::Dataset;
 use burn::module::{Module, Param};
 use burn::nn::{Dropout, DropoutConfig, Gelu, Linear, LinearConfig, PaddingConfig2d, Relu};
 use burn::nn::conv::{Conv2d, Conv2dConfig};
@@ -10,7 +12,7 @@ use burn::nn::pool::{MaxPool2d, MaxPool2dConfig};
 use burn::optim::AdamConfig;
 use burn::prelude::Backend;
 use burn::record::CompactRecorder;
-use burn::tensor::{Int, Tensor};
+use burn::tensor::{ElementConversion, Int, Tensor};
 use burn::tensor::backend::AutodiffBackend;
 use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, ValidStep};
 use burn::train::metric::{AccuracyMetric, LossMetric};
@@ -20,10 +22,8 @@ use typed_builder::TypedBuilder;
 
 use disolv_core::model::{Model, ModelSettings};
 
-use crate::models::ai::mnist::{MnistModel, MnistTrainingConfig};
-use crate::models::data::cifar::CifarFlDataset;
-use crate::models::data::dataset::SampleBatcher;
-use crate::models::data::mnist::{MnistBatch, MnistFlDataset};
+use crate::models::data::cifar::{CifarBatch, CifarBatcher, CifarFlDataset, CifarItem, Normalizer};
+use crate::models::data::mnist::MnistFlDataset;
 use crate::simulation::render::CustomRenderer;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -34,7 +34,6 @@ pub struct CifarHyperParameters {
     pub seed: Option<u64>,
     pub learning_rate: Option<f64>,
     pub num_classes: usize,
-    pub hidden_size: usize,
     pub drop_out: f64,
 }
 
@@ -272,31 +271,30 @@ impl<B: Backend> CifarModel<B> {
     }
 }
 
-impl<B: AutodiffBackend> TrainStep<ClassificationBatch<B>, ClassificationOutput<B>>
-    for CifarModel<B>
-{
-    fn step(&self, batch: ClassificationBatch<B>) -> TrainOutput<ClassificationOutput<B>> {
+impl<B: AutodiffBackend> TrainStep<CifarBatch<B>, ClassificationOutput<B>> for CifarModel<B> {
+    fn step(&self, batch: CifarBatch<B>) -> TrainOutput<ClassificationOutput<B>> {
         let item = self.forward_classification(batch.images, batch.targets);
         TrainOutput::new(self, item.loss.backward(), item)
     }
 }
 
-impl<B: Backend> ValidStep<ClassificationBatch<B>, ClassificationOutput<B>> for CifarModel<B> {
-    fn step(&self, batch: ClassificationBatch<B>) -> ClassificationOutput<B> {
+impl<B: Backend> ValidStep<CifarBatch<B>, ClassificationOutput<B>> for CifarModel<B> {
+    fn step(&self, batch: CifarBatch<B>) -> ClassificationOutput<B> {
         self.forward_classification(batch.images, batch.targets)
     }
 }
 
 pub fn cifar_train<B: AutodiffBackend>(
     output_path: PathBuf,
-    config: CifarTrainingConfig,
+    config: &CifarTrainingConfig,
     test_data: CifarFlDataset,
     train_data: CifarFlDataset,
     current_model: CifarModel<B>,
     device: B::Device,
 ) -> CifarModel<B> {
-    let batcher_train = SampleBatcher::<B>::new(device.clone());
-    let batcher_valid = SampleBatcher::<B::InnerBackend>::new(device.clone());
+    let batcher_train = CifarBatcher::<B>::new(device.clone(), Normalizer::new(&device.clone()));
+    let batcher_valid =
+        CifarBatcher::<B::InnerBackend>::new(device.clone(), Normalizer::new(&device.clone()));
 
     let dataloader_train = DataLoaderBuilder::new(batcher_train)
         .batch_size(config.batch_size)
@@ -324,4 +322,29 @@ pub fn cifar_train<B: AutodiffBackend>(
         .build(current_model, config.optimizer.init(), config.learning_rate);
 
     learner.fit(dataloader_train, dataloader_test)
+}
+
+pub fn cifar_validate<B: Backend>(
+    cifar_model: &CifarModel<B>,
+    test_dataset: CifarFlDataset,
+    total_tests: usize,
+    device: B::Device,
+) -> f32 {
+    let mut success = 0;
+
+    let normalizer = Normalizer::new(&device);
+    let batcher = CifarBatcher::new(device, normalizer);
+
+    for i in 0..total_tests {
+        let item = test_dataset.get(i).expect("failed to get item");
+        let expected = item.label();
+        let batch = batcher.batch(vec![item]);
+
+        let output = cifar_model.forward(batch.images);
+        let predicted = output.argmax(1).flatten::<1>(0, 1).into_scalar();
+        if predicted.elem::<u8>() == expected {
+            success += 1;
+        }
+    }
+    (success as f32 / total_tests as f32) * 100.0
 }
