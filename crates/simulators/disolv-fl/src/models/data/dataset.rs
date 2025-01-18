@@ -1,21 +1,7 @@
 use burn::data::dataset::Dataset;
-use burn::data::dataset::vision::MnistItem;
-use burn::prelude::Backend;
-use typed_builder::TypedBuilder;
 
 use crate::models::data::cifar::CifarFlDataset;
 use crate::models::data::mnist::MnistFlDataset;
-
-#[derive(Clone, TypedBuilder)]
-pub struct SampleBatcher<B: Backend> {
-    pub device: B::Device,
-}
-
-impl<B: Backend> SampleBatcher<B> {
-    pub fn new(device: B::Device) -> Self {
-        Self { device }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub enum DatasetType {
@@ -35,7 +21,7 @@ impl DatasetType {
     pub fn data_length(&self) -> usize {
         match self {
             DatasetType::Mnist(mnist) => mnist.len(),
-            _ => 0,
+            DatasetType::Cifar(cifar) => cifar.len(),
         }
     }
     pub fn dataset_type(&self) -> &str {
@@ -48,14 +34,14 @@ impl DatasetType {
     pub fn has_data(&self) -> bool {
         match self {
             DatasetType::Mnist(mnist) => !mnist.images.is_empty(),
-            DatasetType::Cifar(_) => false,
+            DatasetType::Cifar(cifar) => !cifar.images.is_empty(),
         }
     }
 
     pub fn clear(&mut self) {
         match self {
             DatasetType::Mnist(mnist) => mnist.images.clear(),
-            _ => unimplemented!("Unable to clear dataset"),
+            DatasetType::Cifar(cifar) => cifar.images.clear(),
         }
     }
 }
