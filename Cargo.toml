@@ -34,6 +34,8 @@ toml = "0.8.19"
 uuid = "1.11.0"
 quick-xml = "0.37.2"
 proj = "0.28.0"
+image = "0.25.5"
+rusqlite = "0.32.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
