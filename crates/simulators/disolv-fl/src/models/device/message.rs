@@ -1,4 +1,4 @@
-use std::fmt::{Display, write};
+use std::fmt::{write, Display};
 
 use serde::Deserialize;
 use typed_builder::TypedBuilder;

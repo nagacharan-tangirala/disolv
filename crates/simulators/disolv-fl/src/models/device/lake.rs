@@ -4,7 +4,7 @@ use hashbrown::HashMap;
 use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 
-use crate::models::ai::common::ModelType;
+use crate::models::ai::model::ModelType;
 
 pub(crate) struct ModelLake<B: Backend> {
     pub(crate) global_model: Option<ModelType<B>>,

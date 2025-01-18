@@ -1,11 +1,11 @@
+use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::widgets::{Borders, Gauge};
 use ratatui::{
-    Frame,
     layout::Alignment,
     style::{Color, Modifier, Style},
     widgets::{Block, BorderType, Paragraph},
+    Frame,
 };
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::widgets::{Borders, Gauge};
 
 use disolv_output::ui::{Renderer, SimContent};
 

@@ -8,8 +8,8 @@ use disolv_core::agent::AgentId;
 use disolv_core::bucket::TimeMS;
 use disolv_core::model::BucketModel;
 use disolv_input::mobility::{MapReader, TraceMap};
-use disolv_models::device::mobility::{MapState, MobilityType, Point2D};
 use disolv_models::device::mobility::cell::CellId;
+use disolv_models::device::mobility::{MapState, MobilityType, Point2D};
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct GeoMap {

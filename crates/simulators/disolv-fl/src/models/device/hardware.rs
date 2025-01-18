@@ -2,8 +2,8 @@ use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
 use disolv_core::message::Metadata;
-use disolv_core::metrics::{Bytes, Consumable, Feasibility, MetricSettings, Resource};
 use disolv_core::metrics::Feasibility::{Feasible, Infeasible};
+use disolv_core::metrics::{Bytes, Consumable, Feasibility, MetricSettings, Resource};
 use disolv_core::model::{Model, ModelSettings};
 use disolv_models::device::metrics::MegaHertz;
 use disolv_models::dist::{DistParams, UnitSampler};

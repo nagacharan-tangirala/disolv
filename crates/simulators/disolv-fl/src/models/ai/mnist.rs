@@ -2,30 +2,29 @@ use std::cmp::min;
 use std::path::PathBuf;
 
 use burn::config::Config;
-use burn::data::dataloader::{DataLoaderBuilder, Dataset};
 use burn::data::dataloader::batcher::Batcher;
+use burn::data::dataloader::{DataLoaderBuilder, Dataset};
 use burn::data::dataset::vision::{MnistDataset, MnistItem};
 use burn::module::{Module, Param};
+use burn::nn::conv::{Conv2d, Conv2dConfig};
+use burn::nn::loss::CrossEntropyLossConfig;
 use burn::nn::{
     BatchNorm, BatchNormConfig, Dropout, DropoutConfig, Gelu, Linear, LinearConfig, PaddingConfig2d,
 };
-use burn::nn::conv::{Conv2d, Conv2dConfig};
-use burn::nn::loss::CrossEntropyLossConfig;
 use burn::optim::AdamConfig;
 use burn::prelude::{Backend, Tensor, TensorData};
 use burn::record::CompactRecorder;
-use burn::tensor::{ElementConversion, Int};
 use burn::tensor::backend::AutodiffBackend;
-use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, ValidStep};
+use burn::tensor::{ElementConversion, Int};
 use burn::train::metric::{AccuracyMetric, LossMetric};
+use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, ValidStep};
 use log::debug;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
 use disolv_core::model::{Model, ModelSettings};
 
-use crate::models::data::dataset::SampleBatcher;
-use crate::models::data::mnist::{MnistBatch, MnistFlDataset};
+use crate::models::data::mnist::{MnistBatch, MnistBatcher, MnistFlDataset};
 use crate::simulation::render::CustomRenderer;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -254,8 +253,8 @@ pub fn mnist_train<B: AutodiffBackend>(
     current_model: MnistModel<B>,
     device: B::Device,
 ) -> MnistModel<B> {
-    let batcher_train = SampleBatcher::<B>::new(device.clone());
-    let batcher_valid = SampleBatcher::<B::InnerBackend>::new(device.clone());
+    let batcher_train = MnistBatcher::<B>::new(device.clone());
+    let batcher_valid = MnistBatcher::<B::InnerBackend>::new(device.clone());
 
     let dataloader_train = DataLoaderBuilder::new(batcher_train)
         .batch_size(config.batch_size)
@@ -295,7 +294,7 @@ pub(crate) fn mnist_validate<B: AutodiffBackend>(
     let mut success = 0;
 
     // TODO: Check if this should be inside the loop
-    let batcher = SampleBatcher::new(device);
+    let batcher = MnistBatcher::new(device);
 
     for i in 0..total_tests {
         let item = test_dataset.get(i).expect("failed to get item");

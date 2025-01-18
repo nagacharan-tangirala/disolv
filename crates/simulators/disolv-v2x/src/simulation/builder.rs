@@ -10,7 +10,7 @@ use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::model::Model;
 use disolv_core::scheduler::DefaultScheduler;
 use disolv_input::links::LinkReader;
-use disolv_input::power::{PowerTimes, read_power_schedule};
+use disolv_input::power::{read_power_schedule, PowerTimes};
 use disolv_models::device::actor::Actor;
 use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;

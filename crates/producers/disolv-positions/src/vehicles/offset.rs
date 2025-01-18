@@ -2,8 +2,8 @@ use std::fs::File;
 use std::io::BufReader;
 use std::str::FromStr;
 
-use quick_xml::{Reader, Writer};
 use quick_xml::events::Event;
+use quick_xml::{Reader, Writer};
 use typed_builder::TypedBuilder;
 
 #[derive(Copy, Clone, Default, TypedBuilder)]
