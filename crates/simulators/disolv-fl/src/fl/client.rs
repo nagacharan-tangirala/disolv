@@ -42,19 +42,16 @@ pub(crate) struct Client<B: AutodiffBackend> {
 impl<B: AutodiffBackend> Client<B> {
     pub(crate) fn init(&mut self, bucket: &mut FlBucket<B>) {
         self.step = bucket.step;
-        self.fl_models.trainer.train_data = bucket
+        let train_data = bucket
             .training_data_for(self.client_info.id)
             .expect("no training data set for this agent");
-        self.fl_models.trainer.test_data = bucket
+        let test_data = bucket
             .testing_data_for(self.client_info.id)
-            .expect("no test data set for this agent");
+            .expect("no testing data set for this agent");
 
-        self.fl_models
-            .holder
-            .set_train_data(self.fl_models.trainer.train_data.to_owned());
-        self.fl_models
-            .holder
-            .set_test_data(self.fl_models.trainer.test_data.to_owned());
+        self.fl_models.holder.set_train_data(train_data);
+        self.fl_models.holder.set_test_data(test_data);
+
         self.client_state = ClientState::Sensing;
         self.write_state_update(bucket);
     }
@@ -156,20 +153,22 @@ impl<B: AutodiffBackend> Client<B> {
 
     fn initiate_training(&mut self, bucket: &mut FlBucket<B>) {
         self.client_state = ClientState::Training;
-        self.fl_models.trainer.train_data = self.fl_models.holder.allotted_train_data();
-        self.fl_models.trainer.test_data = self.fl_models.holder.allotted_test_data();
+        let train_data = self.fl_models.holder.allotted_train_data();
+        let test_data = self.fl_models.holder.allotted_test_data();
 
-        let train_data = FlTrainingData::builder()
+        let train_stats = FlTrainingData::builder()
             .agent_id(self.client_info.id.as_u64())
-            .train_len(self.fl_models.trainer.train_data.data_length() as u32)
-            .test_len(self.fl_models.trainer.test_data.data_length() as u32)
+            .train_len(train_data.data_length() as u32)
+            .test_len(test_data.data_length() as u32)
             .build();
 
         if let Some(writer) = &mut bucket.models.results.train {
-            writer.add_data(self.step, train_data);
+            writer.add_data(self.step, train_stats);
         }
 
-        self.fl_models.trainer.train(&bucket.models.device);
+        self.fl_models
+            .trainer
+            .train(&bucket.models.device, train_data, test_data);
         self.fl_models.trainer.save_model_to_file(self.step);
 
         self.message_draft = FlMessageDraft::builder()
@@ -191,7 +190,11 @@ impl<B: AutodiffBackend> Client<B> {
         let mut accuracy = -1.0;
 
         if self.is_training_complete() {
-            accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
+            let test_data = self.fl_models.holder.allotted_test_data();
+            accuracy = self
+                .fl_models
+                .trainer
+                .test_model(&bucket.models.device, test_data);
             self.upload_local_model(bucket);
             direction = ModelDirection::Sent;
             status = TrainingStatus::Success;

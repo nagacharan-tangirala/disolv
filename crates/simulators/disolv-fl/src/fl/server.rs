@@ -14,6 +14,7 @@ use crate::fl::device::DeviceInfo;
 use crate::models::ai::aggregate::Aggregator;
 use crate::models::ai::common::{ModelDirection, ModelLevel};
 use crate::models::ai::compose::FlMessageDraft;
+use crate::models::ai::model::ModelType;
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
 use crate::models::ai::trainer::Trainer;
@@ -68,11 +69,12 @@ impl<B: AutodiffBackend> Server<B> {
             .times
             .update_time(self.step, self.server_state);
 
-        self.fl_models.trainer.test_data = bucket.models.data_distributor.server_test_data();
+        let test_data = match &self.fl_models.trainer.model {
+            ModelType::Mnist(_) => bucket.models.data_distributor.server_test_data(),
+            ModelType::Cifar(_) => bucket.models.data_distributor.server_test_data(),
+        };
 
-        self.fl_models
-            .holder
-            .set_test_data(self.fl_models.trainer.test_data.to_owned());
+        self.fl_models.holder.set_test_data(test_data);
 
         self.fl_models.holder.allot_data(self.step);
         bucket.models.model_lake.global_model = Some(self.fl_models.trainer.model.clone());
@@ -293,9 +295,12 @@ impl<B: AutodiffBackend> Server<B> {
             .aggregate(&mut self.fl_models.trainer.model, &bucket.models.device);
 
         self.fl_models.holder.allot_data(self.step);
-        self.fl_models.trainer.test_data = self.fl_models.holder.allotted_test_data();
+        let test_data = self.fl_models.holder.allotted_test_data();
 
-        let model_accuracy = self.fl_models.trainer.test_model(&bucket.models.device);
+        let model_accuracy = self
+            .fl_models
+            .trainer
+            .test_model(&bucket.models.device, test_data);
 
         bucket
             .models
