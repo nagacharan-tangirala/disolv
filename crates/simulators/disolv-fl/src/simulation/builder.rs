@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use burn::backend::{Autodiff, Wgpu};
 use burn::backend::wgpu::WgpuDevice;
+use burn::backend::{Autodiff, Wgpu};
 use hashbrown::HashMap;
 use log::info;
 
@@ -11,7 +11,7 @@ use disolv_core::metrics::Measurable;
 use disolv_core::model::Model;
 use disolv_core::scheduler::DefaultScheduler;
 use disolv_input::links::LinkReader;
-use disolv_input::power::{PowerTimes, read_power_schedule};
+use disolv_input::power::{read_power_schedule, PowerTimes};
 use disolv_models::device::actor::Actor;
 use disolv_models::device::directions::Directions;
 use disolv_models::device::flow::FlowRegister;
@@ -27,12 +27,13 @@ use crate::fl::client::{Client, ClientModels};
 use crate::fl::device::{Device, DeviceInfo, DeviceModels};
 use crate::fl::server::{FlServerModels, Server};
 use crate::models::ai::aggregate::Aggregator;
-use crate::models::ai::common::ModelType;
+use crate::models::ai::cifar::{CifarModelConfig, CifarTrainingConfig};
 use crate::models::ai::compose::FlComposer;
 use crate::models::ai::mnist::{MnistModelConfig, MnistTrainingConfig};
+use crate::models::ai::model::ModelType;
 use crate::models::ai::select::ClientSelector;
 use crate::models::ai::times::ServerTimes;
-use crate::models::ai::trainer::{Trainer, TrainerSettings};
+use crate::models::ai::trainer::{Trainer, TrainerSettings, TrainingConfig};
 use crate::models::data::allot::DataHolder;
 use crate::models::device::energy::EnergyType;
 use crate::models::device::hardware::Hardware;
@@ -347,7 +348,26 @@ impl SimulationBuilder {
                     .model(ModelType::Mnist(
                         mnist_model_config.init(&self.default_device),
                     ))
-                    .config(train_config)
+                    .config(TrainingConfig::MnistTrain(train_config))
+                    .build()
+            }
+            "cifar" => {
+                let cifar_settings = trainer_settings
+                    .cifar_hyper_parameters
+                    .as_ref()
+                    .expect("cifar settings missing from the config file");
+
+                let train_config = CifarTrainingConfig::with_settings(cifar_settings);
+                let cifar_model_config = CifarModelConfig::new(cifar_settings.num_classes)
+                    .with_drop_out(cifar_settings.drop_out);
+
+                Trainer::builder()
+                    .no_of_weights(trainer_settings.no_of_weights)
+                    .output_path(output_path)
+                    .model(ModelType::Cifar(
+                        cifar_model_config.init(&self.default_device),
+                    ))
+                    .config(TrainingConfig::CifarTrain(train_config))
                     .build()
             }
             _ => panic!("Only mnist model is supported"),
