@@ -5,7 +5,7 @@ use burn::data::dataloader::batcher::Batcher;
 use burn::data::dataloader::DataLoaderBuilder;
 use burn::data::dataset::Dataset;
 use burn::module::{Module, Param};
-use burn::nn::{Dropout, DropoutConfig, Gelu, Linear, LinearConfig, PaddingConfig2d, Relu};
+use burn::nn::{Dropout, DropoutConfig, Linear, LinearConfig, PaddingConfig2d, Relu};
 use burn::nn::conv::{Conv2d, Conv2dConfig};
 use burn::nn::loss::CrossEntropyLossConfig;
 use burn::nn::pool::{MaxPool2d, MaxPool2dConfig};
@@ -23,7 +23,6 @@ use typed_builder::TypedBuilder;
 use disolv_core::model::{Model, ModelSettings};
 
 use crate::models::data::cifar::{CifarBatch, CifarBatcher, CifarFlDataset, CifarItem, Normalizer};
-use crate::models::data::mnist::MnistFlDataset;
 use crate::simulation::render::CustomRenderer;
 
 #[derive(Clone, Debug, Deserialize)]

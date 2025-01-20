@@ -2,6 +2,7 @@ pub(crate) mod aggregate;
 pub(crate) mod cifar;
 pub(crate) mod common;
 pub(crate) mod compose;
+mod filter;
 pub(crate) mod mnist;
 pub(crate) mod model;
 pub(crate) mod select;

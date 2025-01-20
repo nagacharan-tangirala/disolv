@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
 use burn::data::dataloader::batcher::Batcher;
-use burn::data::dataset::{Dataset, HuggingfaceDatasetLoader};
 use burn::data::dataset::vision::PixelDepth;
+use burn::data::dataset::{Dataset, HuggingfaceDatasetLoader};
 use burn::prelude::Backend;
 use burn::tensor::{Device, ElementConversion, Int, Shape, Tensor, TensorData};
-use image::{ColorType, DynamicImage, load_from_memory};
+use image::{load_from_memory, ColorType, DynamicImage};
 use rusqlite::Connection;
 
 use crate::models::ai::common::BatchType;

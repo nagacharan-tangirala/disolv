@@ -210,7 +210,7 @@ impl<B: AutodiffBackend> Server<B> {
                     let select_data = ClientSelectData::builder()
                         .server_id(self.server_info.id.as_u64())
                         .available(self.fl_models.client_selector.registered_count() as u32)
-                        .selected(selected_clients.len() as u32)
+                        .selected(self.fl_models.client_selector.selected_as_string())
                         .build();
                     writer.add_data(self.step, select_data);
                 }

@@ -422,6 +422,7 @@ impl SimulationBuilder {
             .agent_type(device_type.to_owned())
             .agent_class(class_settings.agent_class)
             .agent_order(class_settings.agent_order)
+            .dynamic_info(None)
             .build()
     }
 
