@@ -178,7 +178,8 @@ impl LocationStrategy {
 #[derive(Clone, Debug, Deserialize)]
 pub struct DataHolderSettings {
     dataset_name: String,
-    strategy: DataStrategySettings,
+    train_strategy: DataStrategySettings,
+    test_strategy: DataStrategySettings,
 }
 
 impl ModelSettings for DataHolderSettings {}
@@ -189,20 +190,23 @@ pub struct DataHolder {
     allotted_train: DatasetType,
     usable_test: DatasetType,
     usable_train: DatasetType,
-    strategy: DataStrategy,
+    train_strategy: DataStrategy,
+    test_strategy: DataStrategy,
 }
 
 impl Model for DataHolder {
     type Settings = DataHolderSettings;
 
     fn with_settings(settings: &Self::Settings) -> Self {
-        let strategy = DataStrategy::with_settings(&settings.strategy);
+        let train_strategy = DataStrategy::with_settings(&settings.train_strategy);
+        let test_strategy = DataStrategy::with_settings(&settings.test_strategy);
         Self {
             allotted_test: DatasetType::from_str(&settings.dataset_name),
             allotted_train: DatasetType::from_str(&settings.dataset_name),
             usable_test: DatasetType::from_str(&settings.dataset_name),
             usable_train: DatasetType::from_str(&settings.dataset_name),
-            strategy,
+            train_strategy,
+            test_strategy,
         }
     }
 }
@@ -220,11 +224,11 @@ impl DataHolder {
 
     pub fn allot_data(&mut self, step: TimeMS) {
         if self.usable_train.has_data() {
-            self.strategy
+            self.train_strategy
                 .allot_data(&mut self.allotted_train, &mut self.usable_train, step);
         }
         if self.usable_test.has_data() {
-            self.strategy
+            self.test_strategy
                 .allot_data(&mut self.allotted_test, &mut self.usable_test, step);
         }
     }
