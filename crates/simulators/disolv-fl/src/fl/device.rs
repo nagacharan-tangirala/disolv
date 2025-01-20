@@ -27,11 +27,33 @@ use disolv_output::tables::tx::TxData;
 
 use crate::fl::agent::FAgent;
 use crate::fl::bucket::FlBucket;
+use crate::models::ai::common::ClientState;
 use crate::models::ai::compose::FlComposer;
 use crate::models::device::energy::EnergyType;
 use crate::models::device::hardware::Hardware;
 use crate::models::device::link::LinkSelector;
 use crate::models::device::message::{FlPayload, FlPayloadInfo, Message, MessageType, MessageUnit};
+
+#[derive(Clone, Copy, Debug, TypedBuilder)]
+pub struct DynamicInfo {
+    pub(crate) active_since: TimeMS,
+    pub(crate) remaining_period: TimeMS,
+    #[builder(default)]
+    pub(crate) cpu: MegaHertz,
+    #[builder(default)]
+    pub(crate) memory: Bytes,
+    #[builder(default)]
+    pub(crate) bandwidth: Bandwidth,
+}
+
+impl DynamicInfo {
+    pub fn new(power: &PowerManager, hardware: &Hardware) -> Self {
+        DynamicInfo::builder()
+            .active_since(power.on_since)
+            .remaining_period(power.peek_time_to_off())
+            .build()
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, TypedBuilder)]
 pub(crate) struct DeviceInfo {
@@ -39,12 +61,7 @@ pub(crate) struct DeviceInfo {
     pub(crate) agent_type: AgentKind,
     pub(crate) agent_class: AgentClass,
     pub(crate) agent_order: AgentOrder,
-    #[builder(default)]
-    pub(crate) cpu: MegaHertz,
-    #[builder(default)]
-    pub(crate) memory: Bytes,
-    #[builder(default)]
-    pub(crate) bandwidth: Bandwidth,
+    pub(crate) dynamic_info: Option<DynamicInfo>,
 }
 
 impl AgentProperties for DeviceInfo {
@@ -227,6 +244,12 @@ impl<B: AutodiffBackend> Activatable<FlBucket<B>> for Device<B> {
     fn activate(&mut self, bucket: &mut FlBucket<B>) {
         trace!("Starting agent: {}", self.device_info.id);
         self.power_state = PowerState::On;
+        self.step = bucket.step;
+
+        if let Some(writer) = &mut bucket.models.results.power {
+            writer.add_data(self.step, self.device_info.id, self.power_state.to_string());
+        }
+
         bucket.update_agent_data_of(self.device_info.id, self.device_info);
         self.fl_agent.init(bucket);
     }
@@ -371,6 +394,8 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Device<B> {
     fn stage_one(&mut self, bucket: &mut FlBucket<B>) {
         self.step = bucket.step;
         self.fl_agent.update_step(self.step);
+        self.device_info.dynamic_info =
+            Some(DynamicInfo::new(&self.models.power, &self.models.hardware));
         self.set_mobility(bucket);
 
         bucket.update_stats_of(self.device_info.id, self.stats);
@@ -449,6 +474,9 @@ impl<B: AutodiffBackend> Agent<FlBucket<B>> for Device<B> {
 
         if self.step == self.models.power.peek_time_to_off() {
             self.power_state = PowerState::Off;
+            if let Some(writer) = &mut bucket.models.results.power {
+                writer.add_data(self.step, self.device_info.id, self.power_state.to_string());
+            }
         }
     }
 
