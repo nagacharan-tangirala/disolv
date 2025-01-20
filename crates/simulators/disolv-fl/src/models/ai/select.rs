@@ -1,136 +1,90 @@
-use std::cmp::max;
+use std::ops::Add;
 
-use hashbrown::{HashMap, HashSet};
-use rand::seq::IteratorRandom;
+use hashbrown::HashMap;
 use serde::Deserialize;
 
 use disolv_core::agent::AgentId;
 use disolv_core::model::{Model, ModelSettings};
 
 use crate::fl::device::DeviceInfo;
+use crate::models::ai::filter::{ClientFilter, ClientFilterSettings};
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub(crate) struct ClientSelectionSettings {
-    pub(crate) c: f64,
-    pub(crate) sample_size: f64,
-    pub(crate) variant: String,
+    pub(crate) filter_1_settings: Option<ClientFilterSettings>,
+    pub(crate) filter_2_settings: Option<ClientFilterSettings>,
 }
 
 impl ModelSettings for ClientSelectionSettings {}
 
 #[derive(Debug, Clone)]
-pub(crate) enum ClientSelector {
-    Random(RandomClients),
+pub(crate) struct ClientSelector {
+    all_clients: HashMap<AgentId, DeviceInfo>,
+    pub(crate) selected_clients: Vec<AgentId>,
+    pub(crate) filter_1: ClientFilter,
+    pub(crate) filter_2: ClientFilter,
 }
 
 impl Model for ClientSelector {
     type Settings = ClientSelectionSettings;
 
     fn with_settings(settings: &Self::Settings) -> Self {
-        match settings.variant.to_lowercase().as_str() {
-            "random" => ClientSelector::Random(RandomClients::new(settings)),
-            _ => panic!("Invalid client selector. Only random supported."),
+        let filter_1 = match &settings.filter_1_settings {
+            Some(val) => ClientFilter::with_settings(val),
+            None => ClientFilter::NoFilter,
+        };
+        let filter_2 = match &settings.filter_2_settings {
+            Some(val) => ClientFilter::with_settings(val),
+            None => ClientFilter::NoFilter,
+        };
+        Self {
+            all_clients: HashMap::new(),
+            selected_clients: Vec::new(),
+            filter_1,
+            filter_2,
         }
     }
 }
 
 impl ClientSelector {
     pub(crate) fn do_selection(&mut self) {
-        match self {
-            ClientSelector::Random(selector) => selector.select_clients(),
-        }
+        let filtered_clients = self.filter_1.filter_clients(&self.all_clients);
+        let feasible_clients = self.filter_2.filter_clients(&filtered_clients);
+
+        self.selected_clients = feasible_clients.clone().into_keys().collect();
+
+        self.filter_1.update_used_clients(&self.selected_clients);
+        self.filter_2.update_used_clients(&self.selected_clients);
     }
 
     pub(crate) fn selected_clients(&self) -> &Vec<AgentId> {
-        match self {
-            ClientSelector::Random(selector) => &selector.selected_clients,
-        }
+        &self.selected_clients
+    }
+
+    pub(crate) fn selected_as_string(&self) -> String {
+        let mut clients = String::new();
+        clients.push('|');
+        self.selected_clients.iter().for_each(|client| {
+            clients.push_str(client.to_string().as_str());
+            clients.push('|');
+        });
+        return clients;
     }
 
     pub(crate) fn register_client(&mut self, client_info: &DeviceInfo) {
-        match self {
-            ClientSelector::Random(selector) => selector.register_client(client_info),
-        }
-    }
-
-    pub(crate) fn clear_states(&mut self) {
-        match self {
-            ClientSelector::Random(selector) => selector.clear_states(),
-        }
-    }
-
-    pub(crate) fn registered_count(&self) -> usize {
-        match self {
-            ClientSelector::Random(selector) => selector.all_clients.len(),
-        }
-    }
-
-    pub(crate) fn has_clients(&self) -> bool {
-        match self {
-            ClientSelector::Random(selector) => !selector.all_clients.is_empty(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct RandomClients {
-    pub(crate) c: f64,
-    pub(crate) sample_size: f64,
-    all_clients: HashMap<AgentId, DeviceInfo>,
-    pub(crate) selected_clients: Vec<AgentId>,
-    pub(crate) used_clients: HashSet<AgentId>,
-}
-
-impl RandomClients {
-    fn new(settings: &ClientSelectionSettings) -> Self {
-        Self {
-            c: settings.c,
-            sample_size: settings.sample_size,
-            all_clients: HashMap::new(),
-            selected_clients: Vec::new(),
-            used_clients: HashSet::new(),
-        }
-    }
-}
-
-impl RandomClients {
-    fn register_client(&mut self, client_info: &DeviceInfo) {
         self.all_clients
             .insert(client_info.id, client_info.to_owned());
     }
 
-    fn clear_states(&mut self) {
-        self.all_clients.clear();
+    pub(crate) fn clear_states(&mut self) {
+        self.all_clients.clear()
     }
 
-    fn select_clients(&mut self) {
-        let mut rng = rand::thread_rng();
-        if self.all_clients.is_empty() {
-            panic!("No client registered, cannot select clients");
-        }
-        let client_count = max(
-            1,
-            (self.all_clients.len() as f64 * self.sample_size).ceil() as usize,
-        );
+    pub(crate) fn registered_count(&self) -> usize {
+        self.all_clients.len()
+    }
 
-        let mut feasible_clients = Vec::new();
-        self.all_clients.keys().clone().for_each(|key| {
-            if !self.used_clients.contains(key) {
-                feasible_clients.push(*key);
-            }
-        });
-
-        self.selected_clients = feasible_clients
-            .iter()
-            .choose_multiple(&mut rng, client_count)
-            .into_iter()
-            .map(|x| x.to_owned())
-            .collect();
-
-        self.selected_clients.iter().for_each(|x| {
-            if !self.used_clients.contains(x) {
-                self.used_clients.insert(x.to_owned());
-            }
-        });
+    pub(crate) fn has_clients(&self) -> bool {
+        !self.all_clients.is_empty()
     }
 }
