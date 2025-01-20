@@ -10,7 +10,9 @@ use crate::tables::model::ModelTrace;
 use crate::tables::net::NetStatWriter;
 use crate::tables::payload::PayloadTraceWriter;
 use crate::tables::position::PositionWriter;
+use crate::tables::power::PowerTrace;
 use crate::tables::rx::RxCountWriter;
+use crate::tables::select::ClientSelectTrace;
 use crate::tables::state::StateTrace;
 use crate::tables::train::FlTrainingTrace;
 use crate::tables::tx::TxDataWriter;
@@ -20,11 +22,13 @@ pub enum OutputType {
     RxCounts,
     TxStats,
     AgentPos,
+    Power,
     NetStat,
     FlState,
     FlModel,
     FlPayloadTx,
     FlTraining,
+    FlSelection,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -32,7 +36,7 @@ pub struct OutputSettings {
     pub output_interval: TimeMS,
     pub output_path: String,
     pub outputs: Vec<Outputs>,
-    pub scenario_id: u32,
+    pub scenario_id: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -49,6 +53,7 @@ pub trait ResultWriter {
 #[derive(Debug)]
 pub struct Results {
     pub positions: Option<PositionWriter>,
+    pub power: Option<PowerTrace>,
     pub rx_counts: Option<RxCountWriter>,
     pub net_stats: Option<NetStatWriter>,
     pub tx_data: Option<TxDataWriter>,
@@ -56,12 +61,13 @@ pub struct Results {
     pub model: Option<ModelTrace>,
     pub state: Option<StateTrace>,
     pub train: Option<FlTrainingTrace>,
+    pub select: Option<ClientSelectTrace>,
 }
 
 impl Results {
     pub fn new(output_settings: &OutputSettings) -> Self {
         let output_path = Path::new(&output_settings.output_path)
-            .join(output_settings.scenario_id.to_string())
+            .join(&output_settings.scenario_id)
             .join("files");
         if !output_path.exists() {
             fs::create_dir_all(&output_path).expect("Failed to create output directory");
@@ -73,6 +79,12 @@ impl Results {
             .filter(|output| output.output_type == OutputType::AgentPos)
             .last()
             .map(|settings| PositionWriter::new(output_path.join(&settings.output_filename)));
+        let power = output_settings
+            .outputs
+            .iter()
+            .filter(|output| output.output_type == OutputType::Power)
+            .last()
+            .map(|settings| PowerTrace::new(output_path.join(&settings.output_filename)));
         let rx_counts = output_settings
             .outputs
             .iter()
@@ -115,8 +127,15 @@ impl Results {
             .filter(|output| output.output_type == OutputType::FlTraining)
             .last()
             .map(|settings| FlTrainingTrace::new(&output_path.join(&settings.output_filename)));
+        let select = output_settings
+            .outputs
+            .iter()
+            .filter(|output| output.output_type == OutputType::FlSelection)
+            .last()
+            .map(|settings| ClientSelectTrace::new(&output_path.join(&settings.output_filename)));
         Self {
             positions,
+            power,
             rx_counts,
             net_stats,
             tx_data,
@@ -124,6 +143,7 @@ impl Results {
             model,
             state,
             train,
+            select,
         }
     }
 
@@ -152,6 +172,12 @@ impl Results {
         if let Some(writer) = &mut self.train {
             writer.write_to_file();
         }
+        if let Some(writer) = &mut self.select {
+            writer.write_to_file();
+        }
+        if let Some(writer) = &mut self.power {
+            writer.write_to_file();
+        }
     }
 
     pub fn close_files(self) {
@@ -177,6 +203,12 @@ impl Results {
             writer.close_file();
         }
         if let Some(writer) = self.train {
+            writer.close_file();
+        }
+        if let Some(writer) = self.select {
+            writer.close_file();
+        }
+        if let Some(writer) = self.power {
             writer.close_file();
         }
     }

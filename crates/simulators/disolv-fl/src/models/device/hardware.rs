@@ -3,10 +3,10 @@ use typed_builder::TypedBuilder;
 
 use disolv_core::message::Metadata;
 use disolv_core::metrics::Feasibility::{Feasible, Infeasible};
-use disolv_core::metrics::{Bytes, Consumable, Feasibility, Measurable, MetricSettings, Resource};
+use disolv_core::metrics::{Bytes, Consumable, Feasibility, MetricSettings, Resource};
 use disolv_core::model::{Model, ModelSettings};
 use disolv_models::device::metrics::MegaHertz;
-use disolv_models::dist::{DistParams, RngSampler};
+use disolv_models::dist::{DistParams, UnitSampler};
 use disolv_models::net::metrics::Bandwidth;
 
 use crate::models::device::message::FlPayloadInfo;
@@ -104,7 +104,7 @@ impl Resource<MegaHertz, FlPayloadInfo> for Cpu {
 
 #[derive(Clone, Debug)]
 pub struct RandomCpu {
-    sampler: RngSampler,
+    sampler: UnitSampler,
     constant: Option<MegaHertz>,
     usage: MegaHertz,
     capacity: MegaHertz,
@@ -115,7 +115,7 @@ impl Resource<MegaHertz, FlPayloadInfo> for RandomCpu {
 
     fn with_settings(settings: &CpuSettings) -> Self {
         let sampler = match &settings.dist_params {
-            Some(dist_params) => RngSampler::new(dist_params.to_owned()),
+            Some(dist_params) => UnitSampler::new(dist_params.to_owned()),
             None => panic!("Distribution missing for random cpu usage model"),
         };
         Self {

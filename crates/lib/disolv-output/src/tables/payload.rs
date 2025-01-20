@@ -2,7 +2,7 @@ use std::mem::take;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, RecordBatch, StringArray, UInt64Array};
+use arrow::array::{ArrayRef, RecordBatch, StringArray, UInt32Array, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema};
 use typed_builder::TypedBuilder;
 
@@ -21,6 +21,8 @@ pub struct PayloadUpdate {
     payload_type: String,
     fl_content: String,
     action_type: String,
+    quantity: u32,
+    payload_size: u64,
 }
 
 #[derive(Debug)]
@@ -32,6 +34,8 @@ pub struct PayloadTraceWriter {
     payload_type: Vec<String>,
     fl_content: Vec<String>,
     action_type: Vec<String>,
+    quantity: Vec<u32>,
+    payload_size: Vec<u64>,
     to_output: WriterType,
 }
 
@@ -46,6 +50,8 @@ impl PayloadTraceWriter {
             payload_type: Vec::new(),
             fl_content: Vec::new(),
             action_type: Vec::new(),
+            quantity: Vec::new(),
+            payload_size: Vec::new(),
         }
     }
 
@@ -57,6 +63,8 @@ impl PayloadTraceWriter {
         self.payload_type.push(payload_update.payload_type);
         self.fl_content.push(payload_update.fl_content);
         self.action_type.push(payload_update.action_type);
+        self.quantity.push(payload_update.quantity);
+        self.payload_size.push(payload_update.payload_size);
     }
 }
 
@@ -69,8 +77,18 @@ impl ResultWriter for PayloadTraceWriter {
         let model = Field::new("payload_type", DataType::Utf8, false);
         let direction = Field::new("fl_content", DataType::Utf8, false);
         let status = Field::new("action_type", DataType::Utf8, false);
+        let quantity = Field::new("quantity", DataType::UInt32, false);
+        let payload_size = Field::new("payload_size", DataType::UInt64, false);
         Schema::new(vec![
-            time_ms, source, target, states, model, direction, status,
+            time_ms,
+            source,
+            target,
+            states,
+            model,
+            direction,
+            status,
+            quantity,
+            payload_size,
         ])
     }
 
@@ -103,6 +121,14 @@ impl ResultWriter for PayloadTraceWriter {
             (
                 "action_type",
                 Arc::new(StringArray::from(take(&mut self.action_type))) as ArrayRef,
+            ),
+            (
+                "quantity",
+                Arc::new(UInt32Array::from(take(&mut self.quantity))) as ArrayRef,
+            ),
+            (
+                "payload_size",
+                Arc::new(UInt64Array::from(take(&mut self.payload_size))) as ArrayRef,
             ),
         ])
         .expect("Failed to convert results to record batch");

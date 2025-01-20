@@ -5,7 +5,7 @@ use serde::Deserialize;
 use disolv_core::message::{Metadata, TxReport};
 use disolv_core::metrics::{Feasibility, Measurable, MetricSettings};
 use disolv_core::radio::{Link, LinkFeatures};
-use disolv_models::dist::{DistParams, RngSampler};
+use disolv_models::dist::{DistParams, UnitSampler};
 use disolv_models::net::metrics::Latency;
 
 use crate::models::message::{PayloadInfo, TxMetrics};
@@ -86,7 +86,7 @@ pub struct RandomLatency {
     pub min_latency: Latency,
     pub max_latency: Latency,
     pub constraint: Latency,
-    pub sampler: RngSampler,
+    pub sampler: UnitSampler,
 }
 
 impl Measurable<Latency, PayloadInfo> for RandomLatency {
@@ -97,7 +97,7 @@ impl Measurable<Latency, PayloadInfo> for RandomLatency {
             min_latency: config.min_latency.expect("Missing min latency"),
             max_latency: config.max_latency.expect("Missing max latency"),
             constraint: config.constraint,
-            sampler: RngSampler::new(
+            sampler: UnitSampler::new(
                 config
                     .dist_params
                     .clone()

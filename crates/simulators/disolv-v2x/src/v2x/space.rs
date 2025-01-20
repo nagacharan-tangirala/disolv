@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use hashbrown::{HashMap, HashSet};
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
@@ -9,7 +10,6 @@ use disolv_core::model::BucketModel;
 use disolv_input::mobility::{MapReader, TraceMap};
 use disolv_models::device::mobility::cell::CellId;
 use disolv_models::device::mobility::{MapState, MobilityType, Point2D};
-use hashbrown::{HashMap, HashSet};
 
 #[derive(Clone, Debug, TypedBuilder)]
 pub struct Space {

@@ -3,14 +3,13 @@ use std::path::{Path, PathBuf};
 use burn::backend::wgpu::WgpuDevice;
 use burn::backend::{Autodiff, Wgpu};
 use hashbrown::HashMap;
-use indexmap::IndexMap;
 use log::info;
 
 use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::TimeMS;
 use disolv_core::metrics::Measurable;
 use disolv_core::model::Model;
-use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
+use disolv_core::scheduler::DefaultScheduler;
 use disolv_input::links::LinkReader;
 use disolv_input::power::{read_power_schedule, PowerTimes};
 use disolv_models::device::actor::Actor;
@@ -22,20 +21,20 @@ use disolv_output::logger::initiate_logger;
 use disolv_output::result::Results;
 use disolv_output::ui::SimUIMetadata;
 
-use crate::fl::agent::FAgent;
 use crate::fl::agent::FAgent::{FClient, FServer};
 use crate::fl::bucket::{FlBucket, FlBucketModels, FlDataLake, FlNetwork};
 use crate::fl::client::{Client, ClientModels};
 use crate::fl::device::{Device, DeviceInfo, DeviceModels};
 use crate::fl::server::{FlServerModels, Server};
 use crate::models::ai::aggregate::Aggregator;
+use crate::models::ai::cifar::{CifarModelConfig, CifarTrainingConfig};
 use crate::models::ai::compose::FlComposer;
-use crate::models::ai::data::DataHolder;
 use crate::models::ai::mnist::{MnistModelConfig, MnistTrainingConfig};
-use crate::models::ai::models::ModelType;
+use crate::models::ai::model::ModelType;
 use crate::models::ai::select::ClientSelector;
-use crate::models::ai::times::{ClientTimes, ServerTimes};
-use crate::models::ai::trainer::{Trainer, TrainerSettings};
+use crate::models::ai::times::ServerTimes;
+use crate::models::ai::trainer::{Trainer, TrainerSettings, TrainingConfig};
+use crate::models::data::allot::DataHolder;
 use crate::models::device::energy::EnergyType;
 use crate::models::device::hardware::Hardware;
 use crate::models::device::lake::ModelLake;
@@ -49,21 +48,21 @@ use crate::simulation::config::{
 use crate::simulation::distribute::DataDistributor;
 use crate::simulation::ui::SimRenderer;
 
-pub type WgpuBackend = Wgpu<f32, i32>;
-pub type WgpuAdBackend = Autodiff<WgpuBackend>;
+pub type FlBackend = Wgpu<f32, i32>;
+pub type FlAdBackend = Autodiff<FlBackend>;
 
-pub type FedDevice = Device<WgpuAdBackend>;
-pub type FedBucket = FlBucket<WgpuAdBackend>;
-pub type FedClient = Client<WgpuAdBackend>;
-pub type FedServer = Server<WgpuAdBackend>;
+pub type FedDevice = Device<FlAdBackend>;
+pub type FedBucket = FlBucket<FlAdBackend>;
+pub type FedClient = Client<FlAdBackend>;
+pub type FedServer = Server<FlAdBackend>;
 
 pub type DScheduler = DefaultScheduler<FedDevice, FedBucket>;
-pub type MScheduler = MapScheduler<FedDevice, FedBucket>;
 
 pub struct SimulationBuilder {
     base_config: BaseConfig,
     config_path: PathBuf,
     metadata: SimUIMetadata,
+    default_device: WgpuDevice,
 }
 
 impl SimulationBuilder {
@@ -86,6 +85,7 @@ impl SimulationBuilder {
                     base_config,
                     config_path,
                     metadata,
+                    default_device: WgpuDevice::BestAvailable,
                 }
             }
             Err(e) => {
@@ -107,26 +107,13 @@ impl SimulationBuilder {
         initiate_logger(
             &self.config_path,
             &self.base_config.log_settings,
-            Some(self.base_config.output_settings.scenario_id),
+            Some(&self.base_config.output_settings.scenario_id),
         );
 
         info!("Building devices and device pools...");
         let device_bucket = self.build_fl_bucket();
         let agent_map = self.build_agents();
         self.build_scheduler(agent_map, device_bucket)
-    }
-
-    pub(crate) fn build_with_map(&mut self) -> MScheduler {
-        initiate_logger(
-            &self.config_path,
-            &self.base_config.log_settings,
-            Some(self.base_config.output_settings.scenario_id),
-        );
-
-        info!("Building devices and device pools...");
-        let device_bucket = self.build_fl_bucket();
-        let agent_map = self.build_agents();
-        self.build_map_scheduler(agent_map, device_bucket)
     }
 
     fn build_agents(&mut self) -> HashMap<AgentId, FedDevice> {
@@ -242,7 +229,6 @@ impl SimulationBuilder {
         let trainer = self.build_trainer(&client_settings.trainer_settings);
         let client_models = ClientModels::builder()
             .holder(DataHolder::with_settings(&client_settings.data_holder))
-            .times(ClientTimes::with_settings(&client_settings.durations))
             .trainer(trainer)
             .build();
 
@@ -341,14 +327,13 @@ impl SimulationBuilder {
             .build()
     }
 
-    fn build_trainer(&self, trainer_settings: &TrainerSettings) -> Trainer<WgpuAdBackend> {
-        let device = WgpuDevice::default();
+    fn build_trainer(&self, trainer_settings: &TrainerSettings) -> Trainer<FlAdBackend> {
         let output_path = self.config_path.clone().join("train");
 
         match trainer_settings.model_type.to_lowercase().as_str() {
             "mnist" => {
                 let mnist_settings = trainer_settings
-                    .mnist_config_settings
+                    .mnist_hyper_parameters
                     .as_ref()
                     .expect("mnist settings missing from the config file");
 
@@ -360,8 +345,29 @@ impl SimulationBuilder {
                 Trainer::builder()
                     .no_of_weights(trainer_settings.no_of_weights)
                     .output_path(output_path)
-                    .model(ModelType::Mnist(mnist_model_config.init(&device)))
-                    .config(train_config)
+                    .model(ModelType::Mnist(
+                        mnist_model_config.init(&self.default_device),
+                    ))
+                    .config(TrainingConfig::MnistTrain(train_config))
+                    .build()
+            }
+            "cifar" => {
+                let cifar_settings = trainer_settings
+                    .cifar_hyper_parameters
+                    .as_ref()
+                    .expect("cifar settings missing from the config file");
+
+                let train_config = CifarTrainingConfig::with_settings(cifar_settings);
+                let cifar_model_config = CifarModelConfig::new(cifar_settings.num_classes)
+                    .with_drop_out(cifar_settings.drop_out);
+
+                Trainer::builder()
+                    .no_of_weights(trainer_settings.no_of_weights)
+                    .output_path(output_path)
+                    .model(ModelType::Cifar(
+                        cifar_model_config.init(&self.default_device),
+                    ))
+                    .config(TrainingConfig::CifarTrain(train_config))
                     .build()
             }
             _ => panic!("Only mnist model is supported"),
@@ -416,6 +422,7 @@ impl SimulationBuilder {
             .agent_type(device_type.to_owned())
             .agent_class(class_settings.agent_class)
             .agent_order(class_settings.agent_order)
+            .dynamic_info(None)
             .build()
     }
 
@@ -435,24 +442,6 @@ impl SimulationBuilder {
             .build()
     }
 
-    fn build_map_scheduler(
-        &mut self,
-        agent_map: HashMap<AgentId, FedDevice>,
-        fl_bucket: FedBucket,
-    ) -> MScheduler {
-        info!("Building scheduler...");
-        MapScheduler::builder()
-            .duration(self.duration())
-            .step_size(self.step_size())
-            .active_agents(IndexMap::with_capacity(agent_map.len()))
-            .deactivated(Vec::with_capacity(agent_map.len()))
-            .inactive_agents(agent_map)
-            .streaming_interval(self.streaming_interval())
-            .bucket(fl_bucket)
-            .output_interval(self.output_interval())
-            .build()
-    }
-
     fn build_fl_bucket(&mut self) -> FedBucket {
         info!("Building FL bucket...");
         let bucket_models = FlBucketModels::builder()
@@ -468,7 +457,7 @@ impl SimulationBuilder {
             .data_distributor(DataDistributor::with_settings(
                 &self.base_config.bucket_models.distributor,
             ))
-            .device(WgpuDevice::default())
+            .device(self.default_device.clone())
             .build();
 
         FedBucket::builder()
@@ -610,10 +599,6 @@ impl SimulationBuilder {
 
     fn step_size(&self) -> TimeMS {
         self.base_config.simulation_settings.step_size
-    }
-
-    fn sim_seed(&self) -> u128 {
-        u128::from(self.base_config.simulation_settings.seed)
     }
 
     pub(crate) fn metadata(&self) -> SimUIMetadata {

@@ -1,30 +1,38 @@
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::path::PathBuf;
 
-use burn::data::dataloader::batcher::Batcher;
-use burn::data::dataset::vision::MnistItem;
 use burn::data::dataset::Dataset;
 use burn::module::Module;
 use burn::prelude::Backend;
 use burn::record::CompactRecorder;
 use burn::tensor::backend::AutodiffBackend;
-use burn::tensor::ElementConversion;
 use log::debug;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
 use disolv_core::bucket::TimeMS;
 
-use crate::models::ai::mnist::{
-    mnist_train, MnistBatcher, MnistInputConfigSettings, MnistModel, MnistTrainingConfig,
+use crate::models::ai::cifar::{
+    cifar_train, cifar_validate, CifarHyperParameters, CifarTrainingConfig,
 };
-use crate::models::ai::models::{DatasetType, ModelType};
+use crate::models::ai::mnist::{
+    mnist_train, mnist_validate, MnistHyperParameters, MnistTrainingConfig,
+};
+use crate::models::ai::model::ModelType;
+use crate::models::data::dataset::DatasetType;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TrainerSettings {
     pub(crate) model_type: String,
     pub(crate) no_of_weights: u64,
-    pub(crate) mnist_config_settings: Option<MnistInputConfigSettings>,
+    pub(crate) mnist_hyper_parameters: Option<MnistHyperParameters>,
+    pub(crate) cifar_hyper_parameters: Option<CifarHyperParameters>,
+}
+
+#[derive(Clone)]
+pub enum TrainingConfig {
+    MnistTrain(MnistTrainingConfig),
+    CifarTrain(CifarTrainingConfig),
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -32,37 +40,59 @@ pub(crate) struct Trainer<B: Backend> {
     pub(crate) model: ModelType<B>,
     pub(crate) no_of_weights: u64,
     pub(crate) output_path: PathBuf,
-    pub(crate) config: MnistTrainingConfig,
-    #[builder(default)]
-    pub(crate) test_data: DatasetType,
-    #[builder(default)]
-    pub(crate) train_data: DatasetType,
+    pub(crate) config: TrainingConfig,
 }
 
 impl<B: AutodiffBackend> Trainer<B> {
-    pub fn train(&mut self, device: &B::Device) {
-        self.model = match &self.model {
+    pub fn train(&mut self, device: &B::Device, train_data: DatasetType, test_data: DatasetType) {
+        self.model = match self.model.clone() {
             ModelType::Mnist(mnist) => {
-                let test_dataset = match &self.test_data {
+                let test_dataset = match test_data {
                     DatasetType::Mnist(mnist_test) => mnist_test,
                     _ => panic!("Expected mnist test dataset, found something else"),
                 };
-                let train_dataset = match &self.train_data {
+                let train_dataset = match train_data {
                     DatasetType::Mnist(mnist_test) => mnist_test,
                     _ => panic!("Expected mnist test dataset, found something else"),
                 };
-                mnist_train(
+                let train_config = match &self.config {
+                    TrainingConfig::MnistTrain(mnist_config) => mnist_config,
+                    _ => panic!("Expected mnist training config, found something else"),
+                };
+                let mnist_model = mnist_train(
                     self.output_path.clone(),
-                    self.config.clone(),
-                    test_dataset.clone(),
-                    train_dataset.clone(),
+                    train_config,
+                    test_dataset,
+                    train_dataset,
                     mnist.clone(),
                     device.clone(),
-                )
+                );
+                ModelType::Mnist(mnist_model)
             }
-            ModelType::Cifar(_) => unimplemented!("cifar is unimplemented"),
+            ModelType::Cifar(cifar) => {
+                let test_dataset = match test_data {
+                    DatasetType::Cifar(cifar_test) => cifar_test,
+                    _ => panic!("Expected cifar test dataset, found something else"),
+                };
+                let train_dataset = match train_data {
+                    DatasetType::Cifar(cifar_train) => cifar_train,
+                    _ => panic!("Expected cifar train dataset, found something else"),
+                };
+                let train_config = match &self.config {
+                    TrainingConfig::CifarTrain(cifar_config) => cifar_config,
+                    _ => panic!("Expected cifar training config, found something else"),
+                };
+                let cifar_model = cifar_train(
+                    self.output_path.clone(),
+                    train_config,
+                    test_dataset,
+                    train_dataset,
+                    cifar.clone(),
+                    device.clone(),
+                );
+                ModelType::Cifar(cifar_model)
+            }
         };
-        self.train_data.clear();
     }
 
     pub fn save_model_to_file(&self, step: TimeMS) {
@@ -82,38 +112,44 @@ impl<B: AutodiffBackend> Trainer<B> {
                     )
                     .expect("Failed to save model to disk");
             }
+            ModelType::Cifar(cifar) => {
+                cifar
+                    .clone()
+                    .save_file(
+                        self.output_path
+                            .join("models")
+                            .join(model_name)
+                            .to_str()
+                            .expect("invalid output path"),
+                        &CompactRecorder::new(),
+                    )
+                    .expect("Failed to save model to disk");
+            }
             _ => unimplemented!("other models not implemented"),
         }
     }
 
-    pub fn test_model(&self, device: &B::Device) -> f32 {
+    pub fn test_model(&self, device: &B::Device, test_data: DatasetType) -> f32 {
         match &self.model {
-            ModelType::Mnist(mnist) => self.mnist_validation(mnist, device),
+            ModelType::Mnist(mnist) => {
+                let test_dataset = match test_data {
+                    DatasetType::Mnist(mnist_test) => mnist_test,
+                    _ => panic!("Expected mnist test dataset"),
+                };
+                let total_tests = min(50, (test_dataset.len() as f32 * 0.1) as usize);
+                debug!("Validating with {} tests", total_tests);
+                mnist_validate(mnist, test_dataset.clone(), total_tests, device.clone())
+            }
+            ModelType::Cifar(cifar) => {
+                let test_dataset = match test_data {
+                    DatasetType::Cifar(cifar_test) => cifar_test,
+                    _ => panic!("Expected cifar test dataset"),
+                };
+                let total_tests = min(50, (test_dataset.len() as f32 * 0.1) as usize);
+                debug!("Validating with {} tests", total_tests);
+                cifar_validate(cifar, test_dataset.clone(), total_tests, device.clone())
+            }
             _ => unimplemented!("other models not supported"),
         }
-    }
-
-    fn mnist_validation(&self, mnist_model: &MnistModel<B>, device: &B::Device) -> f32 {
-        let test_dataset = match &self.test_data {
-            DatasetType::Mnist(mnist_test) => mnist_test,
-            _ => panic!("Expected mnist test dataset"),
-        };
-
-        let total_tests = min(50, (test_dataset.len() as f32 * 0.1) as usize);
-        let mut success = 0;
-        debug!("Validating with {} tests", total_tests);
-
-        for i in 0..total_tests {
-            let item = test_dataset.get(i).expect("failed to get item");
-            let batcher = MnistBatcher::new(device.clone());
-            let batch = batcher.batch(vec![item.clone()]);
-
-            let output = mnist_model.forward(batch.images);
-            let predicted = output.argmax(1).flatten::<1>(0, 1).into_scalar();
-            if predicted.elem::<u8>() == item.label {
-                success += 1;
-            }
-        }
-        (success as f32 / total_tests as f32) * 100.0
     }
 }

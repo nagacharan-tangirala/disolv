@@ -1,5 +1,6 @@
-use disolv_core::agent::AgentClass;
 use serde::Deserialize;
+
+use disolv_core::agent::AgentClass;
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct CommDirections {

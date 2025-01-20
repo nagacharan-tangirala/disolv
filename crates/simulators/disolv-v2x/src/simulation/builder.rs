@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use hashbrown::HashMap;
 use indexmap::IndexMap;
 use log::info;
 
@@ -7,7 +8,7 @@ use disolv_core::agent::{AgentClass, AgentId, AgentKind};
 use disolv_core::bucket::TimeMS;
 use disolv_core::metrics::{Consumable, Measurable};
 use disolv_core::model::Model;
-use disolv_core::scheduler::{DefaultScheduler, MapScheduler};
+use disolv_core::scheduler::DefaultScheduler;
 use disolv_input::links::LinkReader;
 use disolv_input::power::{read_power_schedule, PowerTimes};
 use disolv_models::device::actor::Actor;
@@ -18,7 +19,6 @@ use disolv_models::net::network::Network;
 use disolv_output::logger::initiate_logger;
 use disolv_output::result::Results;
 use disolv_output::ui::SimUIMetadata;
-use hashbrown::HashMap;
 
 use crate::models::bandwidth::BandwidthType;
 use crate::models::compose::Composer;
@@ -33,7 +33,6 @@ use crate::v2x::linker::{Linker, LinkerSettings};
 use crate::v2x::space::{Mapper, Space};
 
 pub type DScheduler = DefaultScheduler<Device, DeviceBucket>;
-pub type MScheduler = MapScheduler<Device, DeviceBucket>;
 
 pub struct SimulationBuilder {
     base_config: BaseConfig,
@@ -82,26 +81,13 @@ impl SimulationBuilder {
         initiate_logger(
             &self.config_path,
             &self.base_config.log_settings,
-            Some(self.base_config.output_settings.scenario_id),
+            Some(&self.base_config.output_settings.scenario_id),
         );
 
         info!("Building devices and device pools...");
         let device_bucket = self.build_device_bucket();
         let agent_map = self.build_agents();
         self.build_scheduler(agent_map, device_bucket)
-    }
-
-    pub(crate) fn build_with_map(&mut self) -> MScheduler {
-        initiate_logger(
-            &self.config_path,
-            &self.base_config.log_settings,
-            Some(self.base_config.output_settings.scenario_id),
-        );
-
-        info!("Building devices and device pools...");
-        let device_bucket = self.build_device_bucket();
-        let agent_map = self.build_agents();
-        self.build_map_scheduler(agent_map, device_bucket)
     }
 
     fn read_power_schedules(&self, device_type: AgentKind) -> HashMap<AgentId, PowerTimes> {
@@ -228,24 +214,6 @@ impl SimulationBuilder {
             .streaming_interval(self.streaming_interval())
             .output_interval(self.output_interval())
             .bucket(device_bucket)
-            .build()
-    }
-
-    fn build_map_scheduler(
-        &mut self,
-        agent_map: HashMap<AgentId, Device>,
-        device_bucket: DeviceBucket,
-    ) -> MScheduler {
-        info!("Building scheduler...");
-        MapScheduler::builder()
-            .duration(self.duration())
-            .step_size(self.step_size())
-            .active_agents(IndexMap::with_capacity(agent_map.len()))
-            .deactivated(Vec::with_capacity(agent_map.len()))
-            .inactive_agents(agent_map)
-            .streaming_interval(self.streaming_interval())
-            .bucket(device_bucket)
-            .output_interval(self.output_interval())
             .build()
     }
 

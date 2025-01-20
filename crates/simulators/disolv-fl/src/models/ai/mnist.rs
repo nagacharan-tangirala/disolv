@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::path::PathBuf;
 
 use burn::config::Config;
@@ -11,7 +12,6 @@ use burn::nn::{
     BatchNorm, BatchNormConfig, Dropout, DropoutConfig, Gelu, Linear, LinearConfig, PaddingConfig2d,
 };
 use burn::optim::AdamConfig;
-use burn::prelude::*;
 use burn::prelude::{Backend, Tensor, TensorData};
 use burn::record::CompactRecorder;
 use burn::tensor::backend::AutodiffBackend;
@@ -24,84 +24,11 @@ use typed_builder::TypedBuilder;
 
 use disolv_core::model::{Model, ModelSettings};
 
-use crate::models::ai::models::{BatchType, ModelType};
+use crate::models::data::mnist::{MnistBatch, MnistBatcher, MnistFlDataset};
 use crate::simulation::render::CustomRenderer;
 
-#[derive(Default, Clone, Debug)]
-pub struct MnistFlDataset {
-    pub images: Vec<MnistItem>,
-}
-
-impl MnistFlDataset {
-    pub fn new(dataset_type: BatchType) -> Self {
-        let images = match dataset_type {
-            BatchType::Test => MnistDataset::test().iter().collect(),
-            BatchType::Train => MnistDataset::train().iter().collect(),
-        };
-        Self { images }
-    }
-
-    pub fn with_images(images: Vec<MnistItem>) -> Self {
-        Self { images }
-    }
-}
-
-impl Dataset<MnistItem> for MnistFlDataset {
-    fn get(&self, index: usize) -> Option<MnistItem> {
-        self.images.get(index).cloned()
-    }
-
-    fn len(&self) -> usize {
-        self.images.len()
-    }
-}
-
-#[derive(Clone, TypedBuilder)]
-pub struct MnistBatcher<B: Backend> {
-    pub device: B::Device,
-}
-
-impl<B: Backend> MnistBatcher<B> {
-    pub fn new(device: B::Device) -> Self {
-        Self { device }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct MnistBatch<B: Backend> {
-    pub images: Tensor<B, 3>,
-    pub targets: Tensor<B, 1, Int>,
-}
-
-impl<B: Backend> Batcher<MnistItem, MnistBatch<B>> for MnistBatcher<B> {
-    fn batch(&self, items: Vec<MnistItem>) -> MnistBatch<B> {
-        let images = items
-            .iter()
-            .map(|item| TensorData::from(item.image))
-            .map(|data| Tensor::<B, 2>::from_data(data.convert::<B::FloatElem>(), &self.device))
-            .map(|tensor| tensor.reshape([1, 28, 28]))
-            .map(|tensor| ((tensor / 255) - 0.1307) / 0.3081)
-            .collect();
-
-        let targets = items
-            .iter()
-            .map(|item| {
-                Tensor::<B, 1, Int>::from_data(
-                    TensorData::from([(item.label as i64).elem::<B::IntElem>()]),
-                    &self.device,
-                )
-            })
-            .collect();
-
-        let images = Tensor::cat(images, 0);
-        let targets = Tensor::cat(targets, 0);
-
-        MnistBatch { images, targets }
-    }
-}
-
 #[derive(Clone, Debug, Deserialize)]
-pub struct MnistInputConfigSettings {
+pub struct MnistHyperParameters {
     pub num_epochs: Option<usize>,
     pub batch_size: Option<usize>,
     pub num_workers: Option<usize>,
@@ -112,7 +39,7 @@ pub struct MnistInputConfigSettings {
     pub drop_out: f64,
 }
 
-impl ModelSettings for MnistInputConfigSettings {}
+impl ModelSettings for MnistHyperParameters {}
 
 #[derive(Config, TypedBuilder)]
 pub struct MnistTrainingConfig {
@@ -130,7 +57,7 @@ pub struct MnistTrainingConfig {
 }
 
 impl Model for MnistTrainingConfig {
-    type Settings = MnistInputConfigSettings;
+    type Settings = MnistHyperParameters;
 
     fn with_settings(settings: &Self::Settings) -> Self {
         let optimizer = AdamConfig::new();
@@ -156,9 +83,9 @@ impl Model for MnistTrainingConfig {
 
 #[derive(Module, Debug)]
 pub struct ConvBlock<B: Backend> {
-    conv: Conv2d<B>,
-    norm: BatchNorm<B, 2>,
-    activation: Gelu,
+    pub conv: Conv2d<B>,
+    pub norm: BatchNorm<B, 2>,
+    pub activation: Gelu,
 }
 
 impl<B: Backend> ConvBlock<B> {
@@ -222,10 +149,10 @@ pub struct MnistModel<B: Backend> {
 
 impl<B: Backend> MnistModel<B> {
     pub(crate) fn do_fedavg(
-        mut global_model: MnistModel<B>,
+        global_model: &mut MnistModel<B>,
         other_models: Vec<MnistModel<B>>,
         device: &B::Device,
-    ) -> MnistModel<B> {
+    ) {
         let mut linear_weights = other_models
             .iter()
             .map(|model| model.linear1.weight.val())
@@ -260,7 +187,6 @@ impl<B: Backend> MnistModel<B> {
             .collect();
         avg_conv_tensor = Self::get_average_tensor(conv_weights);
         global_model.conv3.conv.weight = Param::from_data(avg_conv_tensor.into_data(), device);
-        global_model
     }
 
     fn get_average_tensor<const D: usize>(weights: Vec<Tensor<B, D>>) -> Tensor<B, D> {
@@ -280,7 +206,6 @@ impl<B: Backend> MnistModel<B> {
         let x = self.conv1.forward(x); // [batch_size, 8, _, _]
         let x = self.conv2.forward(x); // [batch_size, 16, _, _]
         let x = self.conv3.forward(x); // [batch_size, 16, _, _]
-                                       //let x = self.activation.forward(x);
 
         let [batch_size, channels, height, width] = x.dims();
         let x = x.reshape([batch_size, channels * height * width]);
@@ -322,12 +247,12 @@ impl<B: Backend> ValidStep<MnistBatch<B>, ClassificationOutput<B>> for MnistMode
 
 pub fn mnist_train<B: AutodiffBackend>(
     output_path: PathBuf,
-    config: MnistTrainingConfig,
+    config: &MnistTrainingConfig,
     test_data: MnistFlDataset,
     train_data: MnistFlDataset,
     current_model: MnistModel<B>,
     device: B::Device,
-) -> ModelType<B> {
+) -> MnistModel<B> {
     let batcher_train = MnistBatcher::<B>::new(device.clone());
     let batcher_valid = MnistBatcher::<B::InnerBackend>::new(device.clone());
 
@@ -356,6 +281,30 @@ pub fn mnist_train<B: AutodiffBackend>(
         .renderer(CustomRenderer {})
         .build(current_model, config.optimizer.init(), config.learning_rate);
 
-    let updated_model = learner.fit(dataloader_train, dataloader_test);
-    ModelType::Mnist(updated_model)
+    let updated_model = learner.fit(dataloader_train, dataloader_test).to_owned();
+    updated_model
+}
+
+pub(crate) fn mnist_validate<B: AutodiffBackend>(
+    mnist_model: &MnistModel<B>,
+    test_dataset: MnistFlDataset,
+    total_tests: usize,
+    device: B::Device,
+) -> f32 {
+    let mut success = 0;
+
+    // TODO: Check if this should be inside the loop
+    let batcher = MnistBatcher::new(device);
+
+    for i in 0..total_tests {
+        let item = test_dataset.get(i).expect("failed to get item");
+        let batch = batcher.batch(vec![item.clone()]);
+
+        let output = mnist_model.forward(batch.images);
+        let predicted = output.argmax(1).flatten::<1>(0, 1).into_scalar();
+        if predicted.elem::<u8>() == item.label {
+            success += 1;
+        }
+    }
+    (success as f32 / total_tests as f32) * 100.0
 }

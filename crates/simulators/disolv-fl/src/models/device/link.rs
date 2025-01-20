@@ -1,6 +1,5 @@
 use log::error;
 use serde::Deserialize;
-use serde_with::skip_serializing_none;
 
 use disolv_core::agent::AgentClass;
 use disolv_core::model::{Model, ModelSettings};
@@ -9,7 +8,6 @@ use disolv_models::device::models::LinkSelect;
 use disolv_models::net::radio::{CommStats, LinkProperties};
 
 #[derive(Deserialize, Debug, Clone)]
-#[skip_serializing_none]
 pub struct LinkSelectionSettings {
     pub target_class: AgentClass,
     pub name: String,

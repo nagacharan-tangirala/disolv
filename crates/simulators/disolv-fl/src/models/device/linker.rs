@@ -1,3 +1,4 @@
+use hashbrown::HashMap;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
 
@@ -7,7 +8,6 @@ use disolv_core::model::BucketModel;
 use disolv_core::radio::Link;
 use disolv_input::links::{LinkMap, LinkReader};
 use disolv_models::net::radio::LinkProperties;
-use hashbrown::HashMap;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct LinkerSettings {

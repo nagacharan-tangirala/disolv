@@ -42,12 +42,16 @@ fn get_logging_level(log_level: &str) -> LevelFilter {
     }
 }
 
-pub fn initiate_logger(config_path: &Path, log_settings: &LogSettings, scenario_id: Option<u32>) {
+pub fn initiate_logger(
+    config_path: &Path,
+    log_settings: &LogSettings,
+    scenario_id: Option<&String>,
+) {
     let log_settings = log_settings.clone();
     let log_level = log_settings.log_level;
     let mut log_path = config_path.join(log_settings.log_path);
     log_path = match scenario_id {
-        Some(val) => log_path.join(val.to_string()).join("logs"),
+        Some(val) => log_path.join(val).join("logs"),
         None => log_path.join("logs"),
     };
 
