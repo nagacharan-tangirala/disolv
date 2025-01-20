@@ -24,7 +24,7 @@ use crate::models::device::message::MessageType;
 use crate::models::device::network::SliceSettings;
 use crate::simulation::distribute::DistributorSettings;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct SimSettings {
     pub scenario: String,
     pub duration: TimeMS,
@@ -32,12 +32,12 @@ pub struct SimSettings {
     pub streaming_interval: TimeMS,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct NetworkSettings {
     pub slice: Vec<SliceSettings>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct AgentClassSettings {
     pub agent_share: f32,
     pub agent_class: AgentClass,
@@ -48,7 +48,7 @@ pub struct AgentClassSettings {
     pub energy: EnergySettings,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct ClientClassSettings {
     pub fl_composer: ComposerSettings,
     pub hardware: HardwareSettings,
@@ -57,7 +57,7 @@ pub struct ClientClassSettings {
     pub class_settings: AgentClassSettings,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct ServerClassSettings {
     pub client_classes: Vec<AgentClass>,
     pub client_selector: ClientSelectionSettings,
@@ -70,7 +70,7 @@ pub struct ServerClassSettings {
     pub class_settings: AgentClassSettings,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct ClientSettings {
     pub agent_type: AgentKind,
     pub power_file: String,
@@ -79,7 +79,7 @@ pub struct ClientSettings {
     pub class: Vec<ClientClassSettings>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct ServerSettings {
     pub agent_type: AgentKind,
     pub power_file: String,
@@ -88,7 +88,7 @@ pub struct ServerSettings {
     pub class: Vec<ServerClassSettings>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub(crate) struct BaseConfig {
     pub(crate) log_settings: LogSettings,
     pub(crate) simulation_settings: SimSettings,
@@ -100,7 +100,7 @@ pub(crate) struct BaseConfig {
     pub(crate) bucket_models: BucketSettings,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct BucketSettings {
     pub distributor: DistributorSettings,
 }
