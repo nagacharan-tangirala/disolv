@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, UInt32Array, UInt64Array};
+use arrow::array::{ArrayRef, StringArray, UInt32Array, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use typed_builder::TypedBuilder;
@@ -11,11 +11,11 @@ use disolv_core::bucket::TimeMS;
 use crate::result::ResultWriter;
 use crate::writer::WriterType;
 
-#[derive(Copy, Clone, TypedBuilder)]
+#[derive(Clone, TypedBuilder)]
 pub struct ClientSelectData {
     server_id: u64,
     available: u32,
-    selected: u32,
+    selected: String,
 }
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ pub struct ClientSelectTrace {
     time_step: Vec<u64>,
     server_id: Vec<u64>,
     available: Vec<u32>,
-    selected: Vec<u32>,
+    selected: Vec<String>,
     to_output: WriterType,
 }
 
@@ -51,7 +51,7 @@ impl ResultWriter for ClientSelectTrace {
         let time_ms = Field::new("time_step", DataType::UInt64, false);
         let server_id = Field::new("server_id", DataType::UInt64, false);
         let available = Field::new("available", DataType::UInt32, false);
-        let selected = Field::new("selected", DataType::UInt32, false);
+        let selected = Field::new("selected", DataType::Utf8, false);
         Schema::new(vec![time_ms, server_id, available, selected])
     }
 
@@ -71,7 +71,7 @@ impl ResultWriter for ClientSelectTrace {
             ),
             (
                 "selected",
-                Arc::new(UInt32Array::from(std::mem::take(&mut self.selected))) as ArrayRef,
+                Arc::new(StringArray::from(std::mem::take(&mut self.selected))) as ArrayRef,
             ),
         ])
         .expect("Failed to convert results to record batch");
