@@ -10,6 +10,7 @@ use crate::tables::model::ModelTrace;
 use crate::tables::net::NetStatWriter;
 use crate::tables::payload::PayloadTraceWriter;
 use crate::tables::position::PositionWriter;
+use crate::tables::power::PowerTrace;
 use crate::tables::rx::RxCountWriter;
 use crate::tables::select::ClientSelectTrace;
 use crate::tables::state::StateTrace;
@@ -21,6 +22,7 @@ pub enum OutputType {
     RxCounts,
     TxStats,
     AgentPos,
+    Power,
     NetStat,
     FlState,
     FlModel,
@@ -51,6 +53,7 @@ pub trait ResultWriter {
 #[derive(Debug)]
 pub struct Results {
     pub positions: Option<PositionWriter>,
+    pub power: Option<PowerTrace>,
     pub rx_counts: Option<RxCountWriter>,
     pub net_stats: Option<NetStatWriter>,
     pub tx_data: Option<TxDataWriter>,
@@ -76,6 +79,12 @@ impl Results {
             .filter(|output| output.output_type == OutputType::AgentPos)
             .last()
             .map(|settings| PositionWriter::new(output_path.join(&settings.output_filename)));
+        let power = output_settings
+            .outputs
+            .iter()
+            .filter(|output| output.output_type == OutputType::Power)
+            .last()
+            .map(|settings| PowerTrace::new(output_path.join(&settings.output_filename)));
         let rx_counts = output_settings
             .outputs
             .iter()
@@ -126,6 +135,7 @@ impl Results {
             .map(|settings| ClientSelectTrace::new(&output_path.join(&settings.output_filename)));
         Self {
             positions,
+            power,
             rx_counts,
             net_stats,
             tx_data,
@@ -165,6 +175,9 @@ impl Results {
         if let Some(writer) = &mut self.select {
             writer.write_to_file();
         }
+        if let Some(writer) = &mut self.power {
+            writer.write_to_file();
+        }
     }
 
     pub fn close_files(self) {
@@ -193,6 +206,9 @@ impl Results {
             writer.close_file();
         }
         if let Some(writer) = self.select {
+            writer.close_file();
+        }
+        if let Some(writer) = self.power {
             writer.close_file();
         }
     }

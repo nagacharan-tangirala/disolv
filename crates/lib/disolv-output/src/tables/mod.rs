@@ -2,6 +2,7 @@ pub mod model;
 pub mod net;
 pub mod payload;
 pub mod position;
+pub mod power;
 pub mod rx;
 pub mod select;
 pub mod state;
