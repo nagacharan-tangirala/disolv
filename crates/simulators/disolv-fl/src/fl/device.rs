@@ -292,20 +292,20 @@ impl<B: AutodiffBackend>
         self.models.flow.register_outgoing_attempt(&payload);
         let tx_metrics = bucket.models.network.transfer(&payload);
 
-        let tx_stats = TxData::builder()
-            .agent_id(self.device_info.id.as_u64())
-            .selected_agent(target_link.target.as_u64())
-            .distance(target_link.properties.distance.unwrap_or(-1.0))
-            .data_count(payload.metadata.total_count)
-            .link_found(self.step.as_u64())
-            .tx_order(tx_metrics.tx_order)
-            .tx_status(0)
-            .payload_size(tx_metrics.payload_size.as_u64())
-            .tx_fail_reason(0)
-            .latency(0)
-            .build();
-
         if let Some(tx) = &mut bucket.models.results.tx_data {
+            let tx_stats = TxData::builder()
+                .agent_id(self.device_info.id.as_u64())
+                .selected_agent(target_link.target.as_u64())
+                .distance(target_link.properties.distance.unwrap_or(-1.0))
+                .data_count(payload.metadata.total_count)
+                .link_found(self.step.as_u64())
+                .tx_order(tx_metrics.tx_order)
+                .tx_status(0)
+                .payload_size(tx_metrics.payload_size.as_u64())
+                .tx_fail_reason(0)
+                .latency(0)
+                .build();
+
             tx.add_data(self.step, tx_stats);
         }
 
@@ -325,20 +325,20 @@ impl<B: AutodiffBackend>
         self.models.sl_flow.register_outgoing_attempt(&payload);
         let sl_metrics = bucket.models.network.transfer(&payload);
 
-        let tx_stats = TxData::builder()
-            .agent_id(self.device_info.id.as_u64())
-            .selected_agent(target_link.target.as_u64())
-            .distance(target_link.properties.distance.unwrap_or(-1.0))
-            .data_count(payload.metadata.total_count)
-            .link_found(self.step.as_u64())
-            .tx_order(sl_metrics.tx_order)
-            .tx_status(0)
-            .payload_size(sl_metrics.payload_size.as_u64())
-            .tx_fail_reason(0)
-            .latency(0)
-            .build();
-
         if let Some(tx) = &mut bucket.models.results.tx_data {
+            let tx_stats = TxData::builder()
+                .agent_id(self.device_info.id.as_u64())
+                .selected_agent(target_link.target.as_u64())
+                .distance(target_link.properties.distance.unwrap_or(-1.0))
+                .data_count(payload.metadata.total_count)
+                .link_found(self.step.as_u64())
+                .tx_order(sl_metrics.tx_order)
+                .tx_status(0)
+                .payload_size(sl_metrics.payload_size.as_u64())
+                .tx_fail_reason(0)
+                .latency(0)
+                .build();
+
             tx.add_data(self.step, tx_stats);
         }
 
