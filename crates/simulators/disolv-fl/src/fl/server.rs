@@ -111,6 +111,7 @@ impl<B: AutodiffBackend> Server<B> {
                     message_draft.fl_task = Some(FlTask::GlobalModel(self.server_info.id));
                     message_draft.selected_clients =
                         Some(self.fl_models.client_selector.selected_clients().clone());
+                    message_draft.quantity = self.fl_models.trainer.no_of_weights;
                 }
                 ServerState::TrainingRound => {}
                 ServerState::Aggregation => {}
