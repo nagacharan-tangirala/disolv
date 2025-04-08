@@ -1,4 +1,4 @@
-use rand_distr::{Dirichlet, Distribution, Exp, Gamma, LogNormal, Normal, Uniform};
+use rand_distr::{Distribution, Exp, Gamma, LogNormal, Normal, Uniform};
 use rand_pcg::Pcg64Mcg;
 use serde::Deserialize;
 
@@ -9,7 +9,7 @@ pub enum DistType {
     LogNormal(LogNormal<f64>),
     Exponential(Exp<f64>),
     Gamma(Gamma<f64>),
-    Dirichlet(Dirichlet<f64>),
+    //Dirichlet(Dirichlet<f64>),
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -51,10 +51,10 @@ impl DistType {
                 Ok(dist) => dist,
                 Err(_) => panic!("Invalid gamma distribution parameters"),
             },
-            "dirichlet" => match Self::build_dirichlet(params) {
-                Ok(dist) => dist,
-                Err(_) => panic!("Invalid dirichlet distribution parameters"),
-            },
+            // "dirichlet" => match Self::build_dirichlet(params) {
+            //     Ok(dist) => dist,
+            //     Err(_) => panic!("Invalid dirichlet distribution parameters"),
+            // },
             _ => panic!(
                 "Invalid distribution name. Supported values are:\
                      uniform, normal, lognormal, exponential, gamma, dirichlet"
@@ -65,7 +65,7 @@ impl DistType {
     fn build_uniform(dist_params: DistParams) -> Result<Self, Box<dyn std::error::Error>> {
         let min = dist_params.min.ok_or("Missing min")?;
         let max = dist_params.max.ok_or("Missing max")?;
-        Ok(Self::Uniform(Uniform::new(min, max)))
+        Ok(Self::Uniform(Uniform::try_from(min..max)?))
     }
 
     fn build_normal(dist_params: DistParams) -> Result<Self, Box<dyn std::error::Error>> {
@@ -91,11 +91,11 @@ impl DistType {
         Ok(Self::Gamma(Gamma::new(shape, scale)?))
     }
 
-    fn build_dirichlet(dist_params: DistParams) -> Result<Self, Box<dyn std::error::Error>> {
-        let alpha = dist_params.alpha.ok_or("Missing alpha")?;
-        let size = dist_params.size.ok_or("Missing size")?;
-        Ok(Self::Dirichlet(Dirichlet::new_with_size(alpha, size)?))
-    }
+    // fn build_dirichlet(dist_params: DistParams) -> Result<Self, Box<dyn std::error::Error>> {
+    //     let alpha = dist_params.alpha.ok_or("Missing alpha")?;
+    //     let size = dist_params.size.ok_or("Missing size")?;
+    //     //Ok(Self::Dirichlet(Dirichlet::new_with_size(alpha, size)?))
+    // }
 }
 
 #[derive(Debug, Clone)]
@@ -121,9 +121,9 @@ impl UnitSampler {
             DistType::LogNormal(ref mut dist) => dist.sample(&mut self.rng),
             DistType::Exponential(ref mut dist) => dist.sample(&mut self.rng),
             DistType::Gamma(ref mut dist) => dist.sample(&mut self.rng),
-            DistType::Dirichlet(_) => {
-                panic!("Cannot sample single values from Dirichlet")
-            }
+            // DistType::Dirichlet(_) => {
+            //     panic!("Cannot sample single values from Dirichlet")
+            // }
         }
     }
 }
@@ -146,7 +146,7 @@ impl SeriesSampler {
 
     pub fn sample(&mut self) -> Vec<f64> {
         match self.dist {
-            DistType::Dirichlet(ref mut dirichlet) => dirichlet.sample(&mut self.rng),
+            //DistType::Dirichlet(ref mut dirichlet) => dirichlet.sample(&mut self.rng),
             _ => unimplemented!("Only dirichlet series can be sampled"),
         }
     }
